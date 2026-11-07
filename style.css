@@ -155,7 +155,7 @@ body { overflow: hidden; }
   /* Ritaglio dell'illustrazione (480 x 212): larghezza fissa, uguale in tutti i pulsanti */
   position: absolute; top: 0; right: 0; bottom: 0; width: 176px; pointer-events: none;
   background: center / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%); mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+  /* sfumatura corta: si vede dove comincia anche un'illustrazione scura */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 18%); mask-image: linear-gradient(to right, transparent 0%, #000 18%);
 }
 .nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
 /* Mini espansione: etichetta dorata piccola in basso a destra, sopra l'illustrazione */
