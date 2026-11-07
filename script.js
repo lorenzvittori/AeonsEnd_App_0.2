@@ -90,9 +90,8 @@ const I18N_IT = {
   battleMissing: 'Battaglia non indicata',
   startNew: 'Inizia partita',
   newGame: 'Nuova partita',
-  replaceTitle: 'Sostituire la partita salvata?',
-  replaceText: "La partita salvata nel browser verrà cancellata, insieme alla sua cronologia di annullamento. L'operazione non si può annullare.",
-  replaceConfirm: 'Sostituisci partita',
+  savedGameTitle: 'Partita in corso',
+  resumeGame: 'Riprendi partita',
   loadError: 'Impossibile caricare le carte. Riprova',
   resumeError: 'La partita salvata non si può riprendere',
   chooseNemesis: 'Scegli una nemesi disponibile per iniziare',
@@ -924,12 +923,68 @@ function renderStartChoices() {
   document.getElementById('upgraded-switch').checked = settings.includeUpgraded !== false;
 }
 
-// Riprendi primario e Nuova partita secondario se c'è un salvataggio; altrimenti solo "Inizia partita"
+// Pagina iniziale in due modi:
+//   'choice': c'è una partita salvata, sotto il titolo c'è solo la finestra Riprendi partita / Nuova partita
+//   'setup':  scelte della nuova partita (giocatori, nemesi, carte potenziate) e "Inizia partita"
+let startMode = 'setup';
+
+// Finestra sotto il titolo con la partita salvata (nemesi e giocatori) e le due scelte. Creata qui, così funziona
+// anche con un index.html vecchio ancora in cache.
+function startChoicePanel() {
+  let panel = document.getElementById('start-choice');
+  if (panel) return panel;
+  panel = el('section', 'start-choice');
+  panel.id = 'start-choice';
+  panel.setAttribute('aria-labelledby', 'start-choice-title');
+  const head = el('div', 'start-choice-head');
+  const title = el('h2', 'start-choice-title', I18N_IT.savedGameTitle);
+  title.id = 'start-choice-title';
+  head.append(title, el('p', 'start-choice-info'));
+  const resume = button(I18N_IT.resumeGame, 'primary', resumeGame);
+  const fresh = button(I18N_IT.newGame, 'secondary', () => setStartMode('setup', true));
+  resume.classList.add('ae-button--full', 'start-choice-resume');
+  fresh.classList.add('ae-button--full');
+  panel.append(head, resume, fresh);
+  document.querySelector('.start-title').after(panel);
+  return panel;
+}
+
+function setStartMode(mode, focus) {
+  const saved = readSave();
+  if (!saved) mode = 'setup';
+  startMode = mode;
+  const panel = startChoicePanel();
+  panel.hidden = mode !== 'choice';
+  panel.parentElement.classList.toggle('is-choosing', mode === 'choice');
+  if (saved) {
+    const head = panel.querySelector('.start-choice-head');
+    head.querySelector('.start-choice-info').textContent =
+      [saved.settings.nemesis, I18N_IT.players(saved.settings.players)].filter(Boolean).join(' · ');
+    const old = head.querySelector('.nemesis-art');
+    if (old) old.remove();
+    const art = nemesisArt[saved.settings.nemesis];
+    head.classList.toggle('has-art', !!art);
+    if (art) {
+      const portrait = el('span', 'nemesis-art');
+      portrait.setAttribute('aria-hidden', 'true');
+      portrait.style.backgroundImage = `url("${encodeURI(art.portrait)}")`;
+      head.prepend(portrait);
+    }
+  }
+  updateStartActions();
+  if (focus) {
+    const target = mode === 'choice' ? panel.querySelector('.start-choice-resume') : document.querySelector('#choices-players button');
+    if (target) target.focus();
+  }
+}
+
+// In 'setup' il pulsante principale è "Inizia partita"; se c'è una partita salvata, sotto resta "Riprendi partita"
 function updateStartActions() {
   const hasSave = !!readSave();
-  resumeBtn.hidden = !hasSave;
-  startBtn.textContent = hasSave ? I18N_IT.newGame : I18N_IT.startNew;
-  startBtn.className = 'ae-button ae-button--full ' + (hasSave ? 'ae-button--secondary' : 'ae-button--primary');
+  resumeBtn.hidden = !hasSave || startMode === 'choice';
+  resumeBtn.className = 'ae-button ae-button--full ae-button--secondary start-resume-alt';
+  startBtn.textContent = I18N_IT.startNew;
+  startBtn.className = 'ae-button ae-button--full ae-button--primary';
   startBtn.disabled = !settings.nemesis || !battleOf(settings.nemesis);
   startBtn.title = startBtn.disabled ? I18N_IT.chooseNemesis : '';
 }
@@ -952,7 +1007,7 @@ function openStart() {
   renderStartChoices();
   startLayer.hidden = false;
   updateInert();
-  (resumeBtn.hidden ? startBtn : resumeBtn).focus();
+  setStartMode(readSave() ? 'choice' : 'setup', true);
 }
 
 function closeStart() {
@@ -960,22 +1015,10 @@ function closeStart() {
   updateInert();
 }
 
-// Nuova partita: con un salvataggio si chiede prima conferma (la partita viene creata solo dopo)
+// Inizia partita: la scelta "Nuova partita" nella finestra sotto il titolo vale già come conferma di sostituire
+// la partita salvata, quindi qui non si chiede altro
 function onStartClick() {
-  if (!readSave()) {
-    startGame();
-    return;
-  }
-  let close = () => {};
-  const cancel = () => close();
-  const dialog = dialogShell(I18N_IT.replaceTitle, '', cancel, { displayTitle: false });
-  dialog.classList.add('ae-modal--narrow');
-  dialog.setAttribute('role', 'alertdialog');
-  const cancelBtn = button(I18N_IT.cancel, 'secondary', cancel);
-  const footer = el('div', 'ae-modal-footer');
-  footer.append(cancelBtn, button(I18N_IT.replaceConfirm, 'danger', () => { close(); startGame(); }));
-  dialog.append(el('p', 'ae-modal-text', I18N_IT.replaceText), footer);
-  close = openModal(dialog, { onCancel: cancel, initialFocus: cancelBtn });
+  startGame();
 }
 
 // Inizia: nuova partita con le scelte fatte (la partita salvata viene sostituita)
@@ -1712,7 +1755,7 @@ async function init() {
     // Il retro si scarica subito, così alla prima pesca è già pronto
     loadImage(CARD_BACK);
     render();
-    (resumeBtn.hidden ? startBtn : resumeBtn).focus();
+    setStartMode(readSave() ? 'choice' : 'setup', true);
   } catch (err) {
     console.error(err);
     // Senza replaceChildren: se l'errore viene da un browser vecchio, qui non deve fallire di nuovo

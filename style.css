@@ -178,6 +178,20 @@ body { overflow: hidden; }
 }
 .start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); white-space: pre-line; overflow-wrap: anywhere; }
 .start-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.start-resume-alt { order: 2; }
+/* Finestra "Partita in corso" sotto il titolo (c'è una partita salvata): nemesi e giocatori, con a destra
+   l'illustrazione della nemesi se c'è; poi Riprendi partita / Nuova partita. Nel frattempo le scelte sono nascoste. */
+.start-box.is-choosing > .start-group, .start-box.is-choosing > .ae-switch-row, .start-box.is-choosing > .start-actions { display: none; }
+.start-choice {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-lg); background: var(--ae-surface);
+}
+.start-choice-head { position: relative; min-height: 72px; display: flex; flex-direction: column; justify-content: center; gap: 4px; margin-bottom: 4px; border-radius: var(--ae-radius-md); overflow: hidden; }
+.start-choice-head.has-art { padding-right: 140px; }
+.start-choice-head .nemesis-art { z-index: 0; }
+.start-choice-title, .start-choice-info { position: relative; z-index: 1; }
+.start-choice-title { color: var(--ae-text-muted); font: 600 14px/20px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.start-choice-info { font: 600 18px/24px var(--ae-font-ui); }
 
 /* Scarti: icona dello stato vuoto */
 .discard-empty-icon { width: 40px; height: 40px; color: var(--ae-text-muted); }
