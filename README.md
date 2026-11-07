@@ -11,6 +11,7 @@ sopra la logica di gioco della versione 48 (mazzo, pesca, scarti, poteri/minion/
   - `Data/`: scansioni delle carte (usate per la carta grande)
   - `thumbs/<id>.webp`: miniature della coda (264 x 369), generate da `tools/build-thumbs.py` (serve Pillow).
     Da rieseguire se cambiano `cards.json` o le immagini in `Data/`: `python tools/build-thumbs.py`
-  - `Assets/ui/icons/*.svg`, `Assets/ui/decor/card-back.svg` (icone e retro generico del kit), `Assets/*.webp` (gocce di vita del dialogo)
+  - `Assets/ui/icons/*.svg` (icone del kit), `Assets/ui/decor/card-back.webp` (retro della carta pescata),
+    `Assets/*.webp` (gocce di vita del dialogo). `Assets/ui/decor/card-back.svg` è il retro generico del kit, non più usato.
 - La partita si salva nella chiave `aeonsend-app-0.2-save`. Tutti i siti di lorenzvittori.github.io condividono lo stesso
   salvataggio del browser, quindi la chiave è diversa da quella di AeonsEnd_APP e del suo prototipo. Il formato è quello della v48.

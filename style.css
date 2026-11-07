@@ -72,7 +72,7 @@ body { overflow: hidden; }
 @keyframes ae-token-out { 0% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes ae-focus-in { from { opacity: .4; transform: translateX(var(--ae-slide, 0px)); } to { opacity: 1; transform: none; } }
 
-/* Carta pescata: retro (card-back.svg) e fronte, che si gira in 350ms */
+/* Carta pescata: retro (Assets/ui/decor/card-back.webp) e fronte, che si gira in 350ms */
 .ae-flip { position: absolute; inset: 0; perspective: 1200px; }
 .ae-flip-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
 .ae-flip.is-flipped .ae-flip-inner { transform: rotateY(180deg); transition: transform var(--ae-duration-draw) var(--ae-ease-decelerate); }

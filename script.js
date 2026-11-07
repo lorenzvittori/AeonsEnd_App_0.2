@@ -159,7 +159,8 @@ const UNDO_LIMIT = 300;
 const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
-const CARD_BACK = 'Assets/ui/decor/card-back.svg';
+// Retro della carta pescata, mostrato prima che si giri (630 x 880 WebP)
+const CARD_BACK = 'Assets/ui/decor/card-back.webp';
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
 let allCards = [];
@@ -1553,6 +1554,8 @@ async function init() {
     cardsById = new Map(allCards.map(c => [c.id, c]));
     buildStartPage();
     newGame();
+    // Il retro si scarica subito, così alla prima pesca è già pronto
+    loadImage(CARD_BACK);
     render();
     (resumeBtn.hidden ? startBtn : resumeBtn).focus();
   } catch (err) {
