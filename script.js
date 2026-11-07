@@ -96,6 +96,8 @@ const I18N_IT = {
   resumeError: 'La partita salvata non si può riprendere',
   chooseNemesis: 'Scegli una nemesi disponibile per iniziare',
   nemesisCard: name => `Carta della nemesi ${name}`,
+  showNemesisCard: name => `Mostra la carta di ${name}`,
+  hideNemesisCard: 'Chiudi la carta della nemesi',
   unavailableNemeses: 'Nemesi non disponibili',
   unavailableNemesis: name => `${name}, non disponibile`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
@@ -832,8 +834,35 @@ function renderPlayers() {
   }));
 }
 
-// Carta della nemesi scelta sotto i pulsanti, se ne abbiamo l'immagine
+// Carta della nemesi scelta: chiusa di default. Sul pulsante della nemesi scelta c'è una freccia verso il basso che
+// la apre subito sotto il pulsante; in cima alla carta una freccia verso l'alto la richiude.
+let nemesisPreviewOpen = false;
+const CHEVRON_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">'
+  + '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function chevronButton(className, label, handler) {
+  const b = el('button', 'nemesis-toggle ' + className);
+  b.type = 'button';
+  b.setAttribute('aria-label', label);
+  b.setAttribute('aria-controls', 'nemesis-preview');
+  b.innerHTML = CHEVRON_SVG;
+  b.addEventListener('click', handler);
+  return b;
+}
+
+function setNemesisPreview(open) {
+  nemesisPreviewOpen = open;
+  renderNemesisPreview();
+  const target = open ? document.querySelector('#nemesis-preview .nemesis-collapse') : document.querySelector('.nemesis-item.is-selected .nemesis-expand');
+  if (target) target.focus({ preventScroll: true });
+  if (open) {
+    const preview = document.getElementById('nemesis-preview');
+    if (preview) preview.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
 function renderNemesisPreview() {
+  const list = document.getElementById('nemesis-list');
   let preview = document.getElementById('nemesis-preview');
   if (!preview) {
     // index.html vecchio ancora in cache del browser: il riquadro si crea qui
@@ -843,14 +872,27 @@ function renderNemesisPreview() {
     image.alt = '';
     image.decoding = 'async';
     preview.appendChild(image);
-    document.getElementById('nemesis-list').after(preview);
   }
+  if (!preview.querySelector('.nemesis-collapse')) {
+    preview.prepend(chevronButton('nemesis-collapse', I18N_IT.hideNemesisCard, () => setNemesisPreview(false)));
+  }
+  // La carta sta subito dopo il pulsante della nemesi scelta, su tutta la larghezza della lista
+  const item = list.querySelector('.nemesis-item.is-selected');
+  if (item) item.after(preview); else list.after(preview);
+
   const art = settings.nemesis && nemesisArt[settings.nemesis];
-  preview.hidden = !art;
+  const open = !!art && nemesisPreviewOpen;
+  preview.hidden = !open;
+  const expand = item && item.querySelector('.nemesis-expand');
+  if (expand) {
+    expand.hidden = open;
+    expand.setAttribute('aria-expanded', String(open));
+  }
   const img = preview.querySelector('img');
-  if (!art) { img.removeAttribute('src'); return; }
+  if (!open) return;
   img.alt = I18N_IT.nemesisCard(settings.nemesis);
-  img.src = encodeURI(art.card);
+  const src = encodeURI(art.card);
+  if (img.getAttribute('src') !== src) img.src = src;
 }
 
 // Nemesi della wave scelta: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
@@ -886,12 +928,21 @@ function renderBosses(wave) {
     // Mini espansione: etichetta dorata piccola in basso a destra
     if (info.miniExpansion) b.appendChild(el('span', 'nemesis-expansion', info.miniExpansion));
     b.addEventListener('click', () => {
+      if (settings.nemesis === info.name) return;
       settings.nemesis = info.name;
-      list.querySelectorAll('.nemesis-option').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
-      renderNemesisPreview();
-      updateStartActions();
+      nemesisPreviewOpen = false;
+      renderBosses(wave);
+      const selected = list.querySelector('.nemesis-item.is-selected .nemesis-option');
+      if (selected) selected.focus({ preventScroll: true });
     });
-    return b;
+    const item = el('div', 'nemesis-item');
+    item.appendChild(b);
+    if (info.name === settings.nemesis) {
+      item.classList.add('is-selected');
+      // Freccia verso il basso al centro del pulsante scelto: apre la carta della nemesi
+      if (art) item.appendChild(chevronButton('nemesis-expand', I18N_IT.showNemesisCard(info.name), () => setNemesisPreview(true)));
+    }
+    return item;
   }));
   renderNemesisPreview();
   document.getElementById('nemesis-empty').hidden = playable.length > 0;
@@ -918,6 +969,7 @@ function renderBosses(wave) {
 }
 
 function renderStartChoices() {
+  nemesisPreviewOpen = false;
   renderPlayers();
   const waveSelect = document.getElementById('wave-select');
   const current = nemeses.find(n => n.name === settings.nemesis);

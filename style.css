@@ -165,7 +165,19 @@ body { overflow: hidden; }
   padding: 2px 5px; border-radius: 4px; background: var(--ae-gold); color: #20160B;
   font: 700 9px/12px var(--ae-font-ui); letter-spacing: .05em; text-transform: uppercase; pointer-events: none;
 }
-.nemesis-preview { margin: 12px 0 0; display: flex; justify-content: center; }
+/* Nemesi scelta: freccia verso il basso al centro del pulsante, apre la carta subito sotto (su tutta la larghezza
+   della lista); in cima alla carta la freccia verso l'alto la richiude */
+.nemesis-item { position: relative; display: flex; flex-direction: column; }
+.nemesis-toggle {
+  display: grid; place-items: center; width: 44px; height: 26px; padding: 0;
+  border: 1px solid var(--ae-border); border-radius: 13px; background: var(--ae-surface-raised); color: var(--ae-text);
+}
+.nemesis-toggle svg { display: block; }
+.nemesis-expand { position: absolute; left: 50%; bottom: -13px; transform: translateX(-50%); z-index: 3; }
+.nemesis-item.is-selected:has(.nemesis-expand:not([hidden])) { margin-bottom: 8px; }
+.nemesis-collapse svg { transform: rotate(180deg); }
+.nemesis-preview { grid-column: 1 / -1; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard); }
+.nemesis-preview[hidden] { display: none; }
 .nemesis-preview img { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; }
 .nemesis-name { font: 600 15px/20px var(--ae-font-ui); }
 .nemesis-tags { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 700 12px/16px var(--ae-font-ui); letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
