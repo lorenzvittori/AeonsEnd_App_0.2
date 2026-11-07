@@ -81,7 +81,7 @@ body { overflow: hidden; }
 .ae-focus-status.is-token .ae-icon { color: var(--ae-gold); }
 .ae-focus-status.is-dropping .ae-icon { animation: ae-token-out var(--ae-duration-token) ease-out; }
 .ae-focus-status.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
-.ae-focus.is-changing .ae-focus-stage { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
+.ae-focus.is-changing .ae-focus-stage, .ae-focus.is-changing .ae-focus-status { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
 @keyframes ae-token-out { 0% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes ae-focus-in { from { opacity: .4; transform: translateX(var(--ae-slide, 0px)); } to { opacity: 1; transform: none; } }
 

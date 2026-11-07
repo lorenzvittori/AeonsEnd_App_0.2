@@ -1841,6 +1841,13 @@ function backToActive() {
 const SWIPE_OUT_MS = 140;
 let swipe = null;
 function swipeStage() { return focusEl.querySelector('.ae-focus-stage'); }
+// Carta e stato sopra (token del potere / vita del minion) si muovono insieme
+function moveSwiped(transform, transition) {
+  focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => {
+    node.style.transition = transition;
+    node.style.transform = transform;
+  });
+}
 function neighbourOf(step) {
   const i = queue.findIndex(e => e.uid === ui.viewedUid);
   return i >= 0 ? queue[i + step] : null;
@@ -1861,8 +1868,7 @@ focusEl.addEventListener('pointermove', e => {
   const stage = swipeStage();
   if (!stage) return;
   swipe.dx = neighbourOf(dx < 0 ? 1 : -1) ? dx : dx * 0.25;
-  stage.style.transition = 'none';
-  stage.style.transform = `translateX(${swipe.dx}px)`;
+  moveSwiped(`translateX(${swipe.dx}px)`, 'none');
 });
 function endSwipe(e, cancelled) {
   if (!swipe || (e && e.pointerId !== swipe.id)) return;
@@ -1875,8 +1881,7 @@ function endSwipe(e, cancelled) {
   if (!cancelled && next && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
     // Esce dal lato del gesto, poi la carta vicina entra dal lato opposto
     const out = -step * (focusEl.clientWidth / 2 + stage.offsetWidth / 2);
-    stage.style.transition = `transform ${SWIPE_OUT_MS}ms ease-in`;
-    stage.style.transform = `translateX(${out}px)`;
+    moveSwiped(`translateX(${out}px)`, `transform ${SWIPE_OUT_MS}ms ease-in`);
     ui.isTransitioning = true;
     setTimeout(() => {
       ui.isTransitioning = false;
@@ -1884,8 +1889,7 @@ function endSwipe(e, cancelled) {
       moveView(step);
     }, SWIPE_OUT_MS);
   } else {
-    stage.style.transition = 'transform 180ms var(--ae-ease-decelerate)';
-    stage.style.transform = '';
+    moveSwiped('', 'transform 180ms var(--ae-ease-decelerate)');
   }
 }
 focusEl.addEventListener('pointerup', e => endSwipe(e, false));
