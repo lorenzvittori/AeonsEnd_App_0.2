@@ -149,10 +149,10 @@ body { overflow: hidden; }
 }
 /* Pulsante con illustrazione: un ritaglio dell'illustrazione della nemesi (Assets/nemesis/<slug>-portrait.webp) occupa
    la parte destra del pulsante e sfuma verso sinistra nello sfondo, sotto al nome */
-.nemesis-option.has-art { position: relative; overflow: hidden; min-height: 72px; padding-right: 116px; }
+.nemesis-option.has-art { position: relative; overflow: hidden; min-height: 72px; padding-right: 128px; }
 .nemesis-art {
-  /* Tutta l'illustrazione (16:9), alta quanto il pulsante: la larghezza segue la proporzione */
-  position: absolute; top: 0; right: 0; bottom: 0; aspect-ratio: 16 / 9; pointer-events: none;
+  /* Ritaglio dell'illustrazione (480 x 227), alto quanto il pulsante: la larghezza segue la proporzione */
+  position: absolute; top: 0; right: 0; bottom: 0; aspect-ratio: 480 / 227; pointer-events: none;
   background: center / cover no-repeat;
   -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%); mask-image: linear-gradient(to right, transparent 0%, #000 45%);
 }
@@ -165,11 +165,11 @@ body { overflow: hidden; }
 .nemesis-skeleton { min-height: 60px; border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); opacity: .6; }
 .start-note { margin-top: 4px; color: var(--ae-text-muted); font: 500 14px/20px var(--ae-font-ui); }
 /* Nemesi non disponibili: box piccoli, solo il nome attenuato, barrati da una X rossa sottile (due diagonali) */
-.nemesis-unavailable { margin: 8px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.nemesis-unavailable { margin: 8px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .nemesis-locked {
-  position: relative; min-height: 36px; padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-align: center;
-  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-sm); background: var(--ae-surface); overflow: hidden;
-  color: var(--ae-text-quiet); font: 600 12px/15px var(--ae-font-ui); cursor: not-allowed; user-select: none;
+  position: relative; min-height: 40px; padding: 4px 14px; display: flex; align-items: center; justify-content: flex-start; text-align: left;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface); overflow: hidden;
+  color: var(--ae-text-quiet); font: 600 14px/18px var(--ae-font-ui); cursor: not-allowed; user-select: none;
 }
 .nemesis-locked::before {
   content: ''; position: absolute; inset: 0; pointer-events: none;
