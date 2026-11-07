@@ -27,8 +27,8 @@ CARD_WIDTH = 1000
 PORTRAIT = (480, 270)  # 16:9
 QUALITY = 90
 
-# Ritaglio standard: fascia alta dell'illustrazione (sopra il nome), in proporzione 16:9
-DEFAULT_CROP = (0.08, 0.04, 0.92, None)
+# Ritaglio standard: quasi tutta l'illustrazione (sopra il nome), in proporzione 16:9
+DEFAULT_CROP = (0.02, 0.01, 0.98, None)
 CROPS = {
     # 'Arachnos': (0.08, 0.04, 0.92, None),
 }

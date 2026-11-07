@@ -88,7 +88,6 @@ const I18N_IT = {
   cardDrawn: name => `Carta pescata: ${name}`,
   battle: n => `Battaglia ${n}`,
   battleMissing: 'Battaglia non indicata',
-  otherNemeses: n => `Altre nemesi (non disponibili) · ${n}`,
   startNew: 'Inizia partita',
   newGame: 'Nuova partita',
   replaceTitle: 'Sostituire la partita salvata?',
@@ -98,6 +97,8 @@ const I18N_IT = {
   resumeError: 'La partita salvata non si può riprendere',
   chooseNemesis: 'Scegli una nemesi disponibile per iniziare',
   nemesisCard: name => `Carta della nemesi ${name}`,
+  unavailableNemeses: 'Nemesi non disponibili',
+  unavailableNemesis: name => `${name}, non disponibile`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
   undone: 'Azione annullata'
 };
@@ -888,13 +889,22 @@ function renderBosses(wave) {
   renderNemesisPreview();
   document.getElementById('nemesis-empty').hidden = playable.length > 0;
 
-  const other = document.getElementById('nemesis-other');
-  other.hidden = others.length === 0;
-  other.open = false;
-  document.getElementById('nemesis-other-summary').textContent = I18N_IT.otherNemeses(others.length);
-  document.getElementById('nemesis-other-list').replaceChildren(...others.map(info => {
-    const li = el('li', '', info.name);
-    if (info.miniExpansion) li.appendChild(el('small', '', info.miniExpansion));
+  // Nemesi non disponibili: box piccoli con solo il nome, barrati da una X rossa sottile, non cliccabili.
+  // Stanno subito sotto i pulsanti delle disponibili (il vecchio elenco a scomparsa non si usa più).
+  const oldOther = document.getElementById('nemesis-other');
+  if (oldOther) oldOther.hidden = true;
+  let unavailable = document.getElementById('nemesis-unavailable');
+  if (!unavailable) {
+    unavailable = el('ul', 'nemesis-unavailable');
+    unavailable.id = 'nemesis-unavailable';
+    unavailable.setAttribute('aria-label', I18N_IT.unavailableNemeses);
+    list.after(unavailable);
+  }
+  unavailable.hidden = others.length === 0;
+  unavailable.replaceChildren(...others.map(info => {
+    const li = el('li', 'nemesis-locked');
+    li.setAttribute('aria-label', I18N_IT.unavailableNemesis(info.name));
+    li.appendChild(el('span', '', info.name));
     return li;
   }));
   updateStartActions();
