@@ -1,10 +1,10 @@
-"""Genera le miniature WebP della coda (new_design_0.2/thumbs/<id>.webp) dalle scansioni in Data/.
+"""Genera le miniature WebP della coda (thumbs/<id>.webp) dalle scansioni in Data/.
 
 Ogni miniatura sta in 264 x 369 px (il doppio di 132 x 184, la miniatura della coda), mantenendo le proporzioni
 della scansione; qualità WebP 76. Le scansioni originali non vengono toccate: la carta grande usa sempre quelle.
 
-Uso (dalla cartella principale del repository, serve Pillow: pip install pillow):
-    python new_design_0.2/tools/build-thumbs.py
+Uso (dalla cartella del repository, serve Pillow: pip install pillow):
+    python tools/build-thumbs.py
 Va rieseguito quando cambiano cards.json o le immagini in Data/.
 """
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[2]          # cartella principale del repository
-OUT = Path(__file__).resolve().parents[1] / 'thumbs'  # new_design_0.2/thumbs
+ROOT = Path(__file__).resolve().parents[1]  # cartella del repository
+OUT = ROOT / 'thumbs'
 SIZE = (264, 369)
 QUALITY = 76
 

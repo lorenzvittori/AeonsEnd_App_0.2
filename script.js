@@ -1,7 +1,8 @@
-// PROTOTIPO new_design_0.2: nuovo design (REPORT_IMPLEMENTAZIONE.md del kit di design) sopra la logica della versione 48.
-// Dati (cards.json, deck-setup.json, nemesis.json) e scansioni delle carte (Data/) sono quelli della cartella principale,
-// letti con DATA_ROOT; le miniature della coda sono in thumbs/ (fatte da tools/build-thumbs.py).
-// La partita si salva con una chiave separata da quella dell'app originale; il formato del salvataggio è quello della v48.
+// Aeon's End App 0.2: nuovo design (REPORT_IMPLEMENTAZIONE.md del kit di design) sopra la logica della versione 48.
+// Repository autonomo: dati (cards.json, deck-setup.json, nemesis.json) e scansioni delle carte (Data/) sono in questa
+// cartella, letti con DATA_ROOT; le miniature della coda sono in thumbs/ (fatte da tools/build-thumbs.py).
+// La partita si salva con una chiave propria (il sito condivide il dominio, e quindi il localStorage, con AeonsEnd_APP);
+// il formato del salvataggio è quello della v48.
 //
 // Regola: la logica del gioco (mazzo per tier, pesca, scarti e rimescolamento, poteri/minion/attacchi, turni, undo)
 // è quella della v48; qui cambia solo l'interfaccia.
@@ -148,13 +149,14 @@ function duration(name) {
 // Dove si allinea la carta appena pescata nella coda: centro della carta al 62% della larghezza visibile
 const ANCHOR_RATIO = 0.62;
 
-// Partita salvata nel browser (localStorage), separata da quella dell'app originale (aeonsend-save-v1),
-// e numero massimo di passi di undo conservati
-const SAVE_KEY = 'aeonsend-clone-save-v2';
+// Partita salvata nel browser (localStorage) e numero massimo di passi di undo conservati.
+// lorenzvittori.github.io è lo stesso dominio per tutti i siti: la chiave è diversa da quella di AeonsEnd_APP
+// (aeonsend-save-v1) e del suo prototipo new_design_0.2 (aeonsend-clone-save-v2), così le partite non si sovrascrivono.
+const SAVE_KEY = 'aeonsend-app-0.2-save';
 const UNDO_LIMIT = 300;
 
-// Cartella dell'app originale, da cui il prototipo legge dati e scansioni delle carte
-const DATA_ROOT = '../';
+// Cartella da cui si leggono dati e scansioni delle carte ('' = questa)
+const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
 const CARD_BACK = 'Assets/ui/decor/card-back.svg';
@@ -1540,7 +1542,7 @@ async function init() {
       loadJson(DATA_ROOT + 'cards.json'), loadJson(DATA_ROOT + 'deck-setup.json'), loadJson(DATA_ROOT + 'nemesis.json')
     ]);
     if (cards.length === 0) throw new Error('Nessuna carta trovata in cards.json');
-    // Le scansioni delle carte stanno nella cartella Data/ dell'app originale; le miniature in thumbs/
+    // Le scansioni delle carte stanno nella cartella Data/, le miniature in thumbs/
     cards.forEach(c => {
       c.image = DATA_ROOT + c.image;
       c.thumb = THUMB_DIR + encodeURIComponent(c.id) + '.webp';
