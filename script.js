@@ -213,7 +213,8 @@ const ui = {
   reveal: null,           // carta pescata da girare: { uid, status: 'loading' | 'ready' | 'error' }
   queueAnchor: null,      // { uid, align } carta su cui allineare la coda al prossimo disegno
   lastDrawnUid: null,
-  slide: 0                // direzione dell'ultimo cambio di carta (per l'animazione)
+  slide: 0,               // direzione dell'ultimo cambio di carta (per l'animazione)
+  slidePx: null           // distanza da cui entra la carta dopo uno slide col dito (px, con segno)
 };
 
 // --- 2. Dati e mazzo ------------------------------------------------------------------------------------------------
@@ -414,7 +415,8 @@ function queueItem(entry, opts) {
   meta.append(el('strong', '', data.name), el('small', '', typeName(data)));
 
   const art = cardArt(data, { thumb: true, lazy: opts.lazy });
-  if (opts.compact && opts.current && !opts.viewed) art.appendChild(el('span', 'ae-rail-flag', I18N_IT.activeFlag));
+  // (non sulla carta appena pescata: ha già NUOVA e il glow dorato)
+  if (opts.compact && opts.current && !opts.viewed && !entry.isNew) art.appendChild(el('span', 'ae-rail-flag', I18N_IT.activeFlag));
 
   button.append(statusBadge(entry), meta, art);
   if (entry.isNew) {
@@ -1202,6 +1204,8 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
     stage.appendChild(cardArt(viewed.data));
   }
   if (viewed.isNew) {
+    // Carta appena pescata: glow dorato attorno (come nella versione 1) ed etichetta NUOVA
+    stage.classList.add('is-new');
     const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
     tag.setAttribute('aria-hidden', 'true');
     stage.appendChild(tag);
@@ -1226,8 +1230,10 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
   focusEl.dataset.uid = viewed.uid;
   focusEl.replaceChildren(...children);
   focusEl.classList.toggle('is-changing', changed && !reveal);
-  focusEl.style.setProperty('--ae-slide', (ui.slide * 24) + 'px');
+  // Dopo uno slide col dito la nuova carta entra da più lontano (ui.slidePx), altrimenti 24px
+  focusEl.style.setProperty('--ae-slide', (ui.slidePx != null ? ui.slidePx : ui.slide * 24) + 'px');
   ui.slide = 0;
+  ui.slidePx = null;
   sizeFocus();
 }
 
@@ -1245,6 +1251,7 @@ function sizeFocus() {
   const width = Math.max(40, Math.min(availW, availH / CARD_RATIO));
   stage.style.width = width + 'px';
   stage.style.height = (width * CARD_RATIO) + 'px';
+  stage.style.setProperty('--cw', width + 'px');
 }
 
 // Carta pescata: retro (con "Caricamento carta…") finché l'immagine non è pronta, poi si gira in 350ms.
@@ -1495,18 +1502,61 @@ function backToActive() {
   resolveBtn.focus();
 }
 
-// Slide sulla carta in primo piano: verso sinistra = carta successiva, verso destra = precedente
-let swipeStart = null;
-focusEl.addEventListener('pointerdown', e => { swipeStart = { x: e.clientX, y: e.clientY }; });
-focusEl.addEventListener('pointerup', e => {
-  if (!swipeStart) return;
-  const dx = e.clientX - swipeStart.x;
-  const dy = e.clientY - swipeStart.y;
-  swipeStart = null;
-  if (Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) <= Math.abs(dy)) return;
-  moveView(dx < 0 ? 1 : -1);
+// Slide sulla carta in primo piano: verso sinistra = carta successiva, verso destra = precedente.
+// La carta segue il dito mentre si trascina; se non c'è una carta in quella direzione si muove poco (resistenza).
+// Al rilascio: oltre SWIPE_MIN_DISTANCE esce dal lato del gesto e la nuova entra dall'altro, altrimenti torna al centro.
+const SWIPE_OUT_MS = 140;
+let swipe = null;
+function swipeStage() { return focusEl.querySelector('.ae-focus-stage'); }
+function neighbourOf(step) {
+  const i = queue.findIndex(e => e.uid === ui.viewedUid);
+  return i >= 0 ? queue[i + step] : null;
+}
+focusEl.addEventListener('pointerdown', e => {
+  if (!resolving || ui.holdUid || ui.isTransitioning || e.target.closest('button')) return;
+  swipe = { x: e.clientX, y: e.clientY, id: e.pointerId, dx: 0, dragging: false };
 });
-focusEl.addEventListener('pointercancel', () => { swipeStart = null; });
+focusEl.addEventListener('pointermove', e => {
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x;
+  const dy = e.clientY - swipe.y;
+  if (!swipe.dragging) {
+    if (Math.abs(dx) < DRAG_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) return;
+    swipe.dragging = true;
+    try { focusEl.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  const stage = swipeStage();
+  if (!stage) return;
+  swipe.dx = neighbourOf(dx < 0 ? 1 : -1) ? dx : dx * 0.25;
+  stage.style.transition = 'none';
+  stage.style.transform = `translateX(${swipe.dx}px)`;
+});
+function endSwipe(e, cancelled) {
+  if (!swipe || (e && e.pointerId !== swipe.id)) return;
+  const { dx, dragging } = swipe;
+  swipe = null;
+  const stage = swipeStage();
+  if (!dragging || !stage) return;
+  const step = dx < 0 ? 1 : -1;
+  const next = neighbourOf(step);
+  if (!cancelled && next && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
+    // Esce dal lato del gesto, poi la carta vicina entra dal lato opposto
+    const out = -step * (focusEl.clientWidth / 2 + stage.offsetWidth / 2);
+    stage.style.transition = `transform ${SWIPE_OUT_MS}ms ease-in`;
+    stage.style.transform = `translateX(${out}px)`;
+    ui.isTransitioning = true;
+    setTimeout(() => {
+      ui.isTransitioning = false;
+      ui.slidePx = step * Math.round(stage.offsetWidth * 0.5);
+      moveView(step);
+    }, SWIPE_OUT_MS);
+  } else {
+    stage.style.transition = 'transform 180ms var(--ae-ease-decelerate)';
+    stage.style.transform = '';
+  }
+}
+focusEl.addEventListener('pointerup', e => endSwipe(e, false));
+focusEl.addEventListener('pointercancel', e => endSwipe(e, true));
 
 // --- 9. Eventi e avvio ---------------------------------------------------------------------------------------------
 
