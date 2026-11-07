@@ -18,5 +18,20 @@
     "card": "Assets/nemesis/maggoth.webp",
     "portrait": "Assets/nemesis/maggoth-portrait.webp",
     "ratio": 1.336
+  },
+  "Necroswarm": {
+    "card": "Assets/nemesis/necroswarm.webp",
+    "portrait": "Assets/nemesis/necroswarm-portrait.webp",
+    "ratio": 1.336
+  },
+  "The Wailing": {
+    "card": "Assets/nemesis/the-wailing.webp",
+    "portrait": "Assets/nemesis/the-wailing-portrait.webp",
+    "ratio": 1.336
+  },
+  "The Wanderer": {
+    "card": "Assets/nemesis/the-wanderer.webp",
+    "portrait": "Assets/nemesis/the-wanderer-portrait.webp",
+    "ratio": 1.336
   }
 }
