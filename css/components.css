@@ -107,8 +107,6 @@ button:disabled { cursor: not-allowed; }
 .ae-token {
   flex: 0 1 auto; min-width: 0; width: 16px; height: 16px;
   background: url('../Assets/power-token.webp') center / contain no-repeat;
-  /* Bordo sottilissimo dorato (palette: --ae-gold) attorno al token, che è tondo */
-  border-radius: 50%; box-shadow: 0 0 0 1px var(--ae-gold);
 }
 .ae-status-badge--empty { visibility: hidden; }
 .ae-status-badge.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
