@@ -97,6 +97,7 @@ const I18N_IT = {
   loadError: 'Impossibile caricare le carte. Riprova',
   resumeError: 'La partita salvata non si può riprendere',
   chooseNemesis: 'Scegli una nemesi disponibile per iniziare',
+  nemesisCard: name => `Carta della nemesi ${name}`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
   undone: 'Azione annullata'
 };
@@ -180,6 +181,9 @@ let nemeses = [];
 
 // Scelte della pagina iniziale: giocatori, nemesi (da cui dipende la battaglia) e se usare le Upgraded Basic
 let settings = { players: 2, nemesis: null, includeUpgraded: true };
+// Immagini delle nemesi per il menu (Assets/nemesis/nemesis-art.json, fatto da tools/build-nemesis-art.py):
+// { "Arachnos": { card, portrait, ratio } }. Facoltativo: se manca, i pulsanti restano senza illustrazione.
+let nemesisArt = {};
 let startOptions = null;
 
 // Coda in gioco: dalla carta più vecchia alla più recente. Ogni carta in gioco ha un uid stabile
@@ -826,6 +830,27 @@ function renderPlayers() {
   }));
 }
 
+// Carta della nemesi scelta sotto i pulsanti, se ne abbiamo l'immagine
+function renderNemesisPreview() {
+  let preview = document.getElementById('nemesis-preview');
+  if (!preview) {
+    // index.html vecchio ancora in cache del browser: il riquadro si crea qui
+    preview = el('figure', 'nemesis-preview');
+    preview.id = 'nemesis-preview';
+    const image = el('img');
+    image.alt = '';
+    image.decoding = 'async';
+    preview.appendChild(image);
+    document.getElementById('nemesis-list').after(preview);
+  }
+  const art = settings.nemesis && nemesisArt[settings.nemesis];
+  preview.hidden = !art;
+  const img = preview.querySelector('img');
+  if (!art) { img.removeAttribute('src'); return; }
+  img.alt = I18N_IT.nemesisCard(settings.nemesis);
+  img.src = encodeURI(art.card);
+}
+
 // Nemesi della wave scelta: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
 function renderBosses(wave) {
   const list = document.getElementById('nemesis-list');
@@ -842,14 +867,25 @@ function renderBosses(wave) {
     const tags = el('span', 'nemesis-tags');
     tags.appendChild(el('span', '', info.battle ? I18N_IT.battle(info.battle) : I18N_IT.battleMissing));
     if (info.miniExpansion) tags.appendChild(el('span', '', info.miniExpansion));
+    const art = nemesisArt[info.name];
+    if (art) {
+      // Parte dell'illustrazione a destra del pulsante (come nella wiki)
+      b.classList.add('has-art');
+      const portrait = el('span', 'nemesis-art');
+      portrait.setAttribute('aria-hidden', 'true');
+      portrait.style.backgroundImage = `url("${encodeURI(art.portrait)}")`;
+      b.appendChild(portrait);
+    }
     b.append(el('span', 'nemesis-name', info.name), tags);
     b.addEventListener('click', () => {
       settings.nemesis = info.name;
       list.querySelectorAll('.nemesis-option').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      renderNemesisPreview();
       updateStartActions();
     });
     return b;
   }));
+  renderNemesisPreview();
   document.getElementById('nemesis-empty').hidden = playable.length > 0;
 
   const other = document.getElementById('nemesis-other');
@@ -1646,9 +1682,11 @@ async function init() {
   showStartSkeleton();
   updateInert();
   try {
-    const [cards, setup, nemesisList] = await Promise.all([
-      loadJson(DATA_ROOT + 'cards.json'), loadJson(DATA_ROOT + 'deck-setup.json'), loadJson(DATA_ROOT + 'nemesis.json')
+    const [cards, setup, nemesisList, art] = await Promise.all([
+      loadJson(DATA_ROOT + 'cards.json'), loadJson(DATA_ROOT + 'deck-setup.json'), loadJson(DATA_ROOT + 'nemesis.json'),
+      loadJson('Assets/nemesis/nemesis-art.json').catch(() => ({}))
     ]);
+    nemesisArt = art || {};
     if (cards.length === 0) throw new Error('Nessuna carta trovata in cards.json');
     // Le scansioni delle carte stanno nella cartella Data/, le miniature in thumbs/
     cards.forEach(c => {

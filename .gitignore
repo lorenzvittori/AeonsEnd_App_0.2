@@ -6,3 +6,6 @@ Thumbs.db
 Data/**/*.jpg
 Data/**/*.jpeg
 Data/**/*.png
+
+# Scansioni originali delle carte nemesi (le immagini del menu si rifanno con tools/build-nemesis-art.py)
+Assets/nemesis/src/

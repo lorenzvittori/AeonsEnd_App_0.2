@@ -147,6 +147,17 @@ body { overflow: hidden; }
   min-height: 60px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
   border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); text-align: left;
 }
+/* Pulsante con illustrazione: un ritaglio dell'illustrazione della nemesi (Assets/nemesis/<slug>-portrait.webp) occupa
+   la parte destra del pulsante e sfuma verso sinistra nello sfondo, sotto al nome */
+.nemesis-option.has-art { position: relative; overflow: hidden; min-height: 72px; padding-right: 40%; }
+.nemesis-art {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 62%; pointer-events: none;
+  background: center 30% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 55%); mask-image: linear-gradient(to right, transparent 0%, #000 55%);
+}
+.nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
+.nemesis-preview { margin: 12px 0 0; display: flex; justify-content: center; }
+.nemesis-preview img { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; }
 .nemesis-name { font: 600 15px/20px var(--ae-font-ui); }
 .nemesis-tags { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 700 12px/16px var(--ae-font-ui); letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
 .nemesis-option[aria-pressed='true'] .nemesis-tags { opacity: .85; }
