@@ -195,7 +195,7 @@ button:disabled { cursor: not-allowed; }
 .ae-drops { display: flex; justify-content: center; align-items: flex-end; gap: 2px; min-height: 22px; flex-wrap: nowrap; overflow: hidden; }
 .ae-drops span { flex: 0 1 auto; min-width: 0; background: center / contain no-repeat; }
 .ae-drops .drop5 { width: 17px; height: 22px; background-image: url('../Assets/life-drop-5.webp'); }
-.ae-drops .drop { width: 13px; height: 17px; background-image: url('../Assets/life-drop.webp'); }
+.ae-drops .drop { width: 13px; height: 17px; background-image: url('../Assets/life-drop-1.webp'); }
 .ae-drops .drop.gained { filter: drop-shadow(0 0 2px #4dff6a) drop-shadow(0 0 4px #4dff6a); }
 .ae-drops .drop.lost { background-image: url('../Assets/life-drop-lost-1.webp'); }
 .ae-drops .drop5.lost { background-image: url('../Assets/life-drop-lost-5.webp'); }
