@@ -98,6 +98,7 @@ const I18N_IT = {
   nemesisCard: name => `Carta della nemesi ${name}`,
   showNemesisCard: name => `Mostra la carta di ${name}`,
   hideNemesisCard: 'Chiudi la carta della nemesi',
+  queueRail: 'Coda in gioco, tocca una carta per mostrarla',
   nemesisCardBack: name => `Retro della carta della nemesi ${name} (setup)`,
   unavailableNemeses: 'Nemesi non disponibili',
   unavailableNemesis: name => `${name}, non disponibile`,
@@ -421,7 +422,8 @@ function queueItem(entry, opts) {
   meta.setAttribute('aria-hidden', 'true');
   meta.append(el('strong', '', data.name), el('small', '', typeName(data)));
 
-  const art = cardArt(data, { thumb: true, lazy: opts.lazy });
+  // Le carte grandi della VistaCoda usano la scansione intera, le altre la miniatura
+  const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy });
   // (non sulla carta appena pescata: ha già NUOVA e il glow dorato)
   if (opts.compact && opts.current && !opts.viewed && !entry.isNew) art.appendChild(el('span', 'ae-rail-flag', I18N_IT.activeFlag));
 
@@ -597,11 +599,87 @@ function updateInfo() {
   discardBtn.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
 }
 
+// VistaCoda: in alto la fascia compatta con tutta la coda (come nel turno nemesi), sotto le carte grandi, una e mezza
+// alla volta. Toccare una carta della fascia porta lì le carte grandi; la carta più al centro è quella evidenziata.
+let queueRail = null;
+function ensureQueueRail() {
+  if (queueRail) return queueRail;
+  queueRail = el('div', 'ae-compact-rail queue-rail');
+  queueRail.id = 'queue-rail';
+  queueRail.setAttribute('role', 'list');
+  queueRail.setAttribute('aria-label', I18N_IT.queueRail);
+  queueView.querySelector('.queue-col').prepend(queueRail);
+  trackDrag(queueRail);
+  queueRail.addEventListener('click', e => {
+    const item = e.target.closest('.ae-queue-item');
+    if (!item || queueRail.dataset.dragged === '1') return;
+    const big = queueList.querySelector(`[data-uid="${item.dataset.uid}"]`);
+    if (big) scrollQueueTo(big);
+    markQueueRail(Number(item.dataset.uid));
+  });
+  queueViewport.addEventListener('scroll', () => {
+    if (queueRailFrame) return;
+    queueRailFrame = requestAnimationFrame(() => { queueRailFrame = 0; markQueueRail(centredQueueUid()); });
+  }, { passive: true });
+  return queueRail;
+}
+let queueRailFrame = 0;
+
+function scrollQueueTo(item) {
+  const cRect = queueViewport.getBoundingClientRect();
+  const iRect = item.getBoundingClientRect();
+  const left = iRect.left - cRect.left + queueViewport.scrollLeft + iRect.width / 2 - queueViewport.clientWidth / 2;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  queueViewport.scrollTo({ left, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+function centredQueueUid() {
+  const cRect = queueViewport.getBoundingClientRect();
+  const middle = cRect.left + cRect.width / 2;
+  let best = null;
+  let bestDist = Infinity;
+  queueList.querySelectorAll('.ae-queue-item').forEach(item => {
+    const r = item.getBoundingClientRect();
+    const d = Math.abs(r.left + r.width / 2 - middle);
+    if (d < bestDist) { bestDist = d; best = Number(item.dataset.uid); }
+  });
+  return best;
+}
+
+function markQueueRail(uid) {
+  if (!queueRail) return;
+  queueRail.querySelectorAll('.ae-queue-item').forEach(item => {
+    const on = Number(item.dataset.uid) === uid;
+    if (on) item.dataset.viewed = 'true'; else delete item.dataset.viewed;
+    if (on) scrollItemInto(queueRail, item, 'nearest');
+  });
+}
+
+// Carte grandi: una e mezza nella larghezza, ma mai più alte dello spazio disponibile
+function sizeQueue() {
+  if (queueView.hidden) return;
+  const style = getComputedStyle(queueViewport);
+  const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const gap = parseFloat(getComputedStyle(queueList).columnGap) || 12;
+  const byWidth = (queueViewport.clientWidth - padX - gap) / 1.5;
+  const badge = 32; // badge sopra la carta + spazio
+  const byHeight = (queueViewport.clientHeight - padY - badge) / CARD_RATIO;
+  const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
+  queueViewport.style.setProperty('--ae-queue-card', width + 'px');
+}
+
 function renderQueue() {
   const previous = queueViewport.scrollLeft;
   const previousTop = queueViewport.scrollTop;
-  queueList.replaceChildren(...queue.map((entry, i) => queueItem(entry, { index: i, total: queue.length, lazy: i > 7 })));
+  const railEl = ensureQueueRail();
+  const railScroll = railEl.scrollLeft;
+  railEl.replaceChildren(...queue.map((entry, i) => queueItem(entry, { compact: true, index: i, total: queue.length })));
+  railEl.scrollLeft = railScroll;
+  railEl.hidden = queue.length === 0;
+  queueList.replaceChildren(...queue.map((entry, i) => queueItem(entry, { full: true, index: i, total: queue.length, lazy: i > 3 })));
   queueEmpty.hidden = queue.length > 0;
+  sizeQueue();
 
   const anchor = ui.queueAnchor;
   ui.queueAnchor = null;
@@ -614,6 +692,7 @@ function renderQueue() {
     queueViewport.scrollLeft = previous;
     queueViewport.scrollTop = previousTop;
   }
+  markQueueRail(centredQueueUid());
 }
 
 // Allinea la coda su una carta: 'anchor' = centro della carta al 62% (si vede cosa la precede), 'center', 'nearest'
@@ -1888,7 +1967,7 @@ backBtn.addEventListener('click', backToActive);
 retryBtn.addEventListener('click', init);
 document.getElementById('wave-select').addEventListener('change', e => renderBosses(e.target.value));
 document.getElementById('upgraded-switch').addEventListener('change', e => { settings.includeUpgraded = e.target.checked; });
-window.addEventListener('resize', sizeFocus);
+window.addEventListener('resize', () => { sizeFocus(); sizeQueue(); });
 
 // Avvio: legge cards.json, deck-setup.json e nemesis.json, mostra la pagina iniziale (con "Riprendi partita" se ce n'è una salvata)
 let initRunning = false;

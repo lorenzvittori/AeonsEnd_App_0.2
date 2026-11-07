@@ -25,6 +25,11 @@ body { overflow: hidden; }
 }
 .ae-queue-list { display: flex; gap: 12px; min-width: max-content; align-items: flex-end; margin: auto; }
 .ae-queue-list:empty { display: none; }
+/* VistaCoda: carte grandi, una e mezza nella larghezza (--ae-queue-card calcolata da sizeQueue in script.js) */
+.ae-queue-list > .ae-queue-item { width: var(--ae-queue-card, 132px); flex-basis: var(--ae-queue-card, 132px); }
+.ae-queue-list > .ae-queue-item .ae-card-art img { object-fit: cover; }
+/* Fascia compatta in cima alla VistaCoda, come nel turno nemesi */
+.queue-rail[hidden] { display: none; }
 
 /* --- VistaRisoluzione --- */
 .ae-resolve-layout { flex: 1; display: flex; flex-direction: column; min-height: 0; }
