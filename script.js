@@ -1120,14 +1120,12 @@ function renderResolve() {
   resolveBtn.textContent = text;
   // Durante l'animazione il pulsante resta focalizzabile ma non accetta tocchi (aria-disabled, controllato in onResolveClick)
   resolveBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
-  const needsHint = !previewing && text.startsWith('Effetto applicato');
-  resolveHint.hidden = !needsHint;
-  resolveHint.textContent = needsHint ? I18N_IT.applyHint : '';
+  // Niente suggerimento sopra il pulsante: lo spazio resta alla carta
+  resolveHint.hidden = true;
 }
 
-// Carta in primo piano: immagine (o retro durante la pesca) e stato numerico. Sopra, solo in anteprima,
-// l'etichetta "Anteprima · carta X di Y"; niente etichetta per la carta da risolvere o pescata, niente nome e tipo:
-// lo spazio va alla carta.
+// Carta in primo piano: solo immagine (o retro durante la pesca) e stato numerico. Nessuna etichetta, nome o tipo
+// (nemmeno in anteprima): tutto lo spazio va alla carta.
 function renderFocus(viewed, active, { isNewStep, previewing }) {
   const index = queue.indexOf(viewed);
   const total = queue.length;
@@ -1156,12 +1154,7 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
   if (ui.holdUid === viewed.uid) status.classList.add('is-dropping', 'is-bumped');
   status.setAttribute('aria-label', statusText(viewed));
 
-  const children = [];
-  if (previewing) {
-    children.push(el('p', 'ae-focus-eyebrow', I18N_IT.eyebrowPreview(index + 1, total)));
-    children.push(el('p', 'ae-hint', I18N_IT.previewHint));
-  }
-  children.push(stage, status);
+  const children = [stage, status];
 
   const changed = focusEl.dataset.uid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
