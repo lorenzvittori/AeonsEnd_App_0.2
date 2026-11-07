@@ -164,20 +164,18 @@ body { overflow: hidden; }
 .nemesis-option[aria-pressed='true'] .nemesis-tags { opacity: .85; }
 .nemesis-skeleton { min-height: 60px; border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); opacity: .6; }
 .start-note { margin-top: 4px; color: var(--ae-text-muted); font: 500 14px/20px var(--ae-font-ui); }
-/* Nemesi non disponibili: box piccoli, solo il nome attenuato, barrati da una X rossa sottile (due diagonali) */
+/* Nemesi non disponibili: box con solo il nome attenuato e un piccolo punto esclamativo rosso accanto (Assets/ui/icons/alert.webp) */
 .nemesis-unavailable { margin: 8px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .nemesis-locked {
   position: relative; min-height: 40px; padding: 4px 14px; display: flex; align-items: center; justify-content: flex-start; text-align: left;
   border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface); overflow: hidden;
   color: var(--ae-text-quiet); font: 600 14px/18px var(--ae-font-ui); cursor: not-allowed; user-select: none;
 }
+.nemesis-locked { gap: 8px; }
 .nemesis-locked::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background:
-    linear-gradient(to top right, transparent calc(50% - .75px), rgba(217, 94, 92, .7) calc(50% - .75px), rgba(217, 94, 92, .7) calc(50% + .75px), transparent calc(50% + .75px)),
-    linear-gradient(to bottom right, transparent calc(50% - .75px), rgba(217, 94, 92, .7) calc(50% - .75px), rgba(217, 94, 92, .7) calc(50% + .75px), transparent calc(50% + .75px));
+  content: ''; flex: 0 0 auto; width: 6px; height: 16px; background: var(--ae-danger);
+  -webkit-mask: url('Assets/ui/icons/alert.webp') center / contain no-repeat; mask: url('Assets/ui/icons/alert.webp') center / contain no-repeat;
 }
-.nemesis-locked span { position: relative; padding: 0 4px; background: var(--ae-surface); border-radius: 4px; }
 .start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); white-space: pre-line; overflow-wrap: anywhere; }
 .start-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 
