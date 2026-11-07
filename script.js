@@ -891,7 +891,12 @@ function renderNemesisPreview() {
     expand.setAttribute('aria-expanded', String(open));
   }
   if (!open) {
+    // Chiusa: la prossima volta si riapre dal fronte
     nemesisShowBack = false;
+    nemesisFlipAngle = 0;
+    const inner = preview.querySelector('.nemesis-flip-inner');
+    inner.style.transition = 'none';
+    inner.style.transform = '';
     preview.querySelector('.nemesis-flip').classList.remove('is-back');
     return;
   }
@@ -910,6 +915,8 @@ function renderNemesisPreview() {
   } else {
     back.removeAttribute('src');
     nemesisShowBack = false;
+    nemesisFlipAngle = 0;
+    preview.querySelector('.nemesis-flip-inner').style.transform = '';
   }
   updateNemesisFlip(preview);
 }
@@ -933,21 +940,46 @@ function buildNemesisFlip(preview) {
   dots.append(el('span'), el('span'));
   preview.append(flip, dots);
 
-  let start = null;
-  flip.addEventListener('pointerdown', e => { start = { x: e.clientX, y: e.clientY }; });
-  flip.addEventListener('pointerup', e => {
-    if (!start) return;
-    const dx = e.clientX - start.x;
-    const dy = e.clientY - start.y;
-    start = null;
-    if (!flip.classList.contains('has-back') || Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) <= Math.abs(dy)) return;
-    // Il giro segue la direzione del dito
-    flip.style.setProperty('--ae-flip-dir', dx > 0 ? '1' : '-1');
-    nemesisShowBack = !nemesisShowBack;
-    updateNemesisFlip(preview);
+  // La carta ruota seguendo il dito (tutta la larghezza della carta = mezzo giro). Al rilascio: oltre
+  // SWIPE_MIN_DISTANCE completa il mezzo giro nella direzione del dito, altrimenti torna com'era.
+  let drag = null;
+  const setAngle = (deg, animate) => {
+    inner.style.transition = animate ? '' : 'none';
+    inner.style.transform = `rotateY(${deg}deg)`;
+  };
+  flip.addEventListener('pointerdown', e => {
+    if (!flip.classList.contains('has-back')) return;
+    drag = { x: e.clientX, y: e.clientY, id: e.pointerId, dx: 0, active: false };
   });
-  flip.addEventListener('pointercancel', () => { start = null; });
+  flip.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.active) {
+      if (Math.abs(dx) < DRAG_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) return;
+      drag.active = true;
+      try { flip.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    drag.dx = dx;
+    const width = flip.offsetWidth || 300;
+    setAngle(nemesisFlipAngle + Math.max(-180, Math.min(180, dx / width * 180)), false);
+  });
+  const endDrag = (e, cancelled) => {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    const { dx, active } = drag;
+    drag = null;
+    if (!active) return;
+    if (!cancelled && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
+      nemesisFlipAngle += dx > 0 ? 180 : -180;
+      nemesisShowBack = !nemesisShowBack;
+    }
+    setAngle(nemesisFlipAngle, true);
+    updateNemesisFlip(preview);
+  };
+  flip.addEventListener('pointerup', e => endDrag(e, false));
+  flip.addEventListener('pointercancel', e => endDrag(e, true));
 }
+let nemesisFlipAngle = 0;
 
 function updateNemesisFlip(preview) {
   const flip = preview.querySelector('.nemesis-flip');

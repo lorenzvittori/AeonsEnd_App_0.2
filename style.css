@@ -178,10 +178,10 @@ body { overflow: hidden; }
 .nemesis-collapse svg { transform: rotate(180deg); }
 .nemesis-preview { grid-column: 1 / -1; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard); }
 .nemesis-preview[hidden] { display: none; }
-/* Carta nemesi aperta: fronte e retro; uno slide orizzontale la gira (350ms), i due puntini dicono quale lato si vede */
+/* Carta nemesi aperta: fronte e retro; trascinando in orizzontale la carta ruota seguendo il dito, i due puntini dicono quale lato si vede */
 .nemesis-flip { position: relative; perspective: 1400px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .nemesis-flip-inner { position: relative; transform-style: preserve-3d; transition: transform var(--ae-duration-draw) var(--ae-ease-decelerate); }
-.nemesis-flip.is-back .nemesis-flip-inner { transform: rotateY(calc(var(--ae-flip-dir, 1) * 180deg)); }
+/* la rotazione la imposta script.js (segue il dito) */
 .nemesis-face { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; -webkit-user-drag: none; }
 .nemesis-face--back { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; transform: rotateY(180deg); }
 .nemesis-flip-dots { display: flex; gap: 6px; }
