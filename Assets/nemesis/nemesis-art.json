@@ -1,7 +1,22 @@
 {
+  "Ageless Walker": {
+    "card": "Assets/nemesis/ageless-walker.webp",
+    "portrait": "Assets/nemesis/ageless-walker-portrait.webp",
+    "ratio": 1.336
+  },
   "Arachnos": {
     "card": "Assets/nemesis/arachnos.webp",
     "portrait": "Assets/nemesis/arachnos-portrait.webp",
+    "ratio": 1.336
+  },
+  "Fenrix": {
+    "card": "Assets/nemesis/fenrix.webp",
+    "portrait": "Assets/nemesis/fenrix-portrait.webp",
+    "ratio": 1.336
+  },
+  "Maggoth": {
+    "card": "Assets/nemesis/maggoth.webp",
+    "portrait": "Assets/nemesis/maggoth-portrait.webp",
     "ratio": 1.336
   }
 }
