@@ -38,7 +38,6 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-queue-item { width: 52px; flex-basis: 52px; gap: 4px; opacity: .7; }
 .ae-compact-rail .ae-queue-item[aria-current='true'],
 .ae-compact-rail .ae-queue-item[data-viewed='true'] { opacity: 1; }
-.ae-compact-rail .ae-card-art { border-radius: 4px; }
 .ae-compact-rail .ae-status-badge { height: 18px; min-width: 0; padding: 1px 4px; gap: 2px; font-size: 11px; line-height: 14px; border-radius: 5px; }
 .ae-compact-rail .ae-status-badge .ae-icon { display: none; }
 .ae-compact-rail .ae-new-tag { display: none; }

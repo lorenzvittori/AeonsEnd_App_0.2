@@ -104,12 +104,15 @@ button:disabled { cursor: not-allowed; }
 .ae-status-badge.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
 @keyframes ae-bump { from { transform: scale(1.12); } to { transform: scale(1); } }
 
-/* --- Immagine della carta (scansione o miniatura) con bordo funzionale --- */
+/* --- Immagine della carta (scansione o miniatura) con bordo funzionale ---
+   Angoli arrotondati come nella versione 1: raggio = 5% della larghezza della carta, sia in orizzontale sia in
+   verticale (5% della larghezza / 3,58% dell'altezza, perché l'altezza è 88/63 della larghezza).
+   L'immagine riempie tutta la carta (cover), così anche la scansione ha gli angoli tondi. */
 .ae-card-art {
   display: block; position: relative; aspect-ratio: 63 / 88; width: 100%;
-  border: 2px solid var(--ae-border); border-radius: 7px; overflow: hidden; background: var(--ae-surface-raised);
+  border: 2px solid var(--ae-border); border-radius: 5% / 3.58%; overflow: hidden; background: var(--ae-surface-raised);
 }
-.ae-card-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ae-card-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .ae-card-art--placeholder {
   background: radial-gradient(ellipse at 50% 28%, #49516b 0%, #242630 46%, #101116 100%);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px;
