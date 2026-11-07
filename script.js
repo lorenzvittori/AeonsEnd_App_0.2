@@ -928,7 +928,14 @@ function renderBosses(wave) {
     // Mini espansione: etichetta dorata piccola in basso a destra
     if (info.miniExpansion) b.appendChild(el('span', 'nemesis-expansion', info.miniExpansion));
     b.addEventListener('click', () => {
-      if (settings.nemesis === info.name) return;
+      // Toccare di nuovo la nemesi già scelta apre o chiude la sua carta (come le frecce)
+      if (settings.nemesis === info.name) {
+        if (art) {
+          setNemesisPreview(!nemesisPreviewOpen);
+          b.focus({ preventScroll: true });
+        }
+        return;
+      }
       settings.nemesis = info.name;
       nemesisPreviewOpen = false;
       renderBosses(wave);
