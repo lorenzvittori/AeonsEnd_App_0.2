@@ -692,7 +692,9 @@ function openCardDialog(entry) {
       showToast(I18N_IT.powerRemoved(data.name));
     });
     const footer = el('div', 'ae-modal-footer');
-    footer.append(button(I18N_IT.close, 'secondary', cancel), remove);
+    footer.append(button(I18N_IT.close, 'secondary', cancel));
+    // Solo i poteri con "TO DISCARD" si possono rimuovere pagando il costo (cards.json: removable)
+    if (data.removable !== false) footer.appendChild(remove);
     dialog.appendChild(footer);
   } else {
     const footer = el('div', 'ae-modal-footer');
@@ -854,7 +856,12 @@ function renderNemesisPreview() {
 // Nemesi della wave scelta: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
 function renderBosses(wave) {
   const list = document.getElementById('nemesis-list');
-  const ofWave = nemeses.filter(n => n.wave === wave);
+  // Prima le nemesi della scatola base della wave, poi quelle delle mini espansioni; in ognuno dei due gruppi per battaglia
+  const byBattle = n => (n.battle === null || n.battle === undefined ? 99 : n.battle);
+  const ofWave = nemeses.filter(n => n.wave === wave)
+    .map((n, i) => ({ n, i }))
+    .sort((a, b) => (!!a.n.miniExpansion - !!b.n.miniExpansion) || (byBattle(a.n) - byBattle(b.n)) || (a.i - b.i))
+    .map(x => x.n);
   const playable = ofWave.filter(isPlayable);
   const others = ofWave.filter(n => !isPlayable(n));
 
@@ -866,7 +873,6 @@ function renderBosses(wave) {
     b.setAttribute('aria-pressed', String(info.name === settings.nemesis));
     const tags = el('span', 'nemesis-tags');
     tags.appendChild(el('span', '', info.battle ? I18N_IT.battle(info.battle) : I18N_IT.battleMissing));
-    if (info.miniExpansion) tags.appendChild(el('span', '', info.miniExpansion));
     const art = nemesisArt[info.name];
     if (art) {
       // Parte dell'illustrazione a destra del pulsante (come nella wiki)
@@ -877,6 +883,8 @@ function renderBosses(wave) {
       b.appendChild(portrait);
     }
     b.append(el('span', 'nemesis-name', info.name), tags);
+    // Mini espansione: etichetta dorata piccola in basso a destra
+    if (info.miniExpansion) b.appendChild(el('span', 'nemesis-expansion', info.miniExpansion));
     b.addEventListener('click', () => {
       settings.nemesis = info.name;
       list.querySelectorAll('.nemesis-option').forEach(o => o.setAttribute('aria-pressed', String(o === b)));

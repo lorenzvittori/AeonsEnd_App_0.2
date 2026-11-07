@@ -144,8 +144,8 @@ body { overflow: hidden; }
 .nemesis-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
 @media (min-width: 420px) { .nemesis-list { grid-template-columns: 1fr 1fr; } }
 .nemesis-option {
-  /* Altezza uguale per tutte (86px: nome + battaglia + mini espansione su una seconda riga) */
-  min-height: 86px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+  /* Altezza uguale per tutte */
+  min-height: 72px; padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
   border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); text-align: left;
 }
 /* Pulsante con illustrazione: un ritaglio dell'illustrazione della nemesi (Assets/nemesis/<slug>-portrait.webp) occupa
@@ -158,6 +158,13 @@ body { overflow: hidden; }
   -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%); mask-image: linear-gradient(to right, transparent 0%, #000 45%);
 }
 .nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
+/* Mini espansione: etichetta dorata piccola in basso a destra, sopra l'illustrazione */
+.nemesis-option { position: relative; }
+.nemesis-expansion {
+  position: absolute; right: 6px; bottom: 6px; z-index: 2; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 2px 5px; border-radius: 4px; background: var(--ae-gold); color: #20160B;
+  font: 700 9px/12px var(--ae-font-ui); letter-spacing: .05em; text-transform: uppercase; pointer-events: none;
+}
 .nemesis-preview { margin: 12px 0 0; display: flex; justify-content: center; }
 .nemesis-preview img { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; }
 .nemesis-name { font: 600 15px/20px var(--ae-font-ui); }
