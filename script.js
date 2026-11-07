@@ -49,7 +49,8 @@ const I18N_IT = {
   tokensLeft: n => (n === 1 ? '1 token rimasto' : `${n} token rimasti`),
   cardOf: (i, n) => `carta ${i} di ${n}`,
   newTag: 'Nuova',
-  activeFlag: 'Attiva',
+  activeFlag: 'Risolvi',
+  nextCard: 'Prossima carta da pescare, coperta',
   eyebrowActive: (i, n) => `Da risolvere · carta ${i} di ${n}`,
   eyebrowPreview: (i, n) => `Anteprima · carta ${i} di ${n}`,
   eyebrowDrawn: (i, n) => `Carta pescata · carta ${i} di ${n}`,
@@ -197,6 +198,8 @@ let newIndex = -1;
 let deck = [];
 let discard = [];
 let turn = 0;
+// Tier più alto pescato finora: alla prima carta del Tier 2 e del Tier 3 compare la scritta "Tier N"
+let maxTierDrawn = 0;
 
 // Undo: uno stato della partita salvato prima di ogni azione
 let undoStack = [];
@@ -275,6 +278,7 @@ function newGame() {
   deck = buildDeck();
   discard = [];
   turn = 0;
+  maxTierDrawn = 0;
 }
 
 // Pesca la carta in cima al mazzo; se il mazzo è finito si rimescolano gli scarti. Null se non c'è niente da pescare.
@@ -361,16 +365,25 @@ function cardArt(data, { thumb = false, lazy = false } = {}) {
   return box;
 }
 
-// Badge numerico fuori dalla scansione: cuore + vita (minion), clessidra + token (potere). compact = fascia ridotta.
-function statusBadge(entry, compact = false) {
+// Token del potere come nella versione 1: un'immagine (Assets/power-token.webp) per ogni token rimasto
+function tokenIcons(n) {
+  const row = el('span', 'ae-tokens');
+  row.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < Math.max(0, n); i++) row.appendChild(el('span', 'ae-token'));
+  return row;
+}
+
+// Badge fuori dalla scansione (box grigio scuro): goccia + vita attuale (minion), un token per ogni token (potere).
+// Uguale nella coda e nella fascia della VistaRisoluzione.
+function statusBadge(entry) {
   const badge = el('span', 'ae-status-badge');
   badge.setAttribute('aria-hidden', 'true');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
-    badge.append(icon('heart'), el('span', '', compact ? I18N_IT.railHp(entry.hp) : I18N_IT.hp(entry.hp, entry.data.hp)));
+    badge.append(icon('heart'), el('span', '', String(entry.hp)));
   } else if (entry.data.type === 'Power') {
-    badge.classList.add('ae-status-badge--gold');
-    badge.append(icon('hourglass'), el('span', '', compact ? I18N_IT.railTokens(entry.tokens) : I18N_IT.tokens(entry.tokens)));
+    badge.classList.add('ae-status-badge--tokens');
+    badge.appendChild(tokenIcons(entry.tokens));
   } else {
     // Attacco: nessun badge, solo lo spazio per tenere allineate le carte
     badge.classList.add('ae-status-badge--empty');
@@ -403,13 +416,32 @@ function queueItem(entry, opts) {
   const art = cardArt(data, { thumb: true, lazy: opts.lazy });
   if (opts.compact && opts.current && !opts.viewed) art.appendChild(el('span', 'ae-rail-flag', I18N_IT.activeFlag));
 
-  button.append(statusBadge(entry, opts.compact), meta, art);
+  button.append(statusBadge(entry), meta, art);
   if (entry.isNew) {
     const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
     tag.setAttribute('aria-hidden', 'true');
     button.appendChild(tag);
   }
   return button;
+}
+
+// Prossima carta da pescare nella fascia della VistaRisoluzione: solo il retro (non si vede quale carta è) e NUOVA.
+// Non è cliccabile.
+function nextCardItem() {
+  const item = el('div', 'ae-queue-item ae-next-card');
+  item.setAttribute('role', 'listitem');
+  item.setAttribute('aria-label', I18N_IT.nextCard);
+  const badge = el('span', 'ae-status-badge ae-status-badge--empty', '·');
+  badge.setAttribute('aria-hidden', 'true');
+  const art = el('span', 'ae-card-art');
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = CARD_BACK;
+  art.appendChild(img);
+  const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
+  tag.setAttribute('aria-hidden', 'true');
+  item.append(badge, art, tag);
+  return item;
 }
 
 // Gocce di vita decorative (solo nel dialogo del minion): quante più possibile da 5 e il resto da 1;
@@ -619,22 +651,31 @@ function neighbourUid(index) {
 }
 
 // VistaCartaCoda: dialogo della carta toccata. Minion = punti vita in bozza; potere = rimozione esplicita.
+// Niente intestazione (nome, tipo, X): si chiude con Chiudi/Annulla, Esc o tocco fuori; lo spazio va alla carta.
+// Sotto la carta c'è sempre un pannello alto uguale per ogni tipo, così la carta ha la stessa dimensione per minion,
+// poteri e attacchi.
 function openCardDialog(entry) {
   if (resolving || ui.isTransitioning) return;
   const { data } = entry;
   let close = () => {};
   const cancel = () => close();
-  const dialog = dialogShell(data.name || I18N_IT.cardInPlay, typeName(data), cancel);
+  const dialog = el('div', 'ae-modal ae-modal--card');
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-label', [data.name || I18N_IT.cardInPlay, typeName(data)].join(', '));
   const art = cardArt(data);
   art.classList.add('ae-modal-art');
-  dialog.appendChild(art);
+  const panel = el('div', 'ae-card-panel');
+  dialog.append(art, panel);
 
   if (hasHp(entry)) {
-    buildHpPanel(dialog, entry, () => close());
+    buildHpPanel(dialog, panel, entry, () => close());
   } else if (data.type === 'Power') {
-    const badge = el('p', 'ae-hp-number');
-    badge.append(el('span', '', I18N_IT.tokensLeft(entry.tokens)));
-    const info = el('p', 'ae-microtext', I18N_IT.powerCostInfo);
+    // Token rimasti come icone, un token per ogni token
+    const tokens = el('p', 'ae-card-panel-tokens');
+    tokens.setAttribute('aria-label', I18N_IT.tokensLeft(entry.tokens));
+    tokens.appendChild(tokenIcons(entry.tokens));
+    panel.appendChild(tokens);
     const remove = button(I18N_IT.removePower, 'danger', () => {
       const index = queue.indexOf(entry);
       close();
@@ -646,7 +687,7 @@ function openCardDialog(entry) {
     });
     const footer = el('div', 'ae-modal-footer');
     footer.append(button(I18N_IT.close, 'secondary', cancel), remove);
-    dialog.append(badge, info, footer);
+    dialog.appendChild(footer);
   } else {
     const footer = el('div', 'ae-modal-footer');
     footer.append(button(I18N_IT.close, 'secondary', cancel));
@@ -657,16 +698,18 @@ function openCardDialog(entry) {
 
 // Punti vita in bozza: i pulsanti cambiano solo la bozza; Conferma applica una volta sola (un passo di undo);
 // Annulla, X, Esc o tocco fuori lasciano la vita com'era
-function buildHpPanel(dialog, entry, close) {
+// Riga: "HP x / y" a sinistra, danno o cura della bozza a destra; sotto i pulsanti −5 −1 +1.
+function buildHpPanel(dialog, panel, entry, close) {
   const max = entry.data.hp;
   const original = entry.hp;
   let draft = original;
   let committing = false;
 
+  const row = el('div', 'ae-hp-row');
   const number = el('p', 'ae-hp-number');
   number.setAttribute('aria-live', 'polite');
   const delta = el('p', 'ae-hp-delta');
-  const dropsHolder = el('div');
+  row.append(number, delta);
   const controls = el('div', 'ae-hp-controls');
   [-5, -1, 1].forEach(step => {
     const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
@@ -676,11 +719,11 @@ function buildHpPanel(dialog, entry, close) {
     b.setAttribute('aria-label', (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita');
     controls.appendChild(b);
   });
-  const zeroNote = el('p', 'ae-microtext ae-microtext--danger', I18N_IT.movedToDiscard);
   const footer = el('div', 'ae-modal-footer');
   const confirm = button(I18N_IT.confirmHp, 'primary', commit);
   footer.append(button(I18N_IT.cancel, 'secondary', close), confirm);
-  dialog.append(number, delta, dropsHolder, controls, zeroNote, footer);
+  panel.append(row, controls);
+  dialog.appendChild(footer);
 
   function update() {
     number.textContent = `HP ${draft} / ${max}`;
@@ -689,8 +732,6 @@ function buildHpPanel(dialog, entry, close) {
     delta.replaceChildren();
     if (draft === 0) delta.append(icon('heart'), el('span', '', I18N_IT.willBeDeleted));
     else if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
-    dropsHolder.replaceChildren(dropsRow(draft, Math.max(0, -change), Math.max(0, change)));
-    zeroNote.hidden = draft !== 0;
     confirm.textContent = draft === 0 ? I18N_IT.deleteMinion : I18N_IT.confirmHp;
     confirm.className = 'ae-button ' + (draft === 0 ? 'ae-button--danger' : 'ae-button--primary');
   }
@@ -950,7 +991,9 @@ function snapshot() {
     queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, isNew: !!e.isNew })),
     resolving,
     currentIndex,
-    newIndex
+    newIndex,
+    // In più rispetto alla v48 (i salvataggi senza questo campo restano validi)
+    maxTierDrawn
   };
 }
 
@@ -974,6 +1017,9 @@ function restore(s) {
   discard = newDiscard;
   turn = s.turn;
   queue = newQueue;
+  // Salvataggi senza il campo: il tier più alto tra le carte già uscite (coda e scarti)
+  maxTierDrawn = typeof s.maxTierDrawn === 'number' ? s.maxTierDrawn
+    : Math.max(0, ...queue.map(e => e.data.tier || 0), ...discard.map(c => c.tier || 0));
 
   if (s.resolving && queue.length > 0) {
     resolving = true;
@@ -1058,6 +1104,17 @@ function lockFor(ms, then) {
 
 // --- 8. VistaRisoluzione (turno nemesi) ---------------------------------------------------------------------------
 
+// Scritta "Tier N" al centro: resta 1 secondo, poi svanisce in 0,5 secondi. Intanto l'app è oscurata del 60%
+// e non si può toccare; dopo si continua normalmente.
+const TIER_BANNER_MS = 1500;
+function showTierBanner(tier) {
+  const banner = el('div', 'ae-tier-banner');
+  banner.setAttribute('role', 'status');
+  banner.appendChild(el('span', 'ae-tier-banner-text', 'Tier ' + tier));
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), TIER_BANNER_MS);
+}
+
 // Disegna tutto in base allo stato
 function render() {
   phaseLabel.textContent = resolving ? I18N_IT.phaseNemesis : I18N_IT.phasePlayers;
@@ -1069,6 +1126,10 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   updateInfo();
   updateUndoBtn();
+  if (ui.tierBanner) {
+    showTierBanner(ui.tierBanner);
+    ui.tierBanner = null;
+  }
   if (resolving) renderResolve();
   else {
     resolveBtn.hidden = true;
@@ -1103,9 +1164,12 @@ function renderResolve() {
   // Fascia compatta: rosso = da risolvere, avorio = mostrata
   const railScroll = rail.scrollLeft;
   const railScrollTop = rail.scrollTop;
-  rail.replaceChildren(...queue.map((entry, i) => queueItem(entry, {
+  const railItems = queue.map((entry, i) => queueItem(entry, {
     compact: true, index: i, total: queue.length, current: entry === active, viewed: entry === viewed
-  })));
+  }));
+  // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
+  if (!isNewStep && (deck.length > 0 || discard.length > 0)) railItems.push(nextCardItem());
+  rail.replaceChildren(...railItems);
   rail.scrollLeft = railScroll;
   rail.scrollTop = railScrollTop;
   const viewedItem = rail.querySelector(`[data-uid="${viewed.uid}"]`);
@@ -1143,18 +1207,20 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
     stage.appendChild(tag);
   }
 
+  // Stato sopra la carta: goccia + vita (minion) o un token per ogni token (potere). La riga c'è sempre, anche vuota
+  // (attacchi), così la carta ha la stessa dimensione per ogni tipo.
   const status = el('p', 'ae-focus-status');
   if (hasHp(viewed)) {
     status.classList.add('is-hp');
     status.append(icon('heart'), el('span', '', I18N_IT.hp(viewed.hp, viewed.data.hp)));
   } else if (viewed.data.type === 'Power') {
     status.classList.add('is-token');
-    status.append(icon('hourglass'), el('span', '', I18N_IT.tokens(viewed.tokens)));
+    status.appendChild(tokenIcons(viewed.tokens));
   }
   if (ui.holdUid === viewed.uid) status.classList.add('is-dropping', 'is-bumped');
   status.setAttribute('aria-label', statusText(viewed));
 
-  const children = [stage, status];
+  const children = [status, stage];
 
   const changed = focusEl.dataset.uid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
@@ -1173,7 +1239,7 @@ function sizeFocus() {
   const gap = parseFloat(style.rowGap) || 8;
   const others = Array.from(focusEl.children).filter(c => c !== stage);
   const used = others.reduce((sum, c) => sum + c.offsetHeight, 0) + gap * others.length
-    + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + (stage.querySelector('.ae-flip-loading') ? 28 : 0);
+    + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const availH = Math.max(80, focusEl.clientHeight - used);
   const availW = focusEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
   const width = Math.max(40, Math.min(availW, availH / CARD_RATIO));
@@ -1206,10 +1272,6 @@ function flipCard(entry, reveal) {
     });
     retry.classList.add('ae-flip-loading');
     retry.style.minHeight = '44px';
-    retry.style.bottom = '-52px';
-    retry.style.left = '50%';
-    retry.style.right = 'auto';
-    retry.style.transform = 'translateX(-50%)';
     flip.appendChild(retry);
     return flip;
   }
@@ -1272,6 +1334,9 @@ function drawNewCard() {
   newIndex = queue.length - 1;
   currentIndex = newIndex;
   ui.lastDrawnUid = entry.uid;
+  // Prima carta del Tier 2 o del Tier 3: scritta "Tier N" al centro (mostrata da render)
+  if (data.tier >= 2 && data.tier > maxTierDrawn) ui.tierBanner = data.tier;
+  if (data.tier > maxTierDrawn) maxTierDrawn = data.tier;
 }
 
 // Ritorno alla VistaCoda

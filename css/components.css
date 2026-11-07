@@ -100,6 +100,14 @@ button:disabled { cursor: not-allowed; }
 .ae-status-badge .ae-icon { width: 14px; height: 14px; }
 .ae-status-badge--danger .ae-icon { color: var(--ae-danger); }
 .ae-status-badge--gold .ae-icon { color: var(--ae-gold); }
+.ae-status-badge--tokens { overflow: hidden; }
+
+/* Token del potere (immagine della versione 1), uno per token; se sono tanti si stringono per stare nel box */
+.ae-tokens { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; max-width: 100%; }
+.ae-token {
+  flex: 0 1 auto; min-width: 0; width: 16px; height: 16px;
+  background: url('../Assets/power-token.webp') center / contain no-repeat;
+}
 .ae-status-badge--empty { visibility: hidden; }
 .ae-status-badge.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
 @keyframes ae-bump { from { transform: scale(1.12); } to { transform: scale(1); } }
@@ -180,6 +188,19 @@ button:disabled { cursor: not-allowed; }
 .ae-modal-footer { display: flex; gap: 8px; }
 .ae-modal-footer .ae-button { flex: 1 1 0; min-width: 0; }
 @media (max-height: 700px) { .ae-modal-art { height: min(40dvh, 420px, calc(64vw * 88 / 63)); } }
+
+/* Dialogo della carta della coda: carta grande quanto lo spazio permette, uguale per minion, poteri e attacchi.
+   Altezza carta = schermo meno tutto il resto del dialogo, sempre uguale: margini 24 + padding 32 + 2 spazi da 12
+   + pannello 90 + pulsanti 52 = 222 px. Larghezza massima = larghezza interna del dialogo. */
+.ae-modal--card .ae-modal-art {
+  height: min(calc(100dvh - 222px - var(--ae-safe-top) - var(--ae-safe-bottom)), calc((min(560px, 100vw - 24px) - 34px) * 88 / 63));
+}
+.ae-card-panel { min-height: 90px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.ae-hp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 30px; }
+.ae-hp-row .ae-hp-number { text-align: left; }
+.ae-hp-row .ae-hp-delta { justify-content: flex-end; text-align: right; }
+.ae-card-panel-tokens { display: flex; justify-content: center; }
+.ae-card-panel-tokens .ae-token { width: 32px; height: 32px; }
 @keyframes ae-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ae-dialog-in { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
 
