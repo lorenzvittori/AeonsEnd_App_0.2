@@ -1,3 +1,8 @@
 # File di sistema creati da Windows/OneDrive nelle cartelle
 desktop.ini
 Thumbs.db
+
+# Scansioni originali delle carte: restano sul PC ma non vanno su GitHub (il sito usa i WebP fatti da tools/convert-webp.py)
+Data/**/*.jpg
+Data/**/*.jpeg
+Data/**/*.png

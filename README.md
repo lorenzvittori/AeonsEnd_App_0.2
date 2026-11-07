@@ -8,7 +8,9 @@ sopra la logica di gioco della versione 48 (mazzo, pesca, scarti, poteri/minion/
   - `index.html`, `script.js`, `version.json` (si aumenta a ogni cambio di CSS/JS: vale per tutti i CSS e per il JS)
   - `css/design-tokens.css` (colori, font Cinzel/Inter da Google Fonts, durate), `css/components.css` (componenti), `style.css` (layout)
   - `cards.json`, `deck-setup.json`, `nemesis.json`: dati delle carte, del Nemesis Deck Setup e delle nemesi (copiati da AeonsEnd_APP)
-  - `Data/`: scansioni delle carte (usate per la carta grande)
+  - `Data/`: scansioni delle carte in WebP qualità 90 (usate per la carta grande), fatte da `tools/convert-webp.py`
+    che aggiorna anche i percorsi in `cards.json`. Gli originali JPG/PNG restano sul PC nella stessa cartella ma sono
+    esclusi da git (`.gitignore`), così il sito pesa ~38 MB invece di ~150 MB.
   - `thumbs/<id>.webp`: miniature della coda (264 x 369), generate da `tools/build-thumbs.py` (serve Pillow).
     Da rieseguire se cambiano `cards.json` o le immagini in `Data/`: `python tools/build-thumbs.py`
   - `Assets/ui/icons/*.svg` (icone del kit), `Assets/ui/decor/card-back.webp` (retro della carta pescata),

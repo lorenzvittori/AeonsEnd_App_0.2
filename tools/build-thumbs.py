@@ -1,7 +1,7 @@
 """Genera le miniature WebP della coda (thumbs/<id>.webp) dalle scansioni in Data/.
 
 Ogni miniatura sta in 264 x 369 px (il doppio di 132 x 184, la miniatura della coda), mantenendo le proporzioni
-della scansione; qualità WebP 76. Le scansioni originali non vengono toccate: la carta grande usa sempre quelle.
+della scansione; qualità WebP 76. Parte dalle immagini indicate in cards.json (i WebP fatti da tools/convert-webp.py).
 
 Uso (dalla cartella del repository, serve Pillow: pip install pillow):
     python tools/build-thumbs.py
