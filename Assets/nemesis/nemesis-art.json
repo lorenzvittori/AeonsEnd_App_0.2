@@ -2,36 +2,43 @@
   "Ageless Walker": {
     "card": "Assets/nemesis/ageless-walker.webp",
     "portrait": "Assets/nemesis/ageless-walker-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/ageless-walker-back.webp"
   },
   "Arachnos": {
     "card": "Assets/nemesis/arachnos.webp",
     "portrait": "Assets/nemesis/arachnos-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/arachnos-back.webp"
   },
   "Fenrix": {
     "card": "Assets/nemesis/fenrix.webp",
     "portrait": "Assets/nemesis/fenrix-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/fenrix-back.webp"
   },
   "Maggoth": {
     "card": "Assets/nemesis/maggoth.webp",
     "portrait": "Assets/nemesis/maggoth-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/maggoth-back.webp"
   },
   "Necroswarm": {
     "card": "Assets/nemesis/necroswarm.webp",
     "portrait": "Assets/nemesis/necroswarm-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/necroswarm-back.webp"
   },
   "The Wailing": {
     "card": "Assets/nemesis/the-wailing.webp",
     "portrait": "Assets/nemesis/the-wailing-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/the-wailing-back.webp"
   },
   "The Wanderer": {
     "card": "Assets/nemesis/the-wanderer.webp",
     "portrait": "Assets/nemesis/the-wanderer-portrait.webp",
-    "ratio": 1.336
+    "ratio": 1.336,
+    "back": "Assets/nemesis/the-wanderer-back.webp"
   }
 }

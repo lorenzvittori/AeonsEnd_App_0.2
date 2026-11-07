@@ -7,6 +7,9 @@ Gli originali in src/ sono esclusi da git (.gitignore). Per ogni scansione lo sc
   - Assets/nemesis/<slug>-portrait.webp  un ritaglio dell'illustrazione (480 x 212), a destra nel pulsante della nemesi
 e scrive Assets/nemesis/nemesis-art.json, l'elenco che l'app legge per sapere quali nemesi hanno l'immagine.
 
+Il retro della carta nemesi (setup e storia) va accanto, con " - back" nel nome: "Assets/nemesis/src/Arachnos - back.jpg".
+Diventa Assets/nemesis/<slug>-back.webp (larga 1000 px): nella carta aperta si vede con uno slide.
+
 Il ritaglio standard prende la parte alta dell'illustrazione, centrata; se per una nemesi il soggetto sta altrove,
 aggiungere una riga in CROPS (frazioni della larghezza / altezza della carta: sinistra, alto, destra, basso).
 
@@ -22,6 +25,8 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'Assets' / 'nemesis' / 'src'
+BACK_SUFFIX = ' - back'
+IMAGE_EXT = ('.jpg', '.jpeg', '.png', '.webp')
 OUT = ROOT / 'Assets' / 'nemesis'
 CARD_WIDTH = 1000
 PORTRAIT = (480, 212)  # circa 2,26:1, la forma del riquadro nel pulsante (style.css: .nemesis-art)
@@ -52,7 +57,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     manifest = {}
     for source in sorted(SRC.glob('*')):
-        if source.suffix.lower() not in ('.jpg', '.jpeg', '.png', '.webp'):
+        if source.suffix.lower() not in IMAGE_EXT or source.stem.endswith(BACK_SUFFIX):
             continue
         name = source.stem
         if name not in names:
@@ -71,7 +76,14 @@ def main():
                 'portrait': f'Assets/nemesis/{s}-portrait.webp',
                 'ratio': round(card.height / card.width, 4)
             }
-        print(f'{name}: {s}.webp, {s}-portrait.webp')
+        back = next((p for p in (SRC / (name + BACK_SUFFIX + ext) for ext in IMAGE_EXT) if p.exists()), None)
+        if back:
+            with Image.open(back) as img:
+                img = img.convert('RGB')
+                img.thumbnail((CARD_WIDTH, CARD_WIDTH * 2), Image.LANCZOS)
+                img.save(OUT / f'{s}-back.webp', 'WEBP', quality=QUALITY, method=6)
+            manifest[name]['back'] = f'Assets/nemesis/{s}-back.webp'
+        print(f'{name}: {s}.webp, {s}-portrait.webp' + (f', {s}-back.webp' if back else ''))
     (OUT / 'nemesis-art.json').write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'{len(manifest)} nemesi in Assets/nemesis/nemesis-art.json')
 

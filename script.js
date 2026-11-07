@@ -98,6 +98,7 @@ const I18N_IT = {
   nemesisCard: name => `Carta della nemesi ${name}`,
   showNemesisCard: name => `Mostra la carta di ${name}`,
   hideNemesisCard: 'Chiudi la carta della nemesi',
+  nemesisCardBack: name => `Retro della carta della nemesi ${name} (setup)`,
   unavailableNemeses: 'Nemesi non disponibili',
   unavailableNemesis: name => `${name}, non disponibile`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
@@ -876,6 +877,7 @@ function renderNemesisPreview() {
   if (!preview.querySelector('.nemesis-collapse')) {
     preview.prepend(chevronButton('nemesis-collapse', I18N_IT.hideNemesisCard, () => setNemesisPreview(false)));
   }
+  if (!preview.querySelector('.nemesis-flip')) buildNemesisFlip(preview);
   // La carta sta subito dopo il pulsante della nemesi scelta, su tutta la larghezza della lista
   const item = list.querySelector('.nemesis-item.is-selected');
   if (item) item.after(preview); else list.after(preview);
@@ -888,11 +890,75 @@ function renderNemesisPreview() {
     expand.hidden = open;
     expand.setAttribute('aria-expanded', String(open));
   }
-  const img = preview.querySelector('img');
-  if (!open) return;
-  img.alt = I18N_IT.nemesisCard(settings.nemesis);
+  if (!open) {
+    nemesisShowBack = false;
+    preview.querySelector('.nemesis-flip').classList.remove('is-back');
+    return;
+  }
+  const front = preview.querySelector('.nemesis-face--front');
+  const back = preview.querySelector('.nemesis-face--back');
+  front.alt = I18N_IT.nemesisCard(settings.nemesis);
   const src = encodeURI(art.card);
-  if (img.getAttribute('src') !== src) img.src = src;
+  if (front.getAttribute('src') !== src) front.src = src;
+  // Retro (setup e storia), se c'è: si vede con uno slide sulla carta
+  const flip = preview.querySelector('.nemesis-flip');
+  flip.classList.toggle('has-back', !!art.back);
+  if (art.back) {
+    back.alt = I18N_IT.nemesisCardBack(settings.nemesis);
+    const backSrc = encodeURI(art.back);
+    if (back.getAttribute('src') !== backSrc) back.src = backSrc;
+  } else {
+    back.removeAttribute('src');
+    nemesisShowBack = false;
+  }
+  updateNemesisFlip(preview);
+}
+
+// Fronte e retro della carta nemesi aperta: uno slide orizzontale (destra o sinistra) la gira
+let nemesisShowBack = false;
+function buildNemesisFlip(preview) {
+  const flip = el('div', 'nemesis-flip');
+  const inner = el('div', 'nemesis-flip-inner');
+  let front = preview.querySelector('img');
+  if (!front) front = el('img');
+  front.className = 'nemesis-face nemesis-face--front';
+  front.decoding = 'async';
+  const back = el('img', 'nemesis-face nemesis-face--back');
+  back.alt = '';
+  back.decoding = 'async';
+  inner.append(front, back);
+  flip.appendChild(inner);
+  const dots = el('div', 'nemesis-flip-dots');
+  dots.setAttribute('aria-hidden', 'true');
+  dots.append(el('span'), el('span'));
+  preview.append(flip, dots);
+
+  let start = null;
+  flip.addEventListener('pointerdown', e => { start = { x: e.clientX, y: e.clientY }; });
+  flip.addEventListener('pointerup', e => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    start = null;
+    if (!flip.classList.contains('has-back') || Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) <= Math.abs(dy)) return;
+    // Il giro segue la direzione del dito
+    flip.style.setProperty('--ae-flip-dir', dx > 0 ? '1' : '-1');
+    nemesisShowBack = !nemesisShowBack;
+    updateNemesisFlip(preview);
+  });
+  flip.addEventListener('pointercancel', () => { start = null; });
+}
+
+function updateNemesisFlip(preview) {
+  const flip = preview.querySelector('.nemesis-flip');
+  const showBack = nemesisShowBack && flip.classList.contains('has-back');
+  flip.classList.toggle('is-back', showBack);
+  preview.querySelector('.nemesis-face--front').setAttribute('aria-hidden', String(showBack));
+  preview.querySelector('.nemesis-face--back').setAttribute('aria-hidden', String(!showBack));
+  const dots = preview.querySelector('.nemesis-flip-dots');
+  dots.hidden = !flip.classList.contains('has-back');
+  dots.children[0].classList.toggle('is-on', !showBack);
+  dots.children[1].classList.toggle('is-on', showBack);
 }
 
 // Nemesi della wave scelta: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo

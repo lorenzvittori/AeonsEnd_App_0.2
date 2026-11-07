@@ -178,7 +178,17 @@ body { overflow: hidden; }
 .nemesis-collapse svg { transform: rotate(180deg); }
 .nemesis-preview { grid-column: 1 / -1; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard); }
 .nemesis-preview[hidden] { display: none; }
-.nemesis-preview img { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; }
+/* Carta nemesi aperta: fronte e retro; uno slide orizzontale la gira (350ms), i due puntini dicono quale lato si vede */
+.nemesis-flip { position: relative; perspective: 1400px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.nemesis-flip-inner { position: relative; transform-style: preserve-3d; transition: transform var(--ae-duration-draw) var(--ae-ease-decelerate); }
+.nemesis-flip.is-back .nemesis-flip-inner { transform: rotateY(calc(var(--ae-flip-dir, 1) * 180deg)); }
+.nemesis-face { display: block; width: auto; height: auto; max-width: 100%; max-height: 70vh; border-radius: 12px; backface-visibility: hidden; -webkit-backface-visibility: hidden; -webkit-user-drag: none; }
+.nemesis-face--back { position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; transform: rotateY(180deg); }
+.nemesis-flip-dots { display: flex; gap: 6px; }
+.nemesis-flip-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--ae-border); }
+.nemesis-flip-dots span.is-on { background: var(--ae-text); }
+.nemesis-flip-dots[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .nemesis-flip-inner { transition: none; } }
 .nemesis-name { font: 600 15px/20px var(--ae-font-ui); }
 .nemesis-tags { display: flex; flex-wrap: wrap; gap: 4px 8px; font: 700 12px/16px var(--ae-font-ui); letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
 .nemesis-option[aria-pressed='true'] .nemesis-tags { opacity: .85; }
