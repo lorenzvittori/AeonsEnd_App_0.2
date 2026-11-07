@@ -22,6 +22,14 @@
 
 'use strict';
 
+// Browser vecchi (Safari prima di iOS 14, Chrome prima della 86) non hanno replaceChildren: lo si aggiunge
+if (!Element.prototype.replaceChildren) {
+  Element.prototype.replaceChildren = function (...nodes) {
+    while (this.firstChild) this.removeChild(this.firstChild);
+    this.append(...nodes);
+  };
+}
+
 // --- 1. Testi, elementi, costanti e stato ---------------------------------------------------------------------------
 
 // Tutte le stringhe dell'interfaccia scritte da JS (per una futura traduzione)
@@ -1560,8 +1568,10 @@ async function init() {
     (resumeBtn.hidden ? startBtn : resumeBtn).focus();
   } catch (err) {
     console.error(err);
-    document.getElementById('nemesis-list').replaceChildren();
-    showStartError(I18N_IT.loadError, true);
+    // Senza replaceChildren: se l'errore viene da un browser vecchio, qui non deve fallire di nuovo
+    document.getElementById('nemesis-list').innerHTML = '';
+    // Sotto il messaggio, il motivo tecnico (utile per capire il problema su un dispositivo che non si può ispezionare)
+    showStartError(I18N_IT.loadError + '\n(' + (err && err.message ? err.message : String(err)) + ')', true);
   } finally {
     initRunning = false;
   }

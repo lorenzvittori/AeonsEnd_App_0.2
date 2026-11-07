@@ -133,7 +133,7 @@ body { overflow: hidden; }
 .nemesis-other summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; color: var(--ae-text-muted); font: 600 14px/20px var(--ae-font-ui); cursor: pointer; }
 .nemesis-other-list { margin: 0; padding: 0 14px 12px; list-style: none; color: var(--ae-text-quiet); font: 500 14px/22px var(--ae-font-ui); }
 .nemesis-other-list small { margin-left: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); }
+.start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); white-space: pre-line; overflow-wrap: anywhere; }
 .start-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 
 /* Scarti: icona dello stato vuoto */
