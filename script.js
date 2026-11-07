@@ -1125,23 +1125,13 @@ function renderResolve() {
   resolveHint.textContent = needsHint ? I18N_IT.applyHint : '';
 }
 
-// Carta in primo piano: etichetta di stato, nome e tipo, immagine (o retro durante la pesca), stato numerico
+// Carta in primo piano: immagine (o retro durante la pesca) e stato numerico. Sopra, solo in anteprima,
+// l'etichetta "Anteprima · carta X di Y"; niente etichetta per la carta da risolvere o pescata, niente nome e tipo:
+// lo spazio va alla carta.
 function renderFocus(viewed, active, { isNewStep, previewing }) {
   const index = queue.indexOf(viewed);
   const total = queue.length;
-  const eyebrow = el('p', 'ae-focus-eyebrow');
   const reveal = ui.reveal && ui.reveal.uid === viewed.uid ? ui.reveal : null;
-  if (previewing) eyebrow.textContent = I18N_IT.eyebrowPreview(index + 1, total);
-  else if (isNewStep && ui.holdUid !== viewed.uid) {
-    eyebrow.textContent = reveal && reveal.status === 'loading' ? I18N_IT.eyebrowDrawing : I18N_IT.eyebrowDrawn(index + 1, total);
-    eyebrow.classList.add('is-new');
-  } else {
-    eyebrow.textContent = I18N_IT.eyebrowActive(index + 1, total);
-    eyebrow.classList.add('is-active');
-  }
-
-  const name = el('p', 'ae-focus-name', viewed.data.name);
-  name.appendChild(el('small', '', typeName(viewed.data)));
 
   const stage = el('div', 'ae-focus-stage');
   if (reveal && reveal.status !== 'done') {
@@ -1166,9 +1156,12 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
   if (ui.holdUid === viewed.uid) status.classList.add('is-dropping', 'is-bumped');
   status.setAttribute('aria-label', statusText(viewed));
 
-  const children = [eyebrow];
-  if (previewing) children.push(el('p', 'ae-hint', I18N_IT.previewHint));
-  children.push(name, stage, status);
+  const children = [];
+  if (previewing) {
+    children.push(el('p', 'ae-focus-eyebrow', I18N_IT.eyebrowPreview(index + 1, total)));
+    children.push(el('p', 'ae-hint', I18N_IT.previewHint));
+  }
+  children.push(stage, status);
 
   const changed = focusEl.dataset.uid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
@@ -1179,19 +1172,17 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
   sizeFocus();
 }
 
-// Dimensiona la carta in primo piano nello spazio rimasto (massimo min(50dvh, 420px) x 300px; desktop 520 x 360)
+// Dimensiona la carta in primo piano: occupa tutto lo spazio rimasto nell'area, in altezza e in larghezza
 function sizeFocus() {
   const stage = focusEl.querySelector('.ae-focus-stage');
   if (!stage || resolveView.hidden) return;
-  const desktop = window.matchMedia('(min-width: 900px)').matches;
   const style = getComputedStyle(focusEl);
   const gap = parseFloat(style.rowGap) || 8;
   const others = Array.from(focusEl.children).filter(c => c !== stage);
   const used = others.reduce((sum, c) => sum + c.offsetHeight, 0) + gap * others.length
     + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + (stage.querySelector('.ae-flip-loading') ? 28 : 0);
-  const maxH = Math.min(window.innerHeight * (desktop ? 0.68 : 0.5), desktop ? 520 : 420);
-  const availH = Math.max(80, Math.min(maxH, focusEl.clientHeight - used));
-  const availW = Math.min(desktop ? 360 : 300, focusEl.clientWidth - 32);
+  const availH = Math.max(80, focusEl.clientHeight - used);
+  const availW = focusEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
   const width = Math.max(40, Math.min(availW, availH / CARD_RATIO));
   stage.style.width = width + 'px';
   stage.style.height = (width * CARD_RATIO) + 'px';

@@ -24,7 +24,11 @@ button:disabled { cursor: not-allowed; }
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-size: contain; mask-size: contain;
 }
-.ae-icon--heart { -webkit-mask-image: url('../Assets/ui/icons/heart.svg'); mask-image: url('../Assets/ui/icons/heart.svg'); }
+/* Vita: goccia rossa (immagine a colori, non maschera), centrata nel riquadro dell'icona */
+.ae-icon.ae-icon--heart {
+  background: url('../Assets/ui/icons/life-drop.webp') center / contain no-repeat;
+  -webkit-mask-image: none; mask-image: none;
+}
 .ae-icon--hourglass { -webkit-mask-image: url('../Assets/ui/icons/hourglass.svg'); mask-image: url('../Assets/ui/icons/hourglass.svg'); }
 .ae-icon--undo { -webkit-mask-image: url('../Assets/ui/icons/undo.svg'); mask-image: url('../Assets/ui/icons/undo.svg'); width: 20px; height: 20px; }
 .ae-icon--eye { -webkit-mask-image: url('../Assets/ui/icons/eye.svg'); mask-image: url('../Assets/ui/icons/eye.svg'); }
