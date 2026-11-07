@@ -149,13 +149,13 @@ body { overflow: hidden; }
   border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); text-align: left;
 }
 /* Pulsante con illustrazione: un ritaglio dell'illustrazione della nemesi (Assets/nemesis/<slug>-portrait.webp) occupa
-   la parte destra del pulsante, con una sfumatura cortissima a sinistra */
+   la parte destra del pulsante, con una sfumatura a sinistra */
 .nemesis-option.has-art { position: relative; overflow: hidden; padding-right: 140px; }
 .nemesis-art {
   /* Ritaglio dell'illustrazione (480 x 212): larghezza fissa, uguale in tutti i pulsanti */
   position: absolute; top: 0; right: 0; bottom: 0; width: 176px; pointer-events: none;
   background: center / cover no-repeat;
-  /* sfumatura cortissima: da trasparente a pieno nel primo 10% */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%); mask-image: linear-gradient(to right, transparent 0%, #000 10%);
+  /* sfumatura: da trasparente a pieno nella prima metà */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
 }
 .nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
 /* Mini espansione: etichetta dorata piccola in basso a destra, sopra l'illustrazione */
