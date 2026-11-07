@@ -4,7 +4,7 @@ Mettere la scansione della carta nemesi (fronte, come quella di Arachnos) in Ass
 esatto della nemesi come in nemesis.json, per esempio "Assets/nemesis/src/Arachnos.jpg" (JPG, PNG o WebP).
 Gli originali in src/ sono esclusi da git (.gitignore). Per ogni scansione lo script crea:
   - Assets/nemesis/<slug>.webp           la carta intera (larga 1000 px, WebP 90), mostrata quando si sceglie la nemesi
-  - Assets/nemesis/<slug>-portrait.webp  un ritaglio dell'illustrazione (480 x 227), a destra nel pulsante della nemesi
+  - Assets/nemesis/<slug>-portrait.webp  un ritaglio dell'illustrazione (480 x 212), a destra nel pulsante della nemesi
 e scrive Assets/nemesis/nemesis-art.json, l'elenco che l'app legge per sapere quali nemesi hanno l'immagine.
 
 Il ritaglio standard prende la parte alta dell'illustrazione, centrata; se per una nemesi il soggetto sta altrove,
@@ -24,14 +24,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'Assets' / 'nemesis' / 'src'
 OUT = ROOT / 'Assets' / 'nemesis'
 CARD_WIDTH = 1000
-PORTRAIT = (480, 227)  # circa 2,1:1, la forma del riquadro nel pulsante (style.css: .nemesis-art)
+PORTRAIT = (480, 212)  # circa 2,26:1, la forma del riquadro nel pulsante (style.css: .nemesis-art)
 QUALITY = 90
 
-# Ritaglio standard: la parte alta dell'illustrazione, a metà fra il primo ritaglio (più stretto) e l'illustrazione intera.
+# Ritaglio standard: la parte alta dell'illustrazione, vicina al primo ritaglio (più stretto) ma un po' più larga.
 # L'altezza si calcola dalla proporzione di PORTRAIT (None).
-DEFAULT_CROP = (0.06, 0.047, 0.94, None)
+DEFAULT_CROP = (0.073, 0.06, 0.927, None)
 CROPS = {
-    # 'Arachnos': (0.06, 0.047, 0.94, None),
+    # 'Arachnos': (0.073, 0.06, 0.927, None),
 }
 
 
