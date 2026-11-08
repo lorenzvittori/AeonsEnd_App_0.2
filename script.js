@@ -374,7 +374,7 @@ function cardArt(data, { thumb = false, lazy = false } = {}) {
   return box;
 }
 
-// Token del potere come nella versione 1: un'immagine (Assets/power-token.webp) per ogni token rimasto
+// Token del potere come nella versione 1: un'immagine (Assets/power-token-2.webp) per ogni token rimasto
 function tokenIcons(n) {
   const row = el('span', 'ae-tokens');
   row.setAttribute('aria-hidden', 'true');
