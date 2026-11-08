@@ -64,6 +64,9 @@ const I18N_IT = {
   ctaMinionNext: 'Effetto applicato · Avanti',
   ctaMinionDraw: 'Effetto applicato · Pesca',
   ctaPutInPlay: 'Metti in gioco',
+  ctaDraw: 'Pesca',
+  backToDraw: 'Torna alla carta da pescare',
+  backToActive: 'Torna alla carta da risolvere',
   loadingCard: 'Caricamento carta…',
   imageMissing: 'Immagine non disponibile',
   retryImage: 'Riprova immagine',
@@ -458,8 +461,15 @@ function queueItem(entry, opts) {
 
 // Prossima carta da pescare nella fascia della VistaRisoluzione: solo il retro (non si vede quale carta è) e NUOVA.
 // Non è cliccabile.
-function nextCardItem() {
-  const item = el('div', 'ae-queue-item ae-next-card');
+function nextCardItem({ current = false, viewed = false } = {}) {
+  const item = el(current ? 'button' : 'div', 'ae-queue-item ae-next-card');
+  if (current) {
+    // Nel passo da pescare è la carta da "risolvere": si può toccare per tornarci
+    item.type = 'button';
+    item.dataset.uid = DRAW_UID;
+    item.setAttribute('aria-current', 'true');
+  }
+  if (viewed) item.dataset.viewed = 'true';
   item.setAttribute('role', 'listitem');
   item.setAttribute('aria-label', I18N_IT.nextCard);
   const badge = el('span', 'ae-status-badge ae-status-badge--empty', '·');
@@ -1576,23 +1586,37 @@ function activeEntry() {
   return queue[currentIndex] || null;
 }
 
-// Testo del pulsante per la carta da risolvere (tabella §7.3). Sull'ultima carta della coda si pesca la nuova.
-function actionText(entry, isNew, isLast) {
+// Passo "da pescare": tutte le carte in gioco sono state risolte; si vede la prossima carta del mazzo coperta e il
+// pulsante "Pesca". Si pesca solo quando il giocatore lo tocca (la carta poi si gira).
+const DRAW_UID = -1;
+function isDrawStep() {
+  return resolving && newIndex < 0 && currentIndex >= queue.length;
+}
+function canDraw() {
+  return deck.length > 0 || discard.length > 0;
+}
+
+// Testo del pulsante per la carta da risolvere (tabella §7.3). Anche sull'ultima carta si va solo avanti: la pesca è
+// un passo a parte, con il pulsante "Pesca".
+function actionText(entry, isNew) {
   const { data, tokens } = entry;
   if (isNew) return data.type === 'Attack' ? I18N_IT.ctaDiscardNext : I18N_IT.ctaPutInPlay;
-  if (data.type === 'Power' && tokens > 1) return isLast ? I18N_IT.ctaTokenDraw : I18N_IT.ctaTokenNext;
-  if (data.type === 'Minion') return isLast ? I18N_IT.ctaMinionDraw : I18N_IT.ctaMinionNext;
-  return isLast ? I18N_IT.ctaDiscardDraw : I18N_IT.ctaDiscardNext;
+  if (data.type === 'Power' && tokens > 1) return I18N_IT.ctaTokenNext;
+  if (data.type === 'Minion') return I18N_IT.ctaMinionNext;
+  return I18N_IT.ctaDiscardNext;
 }
 
 function renderResolve() {
+  const drawStep = isDrawStep();
   const active = activeEntry();
-  if (!active) return;
+  if (!active && !drawStep) return;
   const isNewStep = newIndex >= 0;
   const viewedUid = ui.holdUid || ui.viewedUid;
-  const viewed = entryByUid(viewedUid) || active;
-  if (!ui.holdUid) ui.viewedUid = viewed.uid;
-  const previewing = !ui.holdUid && viewed !== active;
+  // Nel passo da pescare la carta "da risolvere" è la carta coperta (DRAW_UID)
+  const viewed = (viewedUid === DRAW_UID && drawStep) ? null : (entryByUid(viewedUid) || active);
+  const viewingDraw = drawStep && !viewed;
+  if (!ui.holdUid) ui.viewedUid = viewingDraw ? DRAW_UID : viewed.uid;
+  const previewing = !ui.holdUid && (drawStep ? !viewingDraw : viewed !== active);
 
   // Fascia compatta: rosso = da risolvere, avorio = mostrata
   const railScroll = rail.scrollLeft;
@@ -1601,17 +1625,18 @@ function renderResolve() {
     compact: true, index: i, total: queue.length, current: entry === active, viewed: entry === viewed
   }));
   // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
-  if (!isNewStep && (deck.length > 0 || discard.length > 0)) railItems.push(nextCardItem());
+  if (!isNewStep && canDraw()) railItems.push(nextCardItem({ current: drawStep, viewed: viewingDraw }));
   rail.replaceChildren(...railItems);
   rail.scrollLeft = railScroll;
   rail.scrollTop = railScrollTop;
-  const viewedItem = rail.querySelector(`[data-uid="${viewed.uid}"]`);
+  const viewedItem = rail.querySelector(`[data-uid="${ui.viewedUid}"]`);
   if (viewedItem) scrollItemInto(rail, viewedItem, 'nearest');
 
-  renderFocus(viewed);
+  renderFocus(viewingDraw ? { uid: DRAW_UID } : viewed);
 
   // Dock: in anteprima al posto dell'azione c'è "Torna alla carta da risolvere"
-  const text = actionText(active, isNewStep, currentIndex === queue.length - 1);
+  const text = drawStep ? I18N_IT.ctaDraw : actionText(active, isNewStep);
+  backBtn.textContent = drawStep ? I18N_IT.backToDraw : I18N_IT.backToActive;
   resolveBtn.hidden = previewing;
   backBtn.hidden = !previewing;
   resolveBtn.textContent = text;
@@ -1674,8 +1699,25 @@ function focusSlide(entry) {
   return slide;
 }
 
+// Carta da pescare: il retro, con NUOVA; si gira dopo il tocco su "Pesca"
+function drawSlide() {
+  const slide = el('div', 'ae-focus-slide ae-focus-slide--draw');
+  slide.dataset.uid = DRAW_UID;
+  const stage = el('div', 'ae-focus-stage is-new');
+  const art = el('div', 'ae-card-art ae-card-back');
+  const img = document.createElement('img');
+  img.alt = I18N_IT.nextCard;
+  img.src = CARD_BACK;
+  art.appendChild(img);
+  const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
+  tag.setAttribute('aria-hidden', 'true');
+  stage.append(art, tag);
+  slide.append(el('p', 'ae-focus-status'), stage);
+  return slide;
+}
+
 function focusStateSignature() {
-  return queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
+  return (isDrawStep() ? 'draw|' : '') + queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
     + '#' + (ui.reveal ? ui.reveal.uid + ':' + ui.reveal.status : '') + '#' + (ui.holdUid || '');
 }
 
@@ -1689,7 +1731,9 @@ function renderFocus(viewed) {
   const viewedChanged = prevUid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
   if (focusStateSignature() !== focusSignature || !focusTrack.children.length) {
-    focusTrack.replaceChildren(...queue.map(focusSlide));
+    const slides = queue.map(focusSlide);
+    if (isDrawStep()) slides.push(drawSlide());
+    focusTrack.replaceChildren(...slides);
     // La firma si calcola dopo: disegnare la carta pescata può far avanzare il suo stato (pronta → si gira)
     focusSignature = focusStateSignature();
     sizeFocus(false);
@@ -1843,8 +1887,8 @@ function startResolution() {
   currentIndex = 0;
   newIndex = -1;
   resolving = true;
-  // Coda vuota: non c'è niente da risolvere, si pesca direttamente la carta nuova
-  if (queue.length === 0) drawNewCard();
+  // Coda vuota: si va subito alla carta da pescare (o, se non c'è niente da pescare, il turno finisce)
+  if (queue.length === 0 && !canDraw()) endResolution();
 }
 
 // Pesca una carta in fondo alla coda e la mostra come nuova (NUOVA, entra girandosi dal retro)
@@ -1916,8 +1960,8 @@ function resolveCurrent() {
     discardEntry(entry);
     effect = 'discard';
   }
-  // Finita la coda si pesca la nuova carta
-  if (currentIndex >= queue.length) drawNewCard();
+  // Finita la coda: si passa alla carta da pescare (coperta); se non c'è niente da pescare il turno finisce
+  if (currentIndex >= queue.length && !canDraw()) endResolution();
   return effect;
 }
 
@@ -1925,6 +1969,17 @@ function resolveCurrent() {
 // Fino alla fine dell'animazione il pulsante non accetta altri tocchi (un tocco = un solo evento di gioco).
 function onResolveClick() {
   if (!resolving || ui.isTransitioning) return;
+  if (isDrawStep()) {
+    // "Pesca": la carta coperta diventa la carta pescata, che si gira
+    if (ui.viewedUid !== DRAW_UID) return;
+    act(drawNewCard);
+    if (resolving) {
+      showActive(activeEntry());
+      lockFor(duration('focus'));
+    }
+    render();
+    return;
+  }
   const active = activeEntry();
   if (!active || ui.viewedUid !== active.uid) return;
   const ghostSource = focusEl.querySelector(`.ae-focus-slide[data-uid="${active.uid}"] .ae-focus-stage`);
@@ -1966,7 +2021,7 @@ function onResolveClick() {
 // Dopo un'azione si mostra la nuova carta da risolvere (o la carta appena pescata, che si gira)
 function showActive(entry) {
   const current = activeEntry();
-  ui.viewedUid = current ? current.uid : null;
+  ui.viewedUid = current ? current.uid : (isDrawStep() ? DRAW_UID : null);
   ui.slide = 1;
   if (current && newIndex >= 0 && current.isNew && (!ui.reveal || ui.reveal.uid !== current.uid)) {
     startReveal(current);
@@ -2006,7 +2061,7 @@ function onNemesisClick() {
 // Mostra un'altra carta senza risolvere nulla (anteprima): non cambia mazzo, vita, token, scarti, turno, undo
 function viewCard(uid, slide = 0) {
   if (!resolving || ui.holdUid) return;
-  if (!entryByUid(uid) || ui.viewedUid === uid) return;
+  if ((uid === DRAW_UID ? !isDrawStep() : !entryByUid(uid)) || ui.viewedUid === uid) return;
   ui.slide = slide;
   ui.viewedUid = uid;
   renderResolve();
@@ -2021,6 +2076,7 @@ function moveView(step) {
 function backToActive() {
   const active = activeEntry();
   if (active) viewCard(active.uid);
+  else if (isDrawStep()) viewCard(DRAW_UID);
   resolveBtn.focus();
 }
 
