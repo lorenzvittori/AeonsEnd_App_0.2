@@ -4,6 +4,8 @@ Versione con il nuovo design: interfaccia rifatta secondo `REPORT_IMPLEMENTAZION
 sopra la logica di gioco della versione 48 (mazzo, pesca, scarti, poteri/minion/attacchi, turni e undo invariati).
 
 - Sito: https://lorenzvittori.github.io/AeonsEnd_App_0.2/
+  - Pubblicato da `.github/workflows/pages.yml` (Pages → Source = "GitHub Actions"): ogni tentativo ha 3 minuti e,
+    se GitHub si blocca, riprova da solo fino a 3 volte; pubblica solo i file del sito.
 - Repository autonomo (non legge nulla da AeonsEnd_APP):
   - `index.html`, `script.js`, `version.json` (si aumenta a ogni cambio di CSS/JS: vale per tutti i CSS e per il JS)
   - `css/design-tokens.css` (colori, font Cinzel/Inter da Google Fonts, durate), `css/components.css` (componenti), `style.css` (layout)
