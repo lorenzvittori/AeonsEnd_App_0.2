@@ -130,6 +130,8 @@ const I18N_IT = {
 };
 
 const app = document.getElementById('app');
+// TEST: testata con Undo e Menu nascosta
+app.classList.add('no-header');
 const mainEl = document.getElementById('main');
 const phaseLabel = document.getElementById('phase-label');
 const undoBtn = document.getElementById('undo-btn');
@@ -1737,11 +1739,49 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// I box mazzo e scarti ai lati della fascia sono stati tolti (il BannerInfoNemesi è nel tag git v104-banner-info-nemesi,
-// i box nel commit 2105399): mazzo e scarti si vedono dal Menu.
+// TEST: BannerInfoNemesi di nuovo in cima al turno nemesi (come nella prima versione) e testata Undo/Menu nascosta.
+// Stato di prima: tag git v113-prima-test-banner.
+// Da sinistra: mazzo (dorso con il numero di carte rimaste), nome della nemesi e fase (Risoluzione / Pesca), pila degli
+// scarti (ultima carta scartata a faccia in su con il numero; toccandola si apre la pila). Dietro, il ritaglio
+// dell'illustrazione della nemesi che sfuma dal nero a sinistra.
+function bannerPile(cls, imgSrc, count, label) {
+  const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
+  node.setAttribute('aria-label', label);
+  if (imgSrc) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = imgSrc;
+    node.appendChild(img);
+  }
+  const n = el('span', 'ae-pile-count', String(count));
+  n.setAttribute('aria-hidden', 'true');
+  node.appendChild(n);
+  return node;
+}
+
+function renderBannerInfoNemesi(drawStep) {
+  let bar = document.getElementById('resolve-info');
+  if (!bar) {
+    bar = el('div', 'ae-banner-nemesi');
+    bar.id = 'resolve-info';
+  }
+  if (resolveView.firstElementChild !== bar) resolveView.prepend(bar);
+  const art = settings.nemesis && nemesisArt[settings.nemesis];
+  bar.style.setProperty('--ae-banner-art', art ? `url("${encodeURI(art.portrait)}")` : 'none');
+  const deckPile = bannerPile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
+  const last = discard[discard.length - 1];
+  const discardPile = bannerPile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
+    I18N_IT.discardButtonLabel(discard.length));
+  discardPile.type = 'button';
+  discardPile.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+  const text = el('div', 'ae-banner-text');
+  text.append(el('strong', 'ae-banner-name', settings.nemesis || ''),
+    el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve));
+  bar.replaceChildren(deckPile, text, discardPile);
+}
+
 function renderResolveInfo(drawStep) {
-  const old = document.getElementById('resolve-info');
-  if (old) old.remove();
+  renderBannerInfoNemesi(drawStep);
   // La fascia va in una riga con i due box ai lati (creata qui una volta sola)
   let row = rail.parentElement;
   if (!row.classList.contains('ae-rail-row')) {

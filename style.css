@@ -1,4 +1,4 @@
-﻿/* Layout dell'app (new design 0.2). Token in css/design-tokens.css, componenti in css/components.css. */
+/* Layout dell'app (new design 0.2). Token in css/design-tokens.css, componenti in css/components.css. */
 
 html, body { height: 100%; }
 body { overflow: hidden; }
@@ -386,7 +386,7 @@ body { overflow: hidden; }
 /* --- BannerInfoNemesi: mazzo, nome della nemesi e fase, pila degli scarti; dietro l'illustrazione che sfuma dal nero --- */
 .ae-banner-nemesi {
   position: relative; flex: 0 0 auto; height: 84px; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
-  background: #000; overflow: hidden; border-top: 1px solid var(--ae-border);
+  background: #000; overflow: hidden; border-bottom: 1px solid var(--ae-border);
 }
 .ae-banner-nemesi::before {
   content: ''; position: absolute; top: 0; bottom: 0; left: 22%; right: 0; pointer-events: none;
@@ -524,3 +524,9 @@ body { overflow: hidden; }
 
 /* Nessuna linea di separazione tra fascia piccola e carte grandi, in entrambi i turni */
 .ae-compact-rail, .ae-rail-row, .ae-resolve-layout.is-draw-phase .ae-compact-rail, .ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom: 0; }
+
+/* TEST: testata con Undo e Menu nascosta (stato di prima nel tag v113-prima-test-banner). Lo spazio per la barra di
+   stato del telefono passa al contenuto. */
+.ae-shell.no-header { grid-template-rows: minmax(0, 1fr) auto; }
+.ae-shell.no-header > .ae-header { display: none; }
+.ae-shell.no-header > .ae-main { padding-top: var(--ae-safe-top); }
