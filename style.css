@@ -25,7 +25,7 @@ body { overflow: hidden; }
 }
 .ae-queue-list { display: flex; gap: 12px; min-width: max-content; align-items: flex-end; margin: auto; }
 .ae-queue-list:empty { display: none; }
-/* VistaCoda: carte grandi, una e mezza nella larghezza (--ae-queue-card calcolata da sizeQueue in script.js) */
+/* VistaCoda: carte grandi, alte quanto lo spazio (--ae-queue-card calcolata da sizeQueue in script.js) */
 .ae-queue-list > .queue-slot { width: var(--ae-queue-card, 132px); flex: 0 0 var(--ae-queue-card, 132px); display: flex; flex-direction: column; gap: 8px; scroll-snap-align: center; }
 .queue-slot > .ae-queue-item { width: 100%; flex-basis: auto; }
 /* Comandi sotto la carta grande: vita del minion (−5 −1 +1, Elimina a 0) o rimozione del potere */

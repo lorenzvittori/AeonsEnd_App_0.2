@@ -726,14 +726,15 @@ function cardControls(entry) {
   return box;
 }
 
-// Carte grandi: una e mezza nella larghezza, ma mai più alte dello spazio disponibile
+// Carte grandi: alte quanto lo spazio disponibile, ma mai così larghe da nascondere del tutto la carta successiva
 function sizeQueue() {
   if (queueView.hidden) return;
   const style = getComputedStyle(queueViewport);
   const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
   const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const gap = parseFloat(getComputedStyle(queueList).columnGap) || 12;
-  const byWidth = (queueViewport.clientWidth - padX - gap) / 1.5;
+  // La carta riempie l'altezza disponibile; in larghezza resta sempre visibile almeno un bordo della successiva (1,15 carte)
+  const byWidth = (queueViewport.clientWidth - padX - gap) / 1.15;
   const badge = 32 + 52; // badge sopra la carta + riga dei comandi sotto (44px + spazio)
   const byHeight = (queueViewport.clientHeight - padY - badge) / CARD_RATIO;
   const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
