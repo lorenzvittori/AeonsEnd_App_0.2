@@ -66,10 +66,10 @@ const I18N_IT = {
   applyHint: "Applica prima l'effetto al tavolo",
   ctaTokenNext: 'Rimuovi 1 token · Avanti',
   ctaTokenDraw: 'Rimuovi 1 token · Pesca',
-  ctaDiscardNext: 'Effetto applicato · Scarta',
-  ctaDiscardDraw: 'Effetto applicato · Scarta · Pesca',
-  ctaMinionNext: 'Effetto applicato · Avanti',
-  ctaMinionDraw: 'Effetto applicato · Pesca',
+  ctaDiscardNext: 'Effetto risolto',
+  ctaDiscardDraw: 'Effetto risolto',
+  ctaMinionNext: 'Effetto risolto',
+  ctaMinionDraw: 'Effetto risolto',
   ctaPutInPlay: 'Metti in gioco',
   ctaDraw: 'Pesca',
   backToDraw: 'Torna alla carta da pescare',
@@ -93,6 +93,12 @@ const I18N_IT = {
   powerRemoved: name => `${name}: carta rimossa, negli scarti`,
   removePowerShort: 'Rimuovi · costo pagato',
   notRemovable: 'Non rimovibile',
+  save: 'Salva',
+  saveLabel: name => `Salva le modifiche a ${name}`,
+  paidNote: 'Costo pagato',
+  powerPaid: name => `${name}: costo pagato, andrà negli scarti`,
+  cancelPay: 'Annulla',
+  draftDiscarded: 'Modifiche non salvate annullate',
   hpTurnTag: d => `HP: ${d > 0 ? '+' : '−'}${Math.abs(d)}`,
   discardZoomTitle: 'Carta negli scarti',
   mostRecent: 'Più recente',
@@ -173,6 +179,8 @@ const DROP_BIG_VALUE = 5;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const DURATION = { token: 220, discard: 240, focus: 220, phase: 280 };
 const DRAW_MS = 350;
+// Attacco pescato e risolto: la carta sfuma nel turno nemesi prima del passaggio al turno giocatori
+const DISCARD_FADE_MS = 450;
 function duration(name) {
   return reducedMotion.matches ? Math.min(100, DURATION[name]) : DURATION[name];
 }
@@ -238,7 +246,9 @@ const ui = {
   reveal: null,           // carta pescata da girare: { uid, status: 'loading' | 'ready' | 'error' }
   queueAnchor: null,      // { uid, align } carta su cui allineare la coda al prossimo disegno
   lastDrawnUid: null,
-  slide: 0,               // direzione dell'ultimo cambio di carta (per l'animazione)
+  drafts: new Map(),      // turno giocatori: modifiche non ancora salvate per carta { uid -> { hp?, paid? } }
+  tierWaitUntil: 0,       // fino a quando il banner Tier copre l'app (token e vita compaiono dopo)
+  slide: 0,              // direzione dell'ultimo cambio di carta (per l'animazione)
   slidePx: null           // distanza da cui entra la carta dopo uno slide col dito (px, con segno)
 };
 
@@ -319,7 +329,8 @@ function drawFromDeck() {
 // Carta in gioco (nella coda) con il suo stato
 function makeEntry(data) {
   // turnHp: vita del minion all'inizio del turno dei giocatori (per mostrare il danno o la cura del turno)
-  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false };
+  // paid: potere con costo pagato (salvato nel turno giocatori), grigio fino al turno nemesi, poi negli scarti
+  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false };
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -408,7 +419,28 @@ function hpChanged(entry) {
 // Uguale nella coda e nella fascia della VistaRisoluzione.
 // Carta che si attiverà nel prossimo turno nemesi: minion (ogni turno) e potere con 1 solo token rimasto
 function activatesNextTurn(entry) {
+  if (entry.paid) return false;
   return hasHp(entry) || (entry.data.type === 'Power' && entry.tokens === 1);
+}
+
+// Turno giocatori: modifiche non ancora salvate di una carta (vita in bozza, costo pagato in bozza)
+function draftOf(entry) {
+  return ui.drafts.get(entry.uid) || null;
+}
+function draftHp(entry) {
+  const d = draftOf(entry);
+  return d && d.hp !== undefined ? d.hp : entry.hp;
+}
+function setDraft(entry, patch) {
+  const d = Object.assign({}, draftOf(entry), patch);
+  if (d.hp === entry.hp) delete d.hp;
+  if (!d.paid) delete d.paid;
+  if (Object.keys(d).length) ui.drafts.set(entry.uid, d); else ui.drafts.delete(entry.uid);
+}
+// Copia della carta con la vita in bozza, per disegnare box e fascia
+function displayEntry(entry) {
+  const d = draftOf(entry);
+  return d && d.hp !== undefined ? Object.assign({}, entry, { hp: d.hp }) : entry;
 }
 
 function statusBadge(entry) {
@@ -437,6 +469,7 @@ function queueItem(entry, opts) {
   button.dataset.uid = entry.uid;
   button.setAttribute('role', 'listitem');
   if (entry.isNew) button.classList.add('is-new');
+  if (entry.paid) button.classList.add('is-paid');
   // Turno dei giocatori: tutta la carta lampeggia di rosso se si attiverà nel prossimo turno nemesi
   if (!resolving && activatesNextTurn(entry)) button.classList.add('is-imminent');
   if (opts.current) button.setAttribute('aria-current', 'true');
@@ -444,6 +477,7 @@ function queueItem(entry, opts) {
 
   const parts = [data.name, typeName(data), statusText(entry), I18N_IT.cardOf(opts.index + 1, opts.total)];
   if (entry.isNew) parts.push(I18N_IT.newTag.toLowerCase());
+  if (entry.paid) parts.push(I18N_IT.paidNote.toLowerCase());
   if (opts.current) parts.push('da risolvere');
   if (opts.viewed && !opts.current) parts.push('in anteprima');
   button.setAttribute('aria-label', parts.filter(Boolean).join(', '));
@@ -724,25 +758,35 @@ function cardControls(entry) {
   };
 
   if (hasHp(entry)) {
-    const max = entry.data.hp;
-    const steps = entry.hp > 0 ? [-5, -1, 1] : [1];
+    // Solo −5 e −1 (niente +1): i tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo)
+    const shown = draftHp(entry);
+    const steps = shown > 0 ? [-5, -1] : [];
     steps.forEach(step => {
       const key = String(step);
-      box.appendChild(ctl(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', key,
-        (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
-          const value = Math.min(max, Math.max(0, entry.hp + step));
-          if (value === entry.hp) return;
-          act(() => { entry.hp = value; });
-          render();
-          refocus(key);
-        }));
+      box.appendChild(ctl('−' + Math.abs(step), 'secondary', key, 'Togli ' + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
+        const value = Math.max(0, draftHp(entry) + step);
+        if (value === draftHp(entry)) return;
+        setDraft(entry, { hp: value });
+        render();
+        refocus(key);
+      }));
     });
-    if (entry.hp <= 0) {
-      box.appendChild(ctl(I18N_IT.deleteMinion, 'danger', 'delete', null, () => removeEntry(I18N_IT.minionDeleted(entry.data.name))));
+    if (shown <= 0) {
+      box.appendChild(ctl(I18N_IT.deleteMinion, 'danger', 'delete', null, () => {
+        ui.drafts.delete(entry.uid);
+        removeEntry(I18N_IT.minionDeleted(entry.data.name));
+      }));
     }
+  } else if (entry.data.type === 'Power' && entry.paid) {
+    box.appendChild(el('p', 'queue-note is-paid', I18N_IT.paidNote));
   } else if (entry.data.type === 'Power' && entry.data.removable !== false) {
-    box.appendChild(ctl(I18N_IT.removePowerShort, 'danger', 'remove', I18N_IT.removePower + ': ' + entry.data.name,
-      () => removeEntry(I18N_IT.powerRemoved(entry.data.name))));
+    const d = draftOf(entry);
+    if (d && d.paid) {
+      box.appendChild(ctl(I18N_IT.cancelPay, 'secondary', 'cancel', null, () => { setDraft(entry, { paid: false }); render(); refocus('remove'); }));
+    } else {
+      box.appendChild(ctl(I18N_IT.removePowerShort, 'danger', 'remove', I18N_IT.removePower + ': ' + entry.data.name,
+        () => { setDraft(entry, { paid: true }); render(); refocus('cancel'); }));
+    }
   } else if (entry.data.type === 'Power') {
     // Potere senza "TO DISCARD": nota piccola al posto del pulsante
     box.appendChild(el('p', 'queue-note', I18N_IT.notRemovable));
@@ -759,7 +803,7 @@ function sizeQueue() {
   const gap = parseFloat(getComputedStyle(queueList).columnGap) || 12;
   // La carta riempie l'altezza disponibile; in larghezza resta sempre visibile almeno un bordo della successiva (1,15 carte)
   const byWidth = (queueViewport.clientWidth - padX - gap) / 1.15;
-  const badge = 32 + 52; // badge sopra la carta + riga dei comandi sotto (44px + spazio)
+  const badge = 52; // riga dei comandi sotto la carta (44px + spazio); il box vita/token è sovrapposto alla carta
   const byHeight = (queueViewport.clientHeight - padY - badge) / CARD_RATIO;
   const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
@@ -770,26 +814,38 @@ function renderQueue() {
   const previousTop = queueViewport.scrollTop;
   const railEl = ensureQueueRail();
   const railScroll = railEl.scrollLeft;
-  railEl.replaceChildren(...queue.map((entry, i) => queueItem(entry, { compact: true, index: i, total: queue.length })));
+  railEl.replaceChildren(...queue.map((entry, i) => queueItem(displayEntry(entry), { compact: true, index: i, total: queue.length })));
   railEl.scrollLeft = railScroll;
   railEl.hidden = queue.length === 0;
   queueList.replaceChildren(...queue.map((entry, i) => {
     // Ogni carta grande con i suoi comandi subito sotto (vita del minion, rimozione del potere)
     const slot = el('div', 'queue-slot');
     slot.setAttribute('role', 'listitem');
-    const card = queueItem(entry, { full: true, index: i, total: queue.length, lazy: i > 3 });
+    const card = queueItem(displayEntry(entry), { full: true, index: i, total: queue.length, lazy: i > 3 });
     card.removeAttribute('role');
-    if (hpChanged(entry)) {
-      // Danno o cura di questo turno, in alto a destra sulla carta
-      const change = entry.hp - entry.turnHp;
+    const d = draftOf(entry);
+    if (d && d.hp !== undefined) {
+      // Danno in bozza (non ancora salvato), in alto a destra sulla carta: sparisce con "Salva"
+      const change = d.hp - entry.hp;
       const tag = el('span', 'queue-hp-tag ' + (change < 0 ? 'is-loss' : 'is-gain'), I18N_IT.hpTurnTag(change));
       tag.setAttribute('aria-hidden', 'true');
       card.querySelector('.ae-card-art').appendChild(tag);
     }
     slot.append(card, cardControls(entry));
+    // "Salva" in basso a destra sulla carta quando c'è una modifica non salvata (un minion a 0 si elimina, non si salva)
+    if (d && !(hasHp(entry) && draftHp(entry) <= 0)) {
+      const save = el('button', 'queue-save', I18N_IT.save);
+      save.type = 'button';
+      save.setAttribute('aria-label', I18N_IT.saveLabel(entry.data.name));
+      save.addEventListener('click', e => { e.stopPropagation(); commitDraft(entry); });
+      slot.appendChild(save);
+    }
     return slot;
   }));
   queueEmpty.hidden = queue.length > 0;
+  // "Premi Turno Nemesi per pescare" solo prima del primo turno nemesi
+  const emptyHint = queueEmpty.querySelector('p');
+  if (emptyHint) emptyHint.hidden = turn > 0;
   sizeQueue();
 
   const anchor = ui.queueAnchor;
@@ -843,6 +899,32 @@ function focusQueueItem(uid) {
   (item || nemesisBtn).focus({ preventScroll: true });
 }
 
+// "Salva": la bozza della carta (vita o costo pagato) diventa definitiva, un passo di undo
+function commitDraft(entry) {
+  if (resolving || ui.isTransitioning) return;
+  const d = ui.drafts.get(entry.uid);
+  if (!d) return;
+  ui.drafts.delete(entry.uid);
+  act(() => {
+    if (d.hp !== undefined) entry.hp = d.hp;
+    if (d.paid) entry.paid = true;
+  });
+  ui.queueAnchor = { uid: entry.uid, align: 'nearest' };
+  render();
+  focusQueueItem(entry.uid);
+}
+
+// Dopo un minion eliminato nel turno nemesi: gli indici della risoluzione seguono la coda
+function removeWhileResolving(entry) {
+  const index = queue.indexOf(entry);
+  const wasNew = newIndex >= 0 && index === newIndex;
+  discardEntry(entry);
+  if (wasNew) { endResolution(); return; }
+  if (index < currentIndex) currentIndex--;
+  if (newIndex > index) newIndex--;
+  if (currentIndex >= queue.length && newIndex < 0 && !canDraw()) endResolution();
+}
+
 // Carta su cui allineare la coda quando una carta sparisce: la successiva, altrimenti la precedente
 function neighbourUid(index) {
   const next = queue[index] || queue[index - 1];
@@ -854,7 +936,8 @@ function neighbourUid(index) {
 // Sotto la carta c'è sempre un pannello alto uguale per ogni tipo, così la carta ha la stessa dimensione per minion,
 // poteri e attacchi.
 function openCardDialog(entry) {
-  if (resolving || ui.isTransitioning) return;
+  // Nel turno nemesi si apre solo per i minion (−1 / +1 alla vita)
+  if (ui.isTransitioning || (resolving && entry.data.type !== 'Minion')) return;
   const { data } = entry;
   let close = () => {};
   const cancel = () => close();
@@ -875,19 +958,20 @@ function openCardDialog(entry) {
     tokens.setAttribute('aria-label', I18N_IT.tokensLeft(entry.tokens));
     tokens.appendChild(tokenIcons(entry.tokens));
     panel.appendChild(tokens);
+    // Costo pagato: la carta diventa grigia e va negli scarti all'inizio del turno nemesi
     const remove = button(I18N_IT.removePower, 'danger', () => {
-      const index = queue.indexOf(entry);
       close();
-      act(() => discardEntry(entry));
-      ui.queueAnchor = { uid: neighbourUid(index), align: 'nearest' };
+      ui.drafts.delete(entry.uid);
+      act(() => { entry.paid = true; });
+      ui.queueAnchor = { uid: entry.uid, align: 'nearest' };
       render();
-      focusQueueItem(neighbourUid(index));
-      showToast(I18N_IT.powerRemoved(data.name));
+      focusQueueItem(entry.uid);
+      showToast(I18N_IT.powerPaid(data.name));
     });
     const footer = el('div', 'ae-modal-footer');
     footer.append(button(I18N_IT.close, 'secondary', cancel));
     // Solo i poteri con "TO DISCARD" si possono rimuovere pagando il costo (cards.json: removable)
-    if (data.removable !== false) footer.appendChild(remove);
+    if (data.removable !== false && !entry.paid) footer.appendChild(remove);
     dialog.appendChild(footer);
   } else {
     const footer = el('div', 'ae-modal-footer');
@@ -912,7 +996,8 @@ function buildHpPanel(dialog, panel, entry, close) {
   const delta = el('p', 'ae-hp-delta');
   row.append(number, delta);
   const controls = el('div', 'ae-hp-controls');
-  [-5, -1, 1].forEach(step => {
+  // Turno giocatori: solo −5 e −1; turno nemesi: −1 e +1
+  (resolving ? [-1, 1] : [-5, -1]).forEach(step => {
     const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
       draft = Math.min(max, Math.max(0, draft + step));
       update();
@@ -946,10 +1031,21 @@ function buildHpPanel(dialog, panel, entry, close) {
     close();
     // Vita invariata: si chiude senza aggiungere un passo di undo
     if (value === original || index < 0) return;
+    ui.drafts.delete(entry.uid);
+    const wasResolving = resolving;
     act(() => {
       entry.hp = value;
-      if (value <= 0) discardEntry(entry);
+      if (value <= 0) {
+        if (resolving) removeWhileResolving(entry); else discardEntry(entry);
+      }
     });
+    if (wasResolving) {
+      ui.viewedUid = null;
+      render();
+      if (resolving) resolveBtn.focus(); else nemesisBtn.focus();
+      showToast(value <= 0 ? I18N_IT.minionDeleted(name) : I18N_IT.hpLeftToast(name, value));
+      return;
+    }
     ui.queueAnchor = value <= 0 ? { uid: neighbourUid(index), align: 'nearest' } : { uid: entry.uid, align: 'nearest' };
     render();
     focusQueueItem(ui.queueAnchor ? ui.queueAnchor.uid : (value <= 0 ? neighbourUid(index) : entry.uid));
@@ -1388,6 +1484,7 @@ function startGame() {
   ui.viewedUid = null;
   ui.reveal = null;
   ui.lastDrawnUid = null;
+  ui.drafts.clear();
   undoStack = [];
   newGame();
   closeStart();
@@ -1434,7 +1531,7 @@ function snapshot() {
     turn,
     deck: deck.map(c => c.id),
     discard: discard.map(c => c.id),
-    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew })),
+    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid })),
     resolving,
     currentIndex,
     newIndex,
@@ -1453,9 +1550,10 @@ function restore(s) {
   // Prima si leggono tutti i dati: se qualcosa non va, la partita in corso resta com'è
   const newDeck = s.deck.map(get);
   const newDiscard = s.discard.map(get);
-  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), { tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew }));
+  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), { tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew, paid: !!q.paid }));
 
   clearTransition();
+  ui.drafts.clear();
   closeAllModals();
   closeDiscard();
   ui.reveal = null;
@@ -1501,7 +1599,7 @@ function readSave() {
 }
 
 function updateUndoBtn() {
-  undoBtn.disabled = undoStack.length === 0;
+  undoBtn.disabled = undoStack.length === 0 && ui.drafts.size === 0;
 }
 
 // Aggiunge un passo di undo (lo stato prima di un'azione), tenendone al massimo UNDO_LIMIT
@@ -1520,6 +1618,13 @@ function act(action) {
 
 // Undo: torna allo stato prima dell'ultima azione (si può ripetere fino all'inizio della partita)
 function undo() {
+  // Modifiche non salvate sulle carte (turno giocatori): il primo Annulla le scarta, poi si torna ai salvataggi precedenti
+  if (ui.drafts.size) {
+    ui.drafts.clear();
+    render();
+    showToast(I18N_IT.draftDiscarded);
+    return;
+  }
   const previous = undoStack.pop();
   if (!previous) return;
   restore(previous);
@@ -1578,6 +1683,7 @@ function render() {
   updateInfo();
   updateUndoBtn();
   if (ui.tierBanner) {
+    ui.tierWaitUntil = performance.now() + TIER_BANNER_MS;
     showTierBanner(ui.tierBanner);
     ui.tierBanner = null;
   }
@@ -1615,24 +1721,8 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// Box del mazzo e degli scarti ai lati della fascia piccola del turno nemesi (al posto del BannerInfoNemesi, che è
-// salvato nel tag git v104-banner-info-nemesi). Mazzo: dorso con il numero di carte rimaste. Scarti: ultima carta
-// scartata a faccia in su con il numero di scarti; toccandolo si apre la pila degli scarti.
-function railPile(cls, imgSrc, count, label) {
-  const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
-  node.setAttribute('aria-label', label);
-  if (imgSrc) {
-    const img = document.createElement('img');
-    img.alt = '';
-    img.src = imgSrc;
-    node.appendChild(img);
-  }
-  const n = el('span', 'ae-pile-count', String(count));
-  n.setAttribute('aria-hidden', 'true');
-  node.appendChild(n);
-  return node;
-}
-
+// I box mazzo e scarti ai lati della fascia sono stati tolti (il BannerInfoNemesi è nel tag git v104-banner-info-nemesi,
+// i box nel commit 2105399): mazzo e scarti si vedono dal Menu.
 function renderResolveInfo(drawStep) {
   const old = document.getElementById('resolve-info');
   if (old) old.remove();
@@ -1643,15 +1733,8 @@ function renderResolveInfo(drawStep) {
     rail.before(row);
     row.appendChild(rail);
   }
-  const deckPile = railPile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
-  const last = discard[discard.length - 1];
-  const discardPile = railPile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
-    I18N_IT.discardButtonLabel(discard.length));
-  discardPile.type = 'button';
-  discardPile.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+  // Niente box mazzo e scarti in alto (restano nel Menu): si tolgono anche da una vecchia pagina
   row.querySelectorAll(':scope > .ae-pile').forEach(p => p.remove());
-  row.prepend(deckPile);
-  row.appendChild(discardPile);
   resolveView.classList.toggle('is-draw-phase', drawStep);
 }
 function renderResolve() {
@@ -1763,6 +1846,10 @@ function drawSlide() {
   const slide = el('div', 'ae-focus-slide ae-focus-slide--draw');
   slide.dataset.uid = DRAW_UID;
   const stage = el('div', 'ae-focus-stage is-new');
+  // Toccando il retro la carta si pesca (come il pulsante "Pesca")
+  stage.setAttribute('role', 'button');
+  stage.tabIndex = 0;
+  stage.setAttribute('aria-label', I18N_IT.ctaDraw);
   const art = el('div', 'ae-card-art ae-card-back');
   const img = document.createElement('img');
   img.alt = I18N_IT.nextCard;
@@ -1786,6 +1873,8 @@ function renderFocus(viewed) {
     focusEl.replaceChildren(focusTrack);
     focusSignature = '';
   }
+  // Token e vita della carta pescata compaiono dopo il banner Tier (se c'è)
+  focusEl.style.setProperty('--ae-tier-wait', Math.max(0, Math.round(ui.tierWaitUntil - performance.now())) + 'ms');
   const prevUid = focusEl.dataset.uid;
   const viewedChanged = prevUid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
@@ -1980,6 +2069,9 @@ function nemesisTurn() {
   turn++;
   // Finisce il turno dei giocatori: danno e cura del turno si azzerano (la vita attuale diventa il riferimento)
   queue.forEach(e => { e.turnHp = e.hp; });
+  // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
+  ui.drafts.clear();
+  queue.filter(e => e.paid).forEach(discardEntry);
   startResolution();
 }
 
@@ -2048,13 +2140,20 @@ function onResolveClick() {
 
   if (!resolving) {
     // Fine del turno nemesi: si torna alla VistaCoda con la carta pescata in vista
-    if (effect === 'discard' && ghost) document.body.appendChild(ghost);
     const kept = entryByUid(ui.lastDrawnUid);
     const anchorUid = kept ? kept.uid : (queue.length ? queue[queue.length - 1].uid : null);
     ui.queueAnchor = anchorUid ? { uid: anchorUid, align: queue.length === 1 ? 'center' : 'anchor' } : null;
     ui.reveal = null;
     ui.viewedUid = null;
-    lockFor(duration(effect === 'discard' ? 'discard' : 'phase'));
+    if (effect === 'discard' && ghostSource) {
+      // Attacco appena pescato: la carta sfuma restando nel turno nemesi (stesso sfondo); solo dopo si passa al turno giocatori
+      const fade = reducedMotion.matches ? 100 : DISCARD_FADE_MS;
+      ghostSource.classList.add('is-discarding');
+      ghostSource.style.animationDuration = fade + 'ms';
+      lockFor(fade, () => { render(); nemesisBtn.focus(); });
+      return;
+    }
+    lockFor(duration('phase'));
     render();
     if (wasNewStep) nemesisBtn.focus();
     return;
@@ -2158,6 +2257,31 @@ rail.addEventListener('click', e => {
   const from = queue.findIndex(x => x.uid === ui.viewedUid);
   const to = queue.findIndex(x => x.uid === uid);
   viewCard(uid, Math.sign(to - from));
+});
+
+// Carosello del turno nemesi: toccando il retro della carta da pescare si pesca; toccando un minion (quello al centro)
+// si apre la stessa finestra del turno giocatori, con −1 e +1 alla vita
+focusEl.addEventListener('click', e => {
+  if (!resolving || ui.isTransitioning) return;
+  const stage = e.target.closest('.ae-focus-stage');
+  const slide = stage && stage.closest('.ae-focus-slide');
+  if (!slide) return;
+  const uid = Number(slide.dataset.uid);
+  if (uid !== ui.viewedUid) return;
+  if (uid === DRAW_UID) {
+    onResolveClick();
+    return;
+  }
+  const entry = entryByUid(uid);
+  if (!entry || entry.data.type !== 'Minion') return;
+  if (ui.reveal && ui.reveal.uid === uid && ui.reveal.status !== 'done') return;
+  openCardDialog(entry);
+});
+focusEl.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.ae-focus-slide--draw .ae-focus-stage')) {
+    e.preventDefault();
+    e.target.click();
+  }
 });
 
 // Frecce sinistra/destra sulla fascia: cambiano solo la carta mostrata

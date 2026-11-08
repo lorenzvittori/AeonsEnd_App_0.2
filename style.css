@@ -475,3 +475,39 @@ body { overflow: hidden; }
 .ae-rail-row > .ae-pile { height: 64px; }
 .ae-rail-row > .ae-pile .ae-pile-count { min-width: 26px; height: 26px; font-size: 13px; }
 .ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom-color: rgba(223, 174, 89, .6); }
+/* --- Turno giocatori: modifiche del 8 nov --- */
+/* Nessun glow sulle carte (resta l'etichetta NUOVA) */
+.queue-view .ae-queue-item.is-new .ae-card-art { --ae-glow: 0 0 0 transparent; }
+/* Potere con costo pagato e salvato: carta grigia fino al turno nemesi */
+.queue-view .ae-queue-item.is-paid .ae-card-art { filter: grayscale(1) brightness(.6); }
+.queue-view .ae-queue-item.is-paid .ae-status-badge { filter: grayscale(1); }
+.queue-note.is-paid::before { display: none; }
+/* Box vita / token al 200%, sovrapposto alla parte alta della carta grande */
+.queue-slot { position: relative; }
+.queue-slot .ae-queue-item > .ae-status-badge {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 12px);
+  height: 52px; min-width: 0; padding: 4px 12px; gap: 8px; border-radius: 10px; background: rgba(16, 17, 22, .85);
+  font-size: 24px; line-height: 30px; pointer-events: none;
+}
+.queue-slot .ae-status-badge .ae-icon { width: 28px; height: 28px; }
+.queue-slot .ae-status-badge .ae-token { width: 32px; height: 32px; }
+.queue-slot .ae-new-tag { top: 64px; right: -2px; }
+.queue-slot .queue-hp-tag { top: 66px; right: 6px; }
+/* "Salva" sulla carta, in basso a destra (sopra la riga dei comandi: 44px + 8px di spazio) */
+.queue-save {
+  position: absolute; right: 8px; bottom: 60px; z-index: 5; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: var(--ae-gold); color: #20160B; font: 700 15px/1 var(--ae-font-ui); letter-spacing: .04em;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .65); animation: ae-pop .25s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+
+/* Carta pescata: token e vita compaiono dopo il banner Tier (--ae-tier-wait lo imposta script.js) */
+.ae-focus-slide.is-drawing .ae-focus-status.is-hp > * { animation-delay: calc(var(--ae-tier-wait, 0ms) + .4s); }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token { animation-delay: calc(var(--ae-tier-wait, 0ms) + .4s); }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(2) { animation-delay: calc(var(--ae-tier-wait, 0ms) + .55s); }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(3) { animation-delay: calc(var(--ae-tier-wait, 0ms) + .7s); }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(4) { animation-delay: calc(var(--ae-tier-wait, 0ms) + .85s); }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(n+5) { animation-delay: calc(var(--ae-tier-wait, 0ms) + 1s); }
+
+/* Carta da pescare: si tocca per pescare. Attacco risolto: sfuma restando nel turno nemesi */
+.ae-focus-slide--draw .ae-focus-stage { cursor: pointer; }
+.ae-focus-stage.is-discarding, .ae-focus-stage.is-attack-drawn.is-discarding { animation: ae-ghost-out .45s ease-in forwards; }
