@@ -199,7 +199,9 @@ const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
 // Retro della carta pescata, mostrato prima che si giri (630 x 880 WebP)
-const CARD_BACK = 'Assets/ui/decor/card-back.webp';
+// Dorso delle carte nemesi: il retro decorativo del kit di design (il primo usato); la versione con l'immagine
+// dell'utente è Assets/ui/decor/card-back.webp, ancora nel repo
+const CARD_BACK = 'Assets/ui/decor/card-back.svg';
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
 let allCards = [];
