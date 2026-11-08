@@ -386,7 +386,7 @@ body { overflow: hidden; }
 /* --- BannerInfoNemesi: mazzo, nome della nemesi e fase, pila degli scarti; dietro l'illustrazione che sfuma dal nero --- */
 .ae-banner-nemesi {
   position: relative; flex: 0 0 auto; height: 84px; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
-  background: #000; overflow: hidden; border-bottom: 1px solid var(--ae-border);
+  background: #000; overflow: hidden; border-top: 1px solid var(--ae-border);
 }
 .ae-banner-nemesi::before {
   content: ''; position: absolute; top: 0; bottom: 0; left: 22%; right: 0; pointer-events: none;

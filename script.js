@@ -1615,7 +1615,7 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// BannerInfoNemesi: in cima al turno nemesi. Da sinistra: mazzo della nemesi (dorso con il numero di carte rimaste),
+// BannerInfoNemesi: in fondo al turno nemesi, sopra il pulsante principale. Da sinistra: mazzo della nemesi (dorso con il numero di carte rimaste),
 // nome della nemesi e fase (Risoluzione / Pesca), a destra la pila degli scarti (ultima carta scartata a faccia in su
 // con il numero di scarti; toccandola si apre la pila). Dietro, il ritaglio dell'illustrazione della nemesi che
 // sfuma dal nero a sinistra, come nel menu iniziale.
@@ -1624,7 +1624,8 @@ function renderResolveInfo(drawStep) {
   if (!bar) {
     bar = el('div', 'ae-banner-nemesi');
     bar.id = 'resolve-info';
-    resolveView.prepend(bar);
+    // In fondo all'area del turno nemesi, subito sopra il pulsante principale
+    resolveView.append(bar);
   }
   const art = settings.nemesis && nemesisArt[settings.nemesis];
   bar.style.setProperty('--ae-banner-art', art ? `url("${encodeURI(art.portrait)}")` : 'none');
