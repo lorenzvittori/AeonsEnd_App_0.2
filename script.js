@@ -130,8 +130,8 @@ const I18N_IT = {
 };
 
 const app = document.getElementById('app');
-// TEST: testata con Undo e Menu nascosta
-app.classList.add('no-header');
+// Testata senza fondo e senza una riga sua: Undo e Menu galleggiano sopra lo sfondo della vista (style.css: .float-header)
+app.classList.add('float-header');
 const mainEl = document.getElementById('main');
 const phaseLabel = document.getElementById('phase-label');
 const undoBtn = document.getElementById('undo-btn');
@@ -697,6 +697,8 @@ function ensureQueueRail() {
   return queueRail;
 }
 let queueRailFrame = 0;
+// Altezza del BannerInfoNemesi (misurata quando è visibile nel turno nemesi)
+let bannerHeight = 84;
 
 function scrollQueueTo(item) {
   const cRect = queueViewport.getBoundingClientRect();
@@ -812,7 +814,10 @@ function sizeQueue() {
   // Come sizeFocus: sopra la carta il box vita/token (41px) e 8px di spazio. I comandi stanno fuori dal flusso, sotto la
   // carta, così la carta ha la stessa posizione e dimensione del turno nemesi; solo su schermi bassi la si rimpicciolisce
   // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
-  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight, padY, peekRoom));
+  // Il turno nemesi ha in più il BannerInfoNemesi in alto: si toglie la sua altezza, così le carte hanno la stessa dimensione
+  // (il banner si crea al primo turno nemesi: prima si usa l'altezza prevista, 84px)
+  const banner = typeof renderBannerInfoNemesi === 'function' ? bannerHeight : 0;
+  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight - banner, padY, peekRoom));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
   // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
   const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
@@ -1690,6 +1695,8 @@ function render() {
   phaseLabel.textContent = resolving ? I18N_IT.phaseNemesisN(turn) : I18N_IT.phasePlayers;
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
+  app.classList.toggle('is-nemesis-turn', resolving);
+  if (!resolving) app.classList.remove('is-draw-phase');
   nemesisBtn.hidden = resolving;
   nemesisBtn.disabled = !deckSetup;
   // "Turno Nemesi" con l'illustrazione della nemesi della partita (come nel menu iniziale), velata per leggere la scritta
@@ -1792,6 +1799,10 @@ function renderResolveInfo(drawStep) {
   // Niente box mazzo e scarti in alto (restano nel Menu): si tolgono anche da una vecchia pagina
   row.querySelectorAll(':scope > .ae-pile').forEach(p => p.remove());
   resolveView.classList.toggle('is-draw-phase', drawStep);
+  // Lo sfondo della vista è sull'app intera (anche dietro al pulsante principale)
+  app.classList.toggle('is-draw-phase', drawStep);
+  const bar = document.getElementById('resolve-info');
+  if (bar && bar.offsetHeight) bannerHeight = bar.offsetHeight;
 }
 function renderResolve() {
   const drawStep = isDrawStep();
