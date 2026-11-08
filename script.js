@@ -396,9 +396,16 @@ function hpChanged(entry) {
 
 // Badge fuori dalla scansione (box grigio scuro): goccia + vita attuale (minion), un token per ogni token (potere).
 // Uguale nella coda e nella fascia della VistaRisoluzione.
+// Carta che si attiverà nel prossimo turno nemesi: minion (ogni turno) e potere con 1 solo token rimasto
+function activatesNextTurn(entry) {
+  return hasHp(entry) || (entry.data.type === 'Power' && entry.tokens === 1);
+}
+
 function statusBadge(entry) {
   const badge = el('span', 'ae-status-badge');
   badge.setAttribute('aria-hidden', 'true');
+  // Nel turno dei giocatori il box di queste carte lampeggia di rosso scuro
+  if (!resolving && activatesNextTurn(entry)) badge.classList.add('is-imminent');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
     // Goccia + vita; se in questo turno ha subito danni o è stato curato: vita / massimo

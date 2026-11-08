@@ -359,3 +359,14 @@ body { overflow: hidden; }
 .ae-focus { position: relative; }
 .ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; }
 .ae-focus-status.ae-focus-peek { justify-content: center; }
+
+/* Turno dei giocatori: il box vita/token delle carte che si attiveranno nel prossimo turno nemesi (minion e poteri
+   con 1 token) lampeggia di rosso scuro */
+.ae-status-badge.is-imminent { animation: ae-imminent 1.2s ease-in-out infinite; }
+@keyframes ae-imminent {
+  0%, 100% { background-color: var(--ae-surface-raised); border-color: var(--ae-border); }
+  50% { background-color: #6b1616; border-color: #8e2222; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ae-status-badge.is-imminent { animation: none; background-color: #6b1616; border-color: #8e2222; }
+}
