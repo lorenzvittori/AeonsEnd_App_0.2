@@ -1608,7 +1608,7 @@ function renderResolve() {
   const viewedItem = rail.querySelector(`[data-uid="${viewed.uid}"]`);
   if (viewedItem) scrollItemInto(rail, viewedItem, 'nearest');
 
-  renderFocus(viewed, active, { isNewStep, previewing });
+  renderFocus(viewed);
 
   // Dock: in anteprima al posto dell'azione c'è "Torna alla carta da risolvere"
   const text = actionText(active, isNewStep, currentIndex === queue.length - 1);
@@ -1621,7 +1621,7 @@ function renderResolve() {
   resolveHint.hidden = true;
   // Ridimensiona di nuovo ora che il pulsante in basso è visibile: alla prima carta del turno nemesi il pulsante
   // compariva solo dopo il primo calcolo, quindi la carta era misurata su uno spazio più alto e usciva in basso
-  sizeFocus();
+  sizeFocus(!ui.fromScroll);
 }
 
 // Carta in primo piano: solo immagine (o retro durante la pesca) e stato numerico. Nessuna etichetta, nome o tipo
@@ -1640,66 +1640,138 @@ function focusStatus(entry) {
   return status;
 }
 
-function renderFocus(viewed, active, { isNewStep, previewing }) {
-  const index = queue.indexOf(viewed);
-  const total = queue.length;
-  const reveal = ui.reveal && ui.reveal.uid === viewed.uid ? ui.reveal : null;
+// Carosello del turno nemesi: tutte le carte della coda in fila in un contenitore che scorre da solo (scroll-snap).
+// La carta mostrata è quella al centro; ai lati si vede un pezzo della precedente e della successiva. Lo slide è lo
+// scorrimento nativo del browser; quando si ferma su un'altra carta, quella diventa la carta mostrata.
+// Le carte si ridisegnano solo quando cambia qualcosa (coda, vita, token, pesca); altrimenti il carosello scorre e basta.
+const PEEK_VISIBLE = 22;   // px visibili di ogni carta vicina
+const PEEK_GAP = 12;       // spazio tra le carte
+let focusTrack = null;
+let focusSignature = '';
+let focusProgrammaticUntil = 0;   // fino a quando lo scorrimento è quello avviato dallo script (non dal dito)
 
+function focusSlide(entry) {
+  const slide = el('div', 'ae-focus-slide');
+  slide.dataset.uid = entry.uid;
+  const reveal = ui.reveal && ui.reveal.uid === entry.uid ? ui.reveal : null;
   const stage = el('div', 'ae-focus-stage');
   if (reveal && reveal.status !== 'done') {
-    stage.appendChild(flipCard(viewed, reveal));
+    stage.appendChild(flipCard(entry, reveal));
   } else {
-    stage.appendChild(cardArt(viewed.data));
+    stage.appendChild(cardArt(entry.data));
   }
-  if (viewed.isNew) {
+  if (entry.isNew) {
     // Carta appena pescata: glow dorato attorno (come nella versione 1) ed etichetta NUOVA
     stage.classList.add('is-new');
     const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
     tag.setAttribute('aria-hidden', 'true');
     stage.appendChild(tag);
   }
-
-  // Stato sopra la carta: goccia + vita (minion) o un token per ogni token (potere). La riga c'è sempre, anche vuota
-  // (attacchi), così la carta ha la stessa dimensione per ogni tipo.
-  const status = focusStatus(viewed);
-  if (ui.holdUid === viewed.uid) status.classList.add('is-dropping', 'is-bumped');
-
-  const children = [status, stage];
-
-  const changed = focusEl.dataset.uid !== String(viewed.uid);
-  focusEl.dataset.uid = viewed.uid;
-  focusEl.replaceChildren(...children);
-  // Dopo uno slide col dito la carta è già arrivata al centro trascinata: niente animazione di entrata
-  focusEl.classList.toggle('is-changing', changed && !reveal && !ui.swiped);
-  ui.swiped = false;
-  // Dopo uno slide col dito la nuova carta entra da più lontano (ui.slidePx), altrimenti 24px
-  focusEl.style.setProperty('--ae-slide', (ui.slidePx != null ? ui.slidePx : ui.slide * 24) + 'px');
-  ui.slide = 0;
-  ui.slidePx = null;
-  sizeFocus();
+  // Stato sopra la carta: la riga c'è sempre, anche vuota (attacchi), così ogni carta ha la stessa dimensione
+  const status = focusStatus(entry);
+  if (ui.holdUid === entry.uid) status.classList.add('is-dropping', 'is-bumped');
+  slide.append(status, stage);
+  return slide;
 }
 
-// Dimensiona la carta in primo piano: occupa tutto lo spazio rimasto nell'area, in altezza e in larghezza
-function sizeFocus() {
-  const stage = focusEl.querySelector('.ae-focus-stage');
-  if (!stage || resolveView.hidden) return;
+function focusStateSignature() {
+  return queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
+    + '#' + (ui.reveal ? ui.reveal.uid + ':' + ui.reveal.status : '') + '#' + (ui.holdUid || '');
+}
+
+function renderFocus(viewed) {
+  if (!focusTrack || !focusTrack.isConnected) {
+    focusTrack = el('div', 'ae-focus-track');
+    focusEl.replaceChildren(focusTrack);
+    focusSignature = '';
+  }
+  const prevUid = focusEl.dataset.uid;
+  const viewedChanged = prevUid !== String(viewed.uid);
+  focusEl.dataset.uid = viewed.uid;
+  if (focusStateSignature() !== focusSignature || !focusTrack.children.length) {
+    focusTrack.replaceChildren(...queue.map(focusSlide));
+    // La firma si calcola dopo: disegnare la carta pescata può far avanzare il suo stato (pronta → si gira)
+    focusSignature = focusStateSignature();
+    sizeFocus(false);
+    const prevStill = prevUid && focusTrack.querySelector(`.ae-focus-slide[data-uid="${prevUid}"]`);
+    if (viewedChanged && prevStill) {
+      // Si passa a una carta che c'era già (minion che resta, token tolto): il carosello scorre fino a lei
+      scrollFocusTo(prevUid, false);
+      scrollFocusTo(viewed.uid, true);
+    } else {
+      scrollFocusTo(viewed.uid, false);
+      // La carta mostrata prima è sparita (risolta, negli scarti): la nuova entra con una breve animazione
+      if (viewedChanged && prevUid) {
+        const slide = focusTrack.querySelector(`.ae-focus-slide[data-uid="${viewed.uid}"]`);
+        if (slide && !(ui.reveal && ui.reveal.uid === viewed.uid)) slide.classList.add('is-entering');
+      }
+    }
+  } else if (!ui.fromScroll) {
+    // Stesse carte: si porta al centro la carta mostrata (tocco sulla fascia, "Torna alla carta da risolvere", ...)
+    scrollFocusTo(viewed.uid, viewedChanged);
+  }
+}
+
+function scrollFocusTo(uid, smooth) {
+  const slide = focusTrack && focusTrack.querySelector(`.ae-focus-slide[data-uid="${uid}"]`);
+  if (!slide) return;
+  const left = slide.offsetLeft + slide.offsetWidth / 2 - focusEl.clientWidth / 2;
+  if (Math.abs(focusEl.scrollLeft - left) < 1) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (smooth && !reduce) {
+    focusProgrammaticUntil = performance.now() + 600;
+    focusEl.scrollTo({ left, behavior: 'smooth' });
+  } else {
+    focusEl.scrollLeft = left;
+  }
+}
+
+function centredFocusUid() {
+  if (!focusTrack) return null;
+  const middle = focusEl.scrollLeft + focusEl.clientWidth / 2;
+  let best = null;
+  let bestDist = Infinity;
+  for (const slide of focusTrack.children) {
+    const d = Math.abs(slide.offsetLeft + slide.offsetWidth / 2 - middle);
+    if (d < bestDist) { bestDist = d; best = Number(slide.dataset.uid); }
+  }
+  return best;
+}
+
+// Il dito ha portato al centro un'altra carta: diventa la carta mostrata (fascia e pulsante si aggiornano)
+let focusScrollFrame = 0;
+focusEl.addEventListener('scroll', () => {
+  if (focusScrollFrame) return;
+  // circa un controllo per fotogramma (setTimeout invece di requestAnimationFrame: funziona anche a pagina in background)
+  focusScrollFrame = setTimeout(() => {
+    focusScrollFrame = 0;
+    if (!resolving || ui.holdUid || ui.isTransitioning || performance.now() < focusProgrammaticUntil) return;
+    const uid = centredFocusUid();
+    if (uid === null || uid === ui.viewedUid) return;
+    ui.viewedUid = uid;
+    ui.fromScroll = true;
+    renderResolve();
+    ui.fromScroll = false;
+  }, 16);
+}, { passive: true });
+
+// Dimensiona le carte del carosello: alte quanto lo spazio, ma più strette dell'area quanto basta per vedere un pezzo
+// delle vicine. Il margine ai lati permette di centrare anche la prima e l'ultima carta.
+function sizeFocus(recentre = true) {
+  if (resolveView.hidden || !focusTrack) return;
+  const slide = focusTrack.querySelector('.ae-focus-slide');
+  if (!slide) return;
+  const status = slide.querySelector('.ae-focus-status');
   const style = getComputedStyle(focusEl);
-  const gap = parseFloat(style.rowGap) || 8;
-  const others = Array.from(focusEl.children).filter(c => c !== stage && !c.classList.contains('ae-focus-peek'));
-  const used = others.reduce((sum, c) => sum + c.offsetHeight, 0) + gap * others.length
-    + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-  const availH = Math.max(80, focusEl.clientHeight - used);
-  // Con più carte in coda si lascia ai lati lo spazio per vedere un pezzo della precedente e della successiva
+  const availH = Math.max(80, focusEl.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+    - (status ? status.offsetHeight : 0) - 8);
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
-  const availW = focusEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - peekRoom;
-  const width = Math.max(40, Math.min(availW, availH / CARD_RATIO));
-  stage.style.width = width + 'px';
-  stage.style.height = (width * CARD_RATIO) + 'px';
-  stage.style.setProperty('--cw', width + 'px');
-  // Le carte vicine non si mostrano mentre è in corso un'animazione (carta risolta che sfuma, nuova carta che entra,
-  // token tolto): comparirebbero sopra l'animazione. Tornano, con una breve dissolvenza, appena l'animazione finisce.
-  if (ui.isTransitioning) removePeeks();
-  else if (!swipe || !swipe.dragging) renderPeeks();
+  const availW = focusEl.clientWidth - 32 - peekRoom;
+  const width = Math.floor(Math.max(40, Math.min(availW, availH / CARD_RATIO)));
+  focusEl.style.setProperty('--ae-focus-w', width + 'px');
+  focusEl.style.setProperty('--cw', width + 'px');
+  focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';
+  if (recentre && focusEl.dataset.uid) scrollFocusTo(focusEl.dataset.uid, false);
 }
 
 // Carta pescata: retro (con "Caricamento carta…") finché l'immagine non è pronta, poi si gira in 350ms.
@@ -1855,7 +1927,7 @@ function onResolveClick() {
   if (!resolving || ui.isTransitioning) return;
   const active = activeEntry();
   if (!active || ui.viewedUid !== active.uid) return;
-  const ghostSource = focusEl.querySelector('.ae-focus-stage');
+  const ghostSource = focusEl.querySelector(`.ae-focus-slide[data-uid="${active.uid}"] .ae-focus-stage`);
   const ghost = ghostSource ? ghostOf(ghostSource) : null;
   const wasNewStep = newIndex >= 0;
   const effect = act(resolveCurrent);
@@ -1951,113 +2023,6 @@ function backToActive() {
   if (active) viewCard(active.uid);
   resolveBtn.focus();
 }
-
-// Slide sulla carta in primo piano: verso sinistra = carta successiva, verso destra = precedente.
-// La carta segue il dito mentre si trascina; se non c'è una carta in quella direzione si muove poco (resistenza).
-// Al rilascio: oltre SWIPE_MIN_DISTANCE esce dal lato del gesto e la nuova entra dall'altro, altrimenti torna al centro.
-// Durante il trascinamento ai lati ci sono la carta precedente e la successiva (con la loro riga vita/token), che si
-// muovono insieme a quella al centro come in un carosello; al rilascio la vicina scivola al centro.
-const SWIPE_OUT_MS = 180;
-let swipe = null;
-function swipeStage() { return focusEl.querySelector('.ae-focus-stage:not(.ae-focus-peek)'); }
-// Sposta carta, riga sopra e carte vicine di dx px (ognuna dalla sua posizione di partenza, data-base)
-function moveSwiped(dx, transition) {
-  focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => {
-    node.style.transition = transition;
-    node.style.transform = `translateX(${dx + Number(node.dataset.base || 0)}px)`;
-  });
-}
-// Carte vicine sempre visibili ai lati della carta grande (un pezzo di ognuna, attenuato): fanno capire che si può
-// fare slide. Durante lo slide si muovono insieme alla carta al centro.
-const PEEK_VISIBLE = 22;   // px visibili di ogni carta vicina
-const PEEK_GAP = 12;       // spazio tra le carte
-let peekDistance = 0;
-function renderPeeks() {
-  removePeeks();
-  const stage = swipeStage();
-  const status = focusEl.querySelector('.ae-focus-status:not(.ae-focus-peek)');
-  if (!stage || !status || !resolving) return;
-  const box = focusEl.getBoundingClientRect();
-  const sr = stage.getBoundingClientRect();
-  const tr = status.getBoundingClientRect();
-  if (!sr.width) return;
-  peekDistance = stage.offsetWidth + PEEK_GAP;
-  [-1, 1].forEach(step => {
-    const entry = neighbourOf(step);
-    if (!entry) return;
-    const place = (node, r, w, h) => {
-      node.classList.add('ae-focus-peek');
-      node.setAttribute('aria-hidden', 'true');
-      node.dataset.base = String(step * peekDistance);
-      node.style.transform = `translateX(${step * peekDistance}px)`;
-      Object.assign(node.style, { left: (r.left - box.left) + 'px', top: (r.top - box.top) + 'px', width: w + 'px', height: h + 'px' });
-      focusEl.appendChild(node);
-    };
-    const peekStage = el('div', 'ae-focus-stage');
-    peekStage.appendChild(cardArt(entry.data));
-    const peekStatus = focusStatus(entry);
-    place(peekStage, sr, stage.offsetWidth, stage.offsetHeight);
-    place(peekStatus, tr, status.offsetWidth, status.offsetHeight);
-  });
-}
-function addPeeks() {
-  if (!focusEl.querySelector('.ae-focus-peek')) renderPeeks();
-  swipe.distance = peekDistance || (swipeStage().offsetWidth + PEEK_GAP);
-}
-function removePeeks() {
-  focusEl.querySelectorAll('.ae-focus-peek').forEach(node => node.remove());
-}
-function neighbourOf(step) {
-  const i = queue.findIndex(e => e.uid === ui.viewedUid);
-  return i >= 0 ? queue[i + step] : null;
-}
-focusEl.addEventListener('pointerdown', e => {
-  if (!resolving || ui.holdUid || ui.isTransitioning || e.target.closest('button')) return;
-  swipe = { x: e.clientX, y: e.clientY, id: e.pointerId, dx: 0, dragging: false };
-});
-focusEl.addEventListener('pointermove', e => {
-  if (!swipe || e.pointerId !== swipe.id) return;
-  const dx = e.clientX - swipe.x;
-  const dy = e.clientY - swipe.y;
-  if (!swipe.dragging) {
-    if (Math.abs(dx) < DRAG_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) return;
-    swipe.dragging = true;
-    try { focusEl.setPointerCapture(e.pointerId); } catch (_) {}
-    addPeeks();
-  }
-  const stage = swipeStage();
-  if (!stage) return;
-  swipe.dx = neighbourOf(dx < 0 ? 1 : -1) ? dx : dx * 0.25;
-  moveSwiped(swipe.dx, 'none');
-});
-function endSwipe(e, cancelled) {
-  if (!swipe || (e && e.pointerId !== swipe.id)) return;
-  const { dx, dragging, distance } = swipe;
-  swipe = null;
-  const stage = swipeStage();
-  if (!dragging || !stage) return;
-  const step = dx < 0 ? 1 : -1;
-  const next = neighbourOf(step);
-  ui.isTransitioning = true;
-  if (!cancelled && next && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
-    // La carta esce dal lato del gesto e la vicina scivola esattamente al centro, poi diventa la carta mostrata
-    moveSwiped(-step * (distance || stage.offsetWidth + 16), `transform ${SWIPE_OUT_MS}ms var(--ae-ease-decelerate)`);
-    setTimeout(() => {
-      ui.isTransitioning = false;
-      ui.swiped = true;
-      moveView(step);
-    }, SWIPE_OUT_MS);
-  } else {
-    moveSwiped(0, `transform ${SWIPE_OUT_MS}ms var(--ae-ease-decelerate)`);
-    setTimeout(() => {
-      ui.isTransitioning = false;
-      // Le vicine restano ai lati; la carta al centro torna senza spostamento
-      focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => { node.style.transition = ''; });
-    }, SWIPE_OUT_MS);
-  }
-}
-focusEl.addEventListener('pointerup', e => endSwipe(e, false));
-focusEl.addEventListener('pointercancel', e => endSwipe(e, true));
 
 // --- 9. Eventi e avvio ---------------------------------------------------------------------------------------------
 

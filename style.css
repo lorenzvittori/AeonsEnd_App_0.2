@@ -90,10 +90,19 @@ body { overflow: hidden; }
   font: 700 11px/14px var(--ae-font-ui); letter-spacing: .02em; text-transform: uppercase; pointer-events: none;
 }
 
+/* Carosello del turno nemesi: scorre in orizzontale e si ferma su ogni carta (scroll-snap); la barra non si vede */
 .ae-focus {
-  flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
-  gap: 8px; padding: 12px 16px; overflow: visible; touch-action: pan-y;
+  flex: 1; min-height: 0; display: block; padding: 12px 0;
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none; touch-action: pan-x;
 }
+.ae-focus::-webkit-scrollbar { display: none; }
+.ae-focus-track { display: flex; gap: 12px; height: 100%; width: max-content; }
+.ae-focus-slide {
+  flex: 0 0 var(--ae-focus-w, 280px); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px;
+  scroll-snap-align: center; scroll-snap-stop: always; --ae-slide: 24px;
+}
+.ae-focus-slide .ae-focus-stage { width: var(--ae-focus-w, 280px); height: calc(var(--ae-focus-w, 280px) * 88 / 63); }
 .ae-focus-eyebrow { min-height: 20px; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .12em; text-transform: uppercase; text-align: center; font-variant-numeric: tabular-nums; }
 .ae-focus-eyebrow.is-active { color: var(--ae-danger); }
 .ae-focus-eyebrow.is-new { color: var(--ae-gold); }
@@ -113,7 +122,8 @@ body { overflow: hidden; }
 .ae-focus-status.is-token .ae-icon { color: var(--ae-gold); }
 .ae-focus-status.is-dropping .ae-icon { animation: ae-token-out var(--ae-duration-token) ease-out; }
 .ae-focus-status.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
-.ae-focus.is-changing .ae-focus-stage:not(.ae-focus-peek), .ae-focus.is-changing .ae-focus-status:not(.ae-focus-peek) { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
+/* Carta che prende il posto di una risolta: entra con una breve animazione */
+.ae-focus-slide.is-entering > * { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
 @keyframes ae-token-out { 0% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes ae-focus-in { from { opacity: .4; transform: translateX(var(--ae-slide, 0px)); } to { opacity: 1; transform: none; } }
 
@@ -121,7 +131,8 @@ body { overflow: hidden; }
 .ae-flip { position: absolute; inset: 0; perspective: 1200px; }
 .ae-flip-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
 .ae-flip.is-flipped .ae-flip-inner { transform: rotateY(180deg); transition: transform var(--ae-duration-draw) var(--ae-ease-decelerate); }
-.ae-flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+/* angoli arrotondati come la carta: il retro dell'immagine ha gli angoli neri, così vengono tagliati */
+.ae-flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 5% / 3.58%; overflow: hidden; }
 .ae-flip-face--front { transform: rotateY(180deg); }
 .ae-flip-face--back img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* "Caricamento carta…" e "Riprova immagine" stanno dentro la carta, in basso: non tolgono spazio alla carta */
@@ -285,7 +296,7 @@ body { overflow: hidden; }
   .ae-compact-rail { flex-basis: 72px; height: 72px; }
   .ae-compact-rail .ae-queue-item { width: 36px; flex-basis: 36px; }
   .ae-compact-rail .ae-status-badge { display: none; }
-  .ae-focus { gap: 4px; padding: 4px 12px; }
+  .ae-focus { padding: 4px 0; }
   .ae-dock { padding-top: 4px; gap: 4px; }
   .ae-dock-row { min-height: 36px; }
   .ae-dock .ae-button { min-height: 44px; }
@@ -333,7 +344,7 @@ body { overflow: hidden; }
   .ae-compact-rail .ae-status-badge { grid-column: 2; grid-row: 2; justify-self: start; align-self: start; height: 26px; padding: 4px 8px; gap: 5px; font-size: 12px; line-height: 16px; }
   .ae-compact-rail .ae-status-badge .ae-icon { display: inline-block; }
   .ae-compact-rail .ae-status-badge--empty { display: none; }
-  .ae-focus { padding: 0 16px; }
+  .ae-focus { padding: 0; }
 
   .ae-dock { align-items: center; padding-left: 32px; padding-right: 32px; }
   .ae-dock > * { width: 100%; max-width: 360px; }
@@ -362,11 +373,6 @@ body { overflow: hidden; }
 .ae-side-stats dt { color: var(--ae-text-muted); }
 .ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .ae-side-exit { margin-top: auto; }
-/* Carte vicine durante lo slide del turno nemesi (aggiunte e posizionate da script.js) */
-.ae-focus { position: relative; }
-.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; opacity: .55; animation: ae-peek-in var(--ae-duration-focus) ease-out; }
-@keyframes ae-peek-in { from { opacity: 0; } to { opacity: .55; } }
-.ae-focus-status.ae-focus-peek { justify-content: center; }
 
 /* Turno dei giocatori: il box vita/token delle carte che si attiveranno nel prossimo turno nemesi (minion e poteri
    con 1 token) lampeggia di rosso scuro */
