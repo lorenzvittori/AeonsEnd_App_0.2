@@ -81,6 +81,7 @@ const I18N_IT = {
   removePower: 'Rimuovi carta · costo pagato',
   powerCostInfo: "L'app non paga il costo al posto dei giocatori",
   powerRemoved: name => `${name}: carta rimossa, negli scarti`,
+  removePowerShort: 'Rimuovi · costo pagato',
   discardZoomTitle: 'Carta negli scarti',
   mostRecent: 'Più recente',
   leastRecent: 'Meno recente',
@@ -655,6 +656,61 @@ function markQueueRail(uid) {
   });
 }
 
+// Comandi sotto la carta grande della VistaCoda, legati a quella carta:
+//   minion: −5 −1 +1 (ogni tocco cambia subito la vita, un passo di undo); a 0 compare "Elimina minion"
+//   potere rimovibile (TO DISCARD): "Rimuovi · costo pagato"; gli altri poteri non hanno comandi
+// La riga c'è sempre (anche vuota), così tutte le carte hanno la stessa dimensione.
+function cardControls(entry) {
+  const box = el('div', 'queue-controls');
+  const uid = entry.uid;
+  const ctl = (label, variant, key, aria, handler) => {
+    const b = button(label, variant, e => {
+      e.stopPropagation();
+      if (resolving || ui.isTransitioning || queueViewport.dataset.dragged === '1') return;
+      handler();
+    });
+    b.dataset.uid = uid;
+    b.dataset.ctl = key;
+    if (aria) b.setAttribute('aria-label', aria);
+    return b;
+  };
+  const refocus = key => {
+    const target = queueList.querySelector(`.queue-controls [data-uid="${uid}"][data-ctl="${key}"]`)
+      || queueList.querySelector(`.queue-controls [data-uid="${uid}"]`);
+    if (target) target.focus({ preventScroll: true });
+  };
+  const removeEntry = message => {
+    const index = queue.indexOf(entry);
+    act(() => discardEntry(entry));
+    render();
+    focusQueueItem(neighbourUid(index));
+    showToast(message);
+  };
+
+  if (hasHp(entry)) {
+    const max = entry.data.hp;
+    const steps = entry.hp > 0 ? [-5, -1, 1] : [1];
+    steps.forEach(step => {
+      const key = String(step);
+      box.appendChild(ctl(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', key,
+        (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
+          const value = Math.min(max, Math.max(0, entry.hp + step));
+          if (value === entry.hp) return;
+          act(() => { entry.hp = value; });
+          render();
+          refocus(key);
+        }));
+    });
+    if (entry.hp <= 0) {
+      box.appendChild(ctl(I18N_IT.deleteMinion, 'danger', 'delete', null, () => removeEntry(I18N_IT.minionDeleted(entry.data.name))));
+    }
+  } else if (entry.data.type === 'Power' && entry.data.removable !== false) {
+    box.appendChild(ctl(I18N_IT.removePowerShort, 'danger', 'remove', I18N_IT.removePower + ': ' + entry.data.name,
+      () => removeEntry(I18N_IT.powerRemoved(entry.data.name))));
+  }
+  return box;
+}
+
 // Carte grandi: una e mezza nella larghezza, ma mai più alte dello spazio disponibile
 function sizeQueue() {
   if (queueView.hidden) return;
@@ -663,7 +719,7 @@ function sizeQueue() {
   const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const gap = parseFloat(getComputedStyle(queueList).columnGap) || 12;
   const byWidth = (queueViewport.clientWidth - padX - gap) / 1.5;
-  const badge = 32; // badge sopra la carta + spazio
+  const badge = 32 + 52; // badge sopra la carta + riga dei comandi sotto (44px + spazio)
   const byHeight = (queueViewport.clientHeight - padY - badge) / CARD_RATIO;
   const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
@@ -677,7 +733,15 @@ function renderQueue() {
   railEl.replaceChildren(...queue.map((entry, i) => queueItem(entry, { compact: true, index: i, total: queue.length })));
   railEl.scrollLeft = railScroll;
   railEl.hidden = queue.length === 0;
-  queueList.replaceChildren(...queue.map((entry, i) => queueItem(entry, { full: true, index: i, total: queue.length, lazy: i > 3 })));
+  queueList.replaceChildren(...queue.map((entry, i) => {
+    // Ogni carta grande con i suoi comandi subito sotto (vita del minion, rimozione del potere)
+    const slot = el('div', 'queue-slot');
+    slot.setAttribute('role', 'listitem');
+    const card = queueItem(entry, { full: true, index: i, total: queue.length, lazy: i > 3 });
+    card.removeAttribute('role');
+    slot.append(card, cardControls(entry));
+    return slot;
+  }));
   queueEmpty.hidden = queue.length > 0;
   sizeQueue();
 

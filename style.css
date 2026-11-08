@@ -26,8 +26,12 @@ body { overflow: hidden; }
 .ae-queue-list { display: flex; gap: 12px; min-width: max-content; align-items: flex-end; margin: auto; }
 .ae-queue-list:empty { display: none; }
 /* VistaCoda: carte grandi, una e mezza nella larghezza (--ae-queue-card calcolata da sizeQueue in script.js) */
-.ae-queue-list > .ae-queue-item { width: var(--ae-queue-card, 132px); flex-basis: var(--ae-queue-card, 132px); }
-.ae-queue-list > .ae-queue-item .ae-card-art img { object-fit: cover; }
+.ae-queue-list > .queue-slot { width: var(--ae-queue-card, 132px); flex: 0 0 var(--ae-queue-card, 132px); display: flex; flex-direction: column; gap: 8px; scroll-snap-align: center; }
+.queue-slot > .ae-queue-item { width: 100%; flex-basis: auto; }
+/* Comandi sotto la carta grande: vita del minion (−5 −1 +1, Elimina a 0) o rimozione del potere */
+.queue-controls { min-height: 44px; display: flex; gap: 6px; }
+.queue-controls .ae-button { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 6px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-slot .ae-card-art img { object-fit: cover; }
 /* Fascia compatta in cima alla VistaCoda, come nel turno nemesi */
 .queue-rail[hidden] { display: none; }
 
