@@ -167,8 +167,8 @@ body { overflow: hidden; }
 .nemesis-option { position: relative; }
 .nemesis-expansion {
   position: absolute; right: 6px; bottom: 6px; z-index: 2; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  /* discreta: fondo scuro semitrasparente, testo oro e bordo oro sottile (non più il pieno oro, troppo vistoso) */
-  padding: 1px 5px; border-radius: 4px; background: rgba(16, 17, 22, .72); color: var(--ae-gold); border: 1px solid rgba(223, 174, 89, .45);
+  /* discreta, solo grigi: fondo scuro semitrasparente, testo attenuato e bordo grigio sottile */
+  padding: 1px 5px; border-radius: 4px; background: rgba(16, 17, 22, .72); color: var(--ae-text-muted); border: 1px solid var(--ae-border);
   font: 700 9px/12px var(--ae-font-ui); letter-spacing: .05em; text-transform: uppercase; pointer-events: none;
 }
 /* Nemesi scelta: freccia verso il basso al centro del pulsante, apre la carta subito sotto (su tutta la larghezza
