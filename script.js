@@ -1561,6 +1561,11 @@ function render() {
   resolveView.hidden = !resolving;
   nemesisBtn.hidden = resolving;
   nemesisBtn.disabled = !deckSetup;
+  // "Turno Nemesi" con l'illustrazione della nemesi della partita (come nel menu iniziale), velata per leggere la scritta
+  const nemesisArtNow = settings.nemesis && nemesisArt[settings.nemesis];
+  nemesisBtn.classList.toggle('has-nemesis-art', !!nemesisArtNow);
+  if (nemesisArtNow) nemesisBtn.style.setProperty('--ae-nemesis-art', `url("${encodeURI(nemesisArtNow.portrait)}")`);
+  else nemesisBtn.style.removeProperty('--ae-nemesis-art');
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   updateInfo();
   updateUndoBtn();

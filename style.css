@@ -376,3 +376,11 @@ body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .ae-status-badge.is-imminent { animation: none; background-color: #6b1616; border-color: #8e2222; }
 }
+/* Pulsante "Turno Nemesi" con l'illustrazione della nemesi scelta al posto del fondo avorio: velo scuro al 55% sopra
+   l'immagine e scritta avorio con un'ombra, così si legge su qualsiasi illustrazione */
+.ae-button.has-nemesis-art {
+  background: linear-gradient(rgba(16, 17, 22, .55), rgba(16, 17, 22, .55)), var(--ae-nemesis-art) center 30% / cover no-repeat, var(--ae-surface-raised);
+  color: var(--ae-text); border: 1px solid rgba(244, 241, 233, .55);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 10px rgba(0, 0, 0, .6); letter-spacing: .04em;
+}
+.ae-button.has-nemesis-art:disabled { opacity: .55; }
