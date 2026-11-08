@@ -59,12 +59,15 @@ body { overflow: hidden; }
 
 .ae-compact-rail {
   flex: 0 0 104px; height: 104px; display: flex; align-items: center; gap: 10px;
-  overflow-x: auto; overflow-y: hidden; padding: 4px 16px;
+  /* più spazio sotto: la linea di separazione non tocca le carte */
+  overflow-x: auto; overflow-y: hidden; padding: 4px 16px 14px;
   border-bottom: 1px solid var(--ae-border); overscroll-behavior-x: contain; scroll-snap-type: x proximity;
 }
 .ae-compact-rail .ae-queue-item { --cw: 52px; width: 52px; flex-basis: 52px; gap: 4px; opacity: .7; }
 .ae-compact-rail .ae-queue-item[aria-current='true'],
 .ae-compact-rail .ae-queue-item[data-viewed='true'] { opacity: 1; }
+/* Box vita / token sopra la carta, centrato in alto (sovrapposto all'immagine) */
+.ae-compact-rail .ae-queue-item > .ae-status-badge { position: absolute; top: 4px; left: 50%; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 6px); background: rgba(16, 17, 22, .85); }
 .ae-compact-rail .ae-status-badge { height: 18px; min-width: 0; padding: 1px 4px; gap: 2px; font-size: 11px; line-height: 14px; border-radius: 5px; }
 .ae-compact-rail .ae-status-badge .ae-icon { width: 12px; height: 12px; }
 .ae-compact-rail .ae-token { width: 11px; height: 11px; }
@@ -333,3 +336,22 @@ body { overflow: hidden; }
 @media (min-width: 1440px) {
   .ae-dock .ae-dock-row { max-width: 1376px; }
 }
+
+/* Pulsante Menu in alto a destra (tre linee) e pannello laterale: 70% della larghezza a destra, il resto oscurato */
+.ae-menu-button .ae-menu-lines, .ae-menu-button .ae-menu-lines::before, .ae-menu-button .ae-menu-lines::after {
+  display: block; width: 20px; height: 2px; border-radius: 1px; background: currentColor; content: ''; position: relative;
+}
+.ae-menu-button .ae-menu-lines::before { position: absolute; top: -6px; }
+.ae-menu-button .ae-menu-lines::after { position: absolute; top: 6px; }
+.ae-modal-backdrop.ae-modal-backdrop--side { display: flex; justify-content: flex-end; align-items: stretch; padding: 0; }
+.ae-modal.ae-side-menu {
+  width: 70vw; max-width: 420px; height: 100%; max-height: none; border-radius: 0; border-width: 0 0 0 1px;
+  padding: calc(12px + var(--ae-safe-top)) 16px calc(16px + var(--ae-safe-bottom)); gap: 16px;
+  animation: ae-side-in var(--ae-duration-dialog) var(--ae-ease-decelerate);
+}
+@keyframes ae-side-in { from { transform: translateX(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ae-modal.ae-side-menu { animation: none; } }
+.ae-side-stats { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; font: 500 15px/20px var(--ae-font-ui); }
+.ae-side-stats dt { color: var(--ae-text-muted); }
+.ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.ae-side-exit { margin-top: auto; }

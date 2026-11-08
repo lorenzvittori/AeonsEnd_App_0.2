@@ -106,7 +106,11 @@ const I18N_IT = {
   unavailableNemeses: 'Nemesi non disponibili',
   unavailableNemesis: name => `${name}, non disponibile`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
-  undone: 'Azione annullata'
+  undone: 'Azione annullata',
+  menu: 'Menu',
+  menuTurn: 'Turno nemesi',
+  menuDeck: 'Carte nel mazzo',
+  exitGame: 'Esci dalla partita'
 };
 
 const app = document.getElementById('app');
@@ -1537,7 +1541,8 @@ function render() {
   phaseLabel.textContent = resolving ? I18N_IT.phaseNemesis : I18N_IT.phasePlayers;
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
-  infoRow.hidden = resolving;
+  // Nel turno nemesi il menu non si usa (come prima), ma resta il suo spazio per non spostare la testata
+  menuBtn.style.visibility = resolving ? 'hidden' : '';
   nemesisBtn.hidden = resolving;
   nemesisBtn.disabled = !deckSetup;
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
@@ -2048,7 +2053,40 @@ document.addEventListener('keydown', e => {
 discardLayer.addEventListener('click', e => { if (e.target === discardLayer) closeDiscard(); });
 discardBtn.addEventListener('click', openDiscard);
 discardClose.addEventListener('click', closeDiscard);
-menuBtn.addEventListener('click', openStart);
+menuBtn.addEventListener('click', openSideMenu);
+
+// Menu in alto a destra (opposto all'undo): apre un pannello laterale largo il 70% dello schermo, il resto dell'app
+// resta visibile ma oscurato. Contiene: Esci dalla partita, turno, carte nel mazzo, Scarti.
+// La riga Turno/Mazzo/Scarti/Menu in basso non c'è più. Tutto è creato qui, così vale anche con un index.html vecchio.
+(function setupMenuButton() {
+  const spacer = document.querySelector('.ae-header .ae-header-spacer');
+  menuBtn.className = 'ae-icon-button ae-menu-button';
+  menuBtn.textContent = '';
+  menuBtn.setAttribute('aria-label', I18N_IT.menu);
+  menuBtn.setAttribute('aria-haspopup', 'dialog');
+  menuBtn.append(el('span', 'ae-menu-lines'));
+  if (spacer) spacer.replaceWith(menuBtn);
+  infoRow.remove();
+})();
+
+function openSideMenu() {
+  if (resolving || ui.isTransitioning) return;
+  let close = () => {};
+  const cancel = () => close();
+  const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
+  panel.classList.add('ae-side-menu');
+  const stats = el('dl', 'ae-side-stats');
+  stats.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
+    el('dt', '', I18N_IT.menuDeck), el('dd', '', String(deck.length)));
+  const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
+  discardOpen.classList.add('ae-button--full');
+  discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
+  const exit = button(I18N_IT.exitGame, 'secondary', () => { close(); openStart(); });
+  exit.classList.add('ae-button--full', 'ae-side-exit');
+  panel.append(stats, discardOpen, exit);
+  close = openModal(panel, { onCancel: cancel });
+  panel.parentElement.classList.add('ae-modal-backdrop--side');
+}
 startBtn.addEventListener('click', onStartClick);
 resumeBtn.addEventListener('click', resumeGame);
 undoBtn.addEventListener('click', undo);
