@@ -1603,6 +1603,9 @@ function renderResolve() {
   resolveBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Niente suggerimento sopra il pulsante: lo spazio resta alla carta
   resolveHint.hidden = true;
+  // Ridimensiona di nuovo ora che il pulsante in basso è visibile: alla prima carta del turno nemesi il pulsante
+  // compariva solo dopo il primo calcolo, quindi la carta era misurata su uno spazio più alto e usciva in basso
+  sizeFocus();
 }
 
 // Carta in primo piano: solo immagine (o retro durante la pesca) e stato numerico. Nessuna etichetta, nome o tipo
@@ -2056,6 +2059,11 @@ retryBtn.addEventListener('click', init);
 document.getElementById('wave-select').addEventListener('change', e => renderBosses(e.target.value));
 document.getElementById('upgraded-switch').addEventListener('change', e => { settings.includeUpgraded = e.target.checked; });
 window.addEventListener('resize', () => { sizeFocus(); sizeQueue(); });
+// Se lo spazio della carta grande cambia per altri motivi (font caricato, pulsanti del dock), si ridimensiona subito
+if (window.ResizeObserver) {
+  new ResizeObserver(() => sizeFocus()).observe(focusEl);
+  new ResizeObserver(() => sizeQueue()).observe(queueViewport);
+}
 
 // Avvio: legge cards.json, deck-setup.json e nemesis.json, mostra la pagina iniziale (con "Riprendi partita" se ce n'è una salvata)
 let initRunning = false;
