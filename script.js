@@ -37,6 +37,7 @@ const I18N_IT = {
   phasePlayers: 'Turno dei giocatori',
   phaseNemesis: 'Turno nemesi',
   phaseNemesisN: n => `Turno nemesi ${n}`,
+  turnN: n => `Turno ${n}`,
   stepResolve: 'Risoluzione',
   stepDraw: 'Pesca',
   infoDeck: n => `Mazzo ${n}`,
@@ -1688,7 +1689,10 @@ function showTierBanner(tier) {
 function render() {
   // Nel turno nemesi l'intestazione ha sempre il numero del turno
   // Tra Undo e Menu: il nome della nemesi della partita, in entrambi i turni
-  phaseLabel.textContent = settings.nemesis || '';
+  // e sotto "Turno N" con il numero del turno nemesi (nascosto prima del primo turno nemesi)
+  const turnLine = el('span', 'ae-phase-turn', I18N_IT.turnN(turn));
+  turnLine.hidden = turn < 1;
+  phaseLabel.replaceChildren(el('span', 'ae-phase-name', settings.nemesis || ''), turnLine);
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
   app.classList.toggle('is-nemesis-turn', resolving);

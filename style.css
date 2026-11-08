@@ -544,3 +544,15 @@ body { overflow: hidden; }
 /* Fascia piccola: senza box, a tutta larghezza; stessa posizione nei due turni (16px ai lati) */
 .ae-rail-row { padding: 0 10px; }
 .ae-rail-row > .ae-compact-rail { padding: 0 6px; }
+/* Sotto il nome della nemesi: "Turno N" */
+.ae-shell.clear-header .ae-phase { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.ae-phase-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ae-phase-turn { font: 700 12px/16px var(--ae-font-ui); color: var(--ae-text-muted); letter-spacing: .1em; text-transform: uppercase; }
+/* Fascia piccola più in basso, con una linea sopra e una sotto (uguale nei due turni) */
+.queue-view .queue-rail, .ae-rail-row { margin-top: 10px; border-top: 1px solid var(--ae-border); border-bottom: 1px solid var(--ae-border); }
+.ae-rail-row > .ae-compact-rail { border: 0; }
+.ae-resolve-layout.is-draw-phase .ae-rail-row { border-color: rgba(223, 174, 89, .6); }
+/* Turno nemesi: immagine di sfondo a metà dell'intensità di prima (velo da .5 a .75, in pesca da .8 a .9) */
+.ae-shell.is-nemesis-turn { background: linear-gradient(rgba(16, 17, 22, .75), rgba(16, 17, 22, .75)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
+.ae-shell.is-nemesis-turn.is-draw-phase { background: linear-gradient(rgba(24, 18, 8, .9), rgba(24, 18, 8, .9)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
+.queue-view .queue-rail { flex-basis: 106px; height: 106px; }
