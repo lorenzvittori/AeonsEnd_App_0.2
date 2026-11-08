@@ -59,8 +59,8 @@ body { overflow: hidden; }
 
 .ae-compact-rail {
   flex: 0 0 104px; height: 104px; display: flex; align-items: center; gap: 10px;
-  /* più spazio sotto: la linea di separazione non tocca le carte */
-  overflow-x: auto; overflow-y: hidden; padding: 4px 16px 14px;
+  /* carte a metà tra la testata e la linea di separazione */
+  overflow-x: auto; overflow-y: hidden; padding: 0 16px;
   border-bottom: 1px solid var(--ae-border); overscroll-behavior-x: contain; scroll-snap-type: x proximity;
 }
 .ae-compact-rail .ae-queue-item { --cw: 52px; width: 52px; flex-basis: 52px; gap: 4px; opacity: .7; }
@@ -355,3 +355,7 @@ body { overflow: hidden; }
 .ae-side-stats dt { color: var(--ae-text-muted); }
 .ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .ae-side-exit { margin-top: auto; }
+/* Carte vicine durante lo slide del turno nemesi (aggiunte e posizionate da script.js) */
+.ae-focus { position: relative; }
+.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; }
+.ae-focus-status.ae-focus-peek { justify-content: center; }

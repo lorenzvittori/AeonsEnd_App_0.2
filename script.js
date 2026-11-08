@@ -1542,8 +1542,6 @@ function render() {
   phaseLabel.textContent = resolving ? I18N_IT.phaseNemesis : I18N_IT.phasePlayers;
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
-  // Nel turno nemesi il menu non si usa (come prima), ma resta il suo spazio per non spostare la testata
-  menuBtn.style.visibility = resolving ? 'hidden' : '';
   nemesisBtn.hidden = resolving;
   nemesisBtn.disabled = !deckSetup;
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
@@ -1616,6 +1614,20 @@ function renderResolve() {
 
 // Carta in primo piano: solo immagine (o retro durante la pesca) e stato numerico. Nessuna etichetta, nome o tipo
 // (nemmeno in anteprima): tutto lo spazio va alla carta.
+// Riga sopra la carta grande del turno nemesi: goccia + vita (minion) o un token per ogni token (potere); vuota per gli attacchi
+function focusStatus(entry) {
+  const status = el('p', 'ae-focus-status');
+  if (hasHp(entry)) {
+    status.classList.add('is-hp');
+    status.append(icon('heart'), el('span', '', I18N_IT.hp(entry.hp, entry.data.hp)));
+  } else if (entry.data.type === 'Power') {
+    status.classList.add('is-token');
+    status.appendChild(tokenIcons(entry.tokens));
+  }
+  status.setAttribute('aria-label', statusText(entry));
+  return status;
+}
+
 function renderFocus(viewed, active, { isNewStep, previewing }) {
   const index = queue.indexOf(viewed);
   const total = queue.length;
@@ -1637,23 +1649,17 @@ function renderFocus(viewed, active, { isNewStep, previewing }) {
 
   // Stato sopra la carta: goccia + vita (minion) o un token per ogni token (potere). La riga c'è sempre, anche vuota
   // (attacchi), così la carta ha la stessa dimensione per ogni tipo.
-  const status = el('p', 'ae-focus-status');
-  if (hasHp(viewed)) {
-    status.classList.add('is-hp');
-    status.append(icon('heart'), el('span', '', I18N_IT.hp(viewed.hp, viewed.data.hp)));
-  } else if (viewed.data.type === 'Power') {
-    status.classList.add('is-token');
-    status.appendChild(tokenIcons(viewed.tokens));
-  }
+  const status = focusStatus(viewed);
   if (ui.holdUid === viewed.uid) status.classList.add('is-dropping', 'is-bumped');
-  status.setAttribute('aria-label', statusText(viewed));
 
   const children = [status, stage];
 
   const changed = focusEl.dataset.uid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
   focusEl.replaceChildren(...children);
-  focusEl.classList.toggle('is-changing', changed && !reveal);
+  // Dopo uno slide col dito la carta è già arrivata al centro trascinata: niente animazione di entrata
+  focusEl.classList.toggle('is-changing', changed && !reveal && !ui.swiped);
+  ui.swiped = false;
   // Dopo uno slide col dito la nuova carta entra da più lontano (ui.slidePx), altrimenti 24px
   focusEl.style.setProperty('--ae-slide', (ui.slidePx != null ? ui.slidePx : ui.slide * 24) + 'px');
   ui.slide = 0;
@@ -1667,7 +1673,7 @@ function sizeFocus() {
   if (!stage || resolveView.hidden) return;
   const style = getComputedStyle(focusEl);
   const gap = parseFloat(style.rowGap) || 8;
-  const others = Array.from(focusEl.children).filter(c => c !== stage);
+  const others = Array.from(focusEl.children).filter(c => c !== stage && !c.classList.contains('ae-focus-peek'));
   const used = others.reduce((sum, c) => sum + c.offsetHeight, 0) + gap * others.length
     + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const availH = Math.max(80, focusEl.clientHeight - used);
@@ -1931,15 +1937,46 @@ function backToActive() {
 // Slide sulla carta in primo piano: verso sinistra = carta successiva, verso destra = precedente.
 // La carta segue il dito mentre si trascina; se non c'è una carta in quella direzione si muove poco (resistenza).
 // Al rilascio: oltre SWIPE_MIN_DISTANCE esce dal lato del gesto e la nuova entra dall'altro, altrimenti torna al centro.
-const SWIPE_OUT_MS = 140;
+// Durante il trascinamento ai lati ci sono la carta precedente e la successiva (con la loro riga vita/token), che si
+// muovono insieme a quella al centro come in un carosello; al rilascio la vicina scivola al centro.
+const SWIPE_OUT_MS = 180;
 let swipe = null;
-function swipeStage() { return focusEl.querySelector('.ae-focus-stage'); }
-// Carta e stato sopra (token del potere / vita del minion) si muovono insieme
-function moveSwiped(transform, transition) {
+function swipeStage() { return focusEl.querySelector('.ae-focus-stage:not(.ae-focus-peek)'); }
+// Sposta carta, riga sopra e carte vicine di dx px (ognuna dalla sua posizione di partenza, data-base)
+function moveSwiped(dx, transition) {
   focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => {
     node.style.transition = transition;
-    node.style.transform = transform;
+    node.style.transform = `translateX(${dx + Number(node.dataset.base || 0)}px)`;
   });
+}
+function addPeeks() {
+  const stage = swipeStage();
+  const status = focusEl.querySelector('.ae-focus-status:not(.ae-focus-peek)');
+  if (!stage || !status) return;
+  const box = focusEl.getBoundingClientRect();
+  const sr = stage.getBoundingClientRect();
+  const tr = status.getBoundingClientRect();
+  const distance = sr.width + 16;
+  [-1, 1].forEach(step => {
+    const entry = neighbourOf(step);
+    if (!entry) return;
+    const place = (node, r) => {
+      node.classList.add('ae-focus-peek');
+      node.setAttribute('aria-hidden', 'true');
+      node.dataset.base = String(step * distance);
+      Object.assign(node.style, { left: (r.left - box.left) + 'px', top: (r.top - box.top) + 'px', width: r.width + 'px', height: r.height + 'px' });
+      focusEl.appendChild(node);
+    };
+    const peekStage = el('div', 'ae-focus-stage');
+    peekStage.appendChild(cardArt(entry.data));
+    const peekStatus = focusStatus(entry);
+    place(peekStage, sr);
+    place(peekStatus, tr);
+  });
+  swipe.distance = distance;
+}
+function removePeeks() {
+  focusEl.querySelectorAll('.ae-focus-peek').forEach(node => node.remove());
 }
 function neighbourOf(step) {
   const i = queue.findIndex(e => e.uid === ui.viewedUid);
@@ -1957,32 +1994,38 @@ focusEl.addEventListener('pointermove', e => {
     if (Math.abs(dx) < DRAG_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) return;
     swipe.dragging = true;
     try { focusEl.setPointerCapture(e.pointerId); } catch (_) {}
+    addPeeks();
   }
   const stage = swipeStage();
   if (!stage) return;
   swipe.dx = neighbourOf(dx < 0 ? 1 : -1) ? dx : dx * 0.25;
-  moveSwiped(`translateX(${swipe.dx}px)`, 'none');
+  moveSwiped(swipe.dx, 'none');
 });
 function endSwipe(e, cancelled) {
   if (!swipe || (e && e.pointerId !== swipe.id)) return;
-  const { dx, dragging } = swipe;
+  const { dx, dragging, distance } = swipe;
   swipe = null;
   const stage = swipeStage();
   if (!dragging || !stage) return;
   const step = dx < 0 ? 1 : -1;
   const next = neighbourOf(step);
+  ui.isTransitioning = true;
   if (!cancelled && next && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
-    // Esce dal lato del gesto, poi la carta vicina entra dal lato opposto
-    const out = -step * (focusEl.clientWidth / 2 + stage.offsetWidth / 2);
-    moveSwiped(`translateX(${out}px)`, `transform ${SWIPE_OUT_MS}ms ease-in`);
-    ui.isTransitioning = true;
+    // La carta esce dal lato del gesto e la vicina scivola esattamente al centro, poi diventa la carta mostrata
+    moveSwiped(-step * (distance || stage.offsetWidth + 16), `transform ${SWIPE_OUT_MS}ms var(--ae-ease-decelerate)`);
     setTimeout(() => {
       ui.isTransitioning = false;
-      ui.slidePx = step * Math.round(stage.offsetWidth * 0.5);
+      ui.swiped = true;
       moveView(step);
+      removePeeks();
     }, SWIPE_OUT_MS);
   } else {
-    moveSwiped('', 'transform 180ms var(--ae-ease-decelerate)');
+    moveSwiped(0, `transform ${SWIPE_OUT_MS}ms var(--ae-ease-decelerate)`);
+    setTimeout(() => {
+      ui.isTransitioning = false;
+      removePeeks();
+      focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => { node.style.transform = ''; node.style.transition = ''; });
+    }, SWIPE_OUT_MS);
   }
 }
 focusEl.addEventListener('pointerup', e => endSwipe(e, false));
@@ -2071,7 +2114,7 @@ menuBtn.addEventListener('click', openSideMenu);
 })();
 
 function openSideMenu() {
-  if (resolving || ui.isTransitioning) return;
+  if (ui.isTransitioning) return;
   let close = () => {};
   const cancel = () => close();
   const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
