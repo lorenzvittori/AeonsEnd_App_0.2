@@ -163,11 +163,12 @@ body { overflow: hidden; }
   /* sfumatura: da trasparente a pieno nella prima metà */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
 }
 .nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
-/* Mini espansione: etichetta dorata piccola in basso a destra, sopra l'illustrazione */
+/* Mini espansione: etichetta piccola in basso a destra, sopra l'illustrazione */
 .nemesis-option { position: relative; }
 .nemesis-expansion {
   position: absolute; right: 6px; bottom: 6px; z-index: 2; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  padding: 2px 5px; border-radius: 4px; background: var(--ae-gold); color: #20160B;
+  /* discreta: fondo scuro semitrasparente, testo oro e bordo oro sottile (non più il pieno oro, troppo vistoso) */
+  padding: 1px 5px; border-radius: 4px; background: rgba(16, 17, 22, .72); color: var(--ae-gold); border: 1px solid rgba(223, 174, 89, .45);
   font: 700 9px/12px var(--ae-font-ui); letter-spacing: .05em; text-transform: uppercase; pointer-events: none;
 }
 /* Nemesi scelta: freccia verso il basso al centro del pulsante, apre la carta subito sotto (su tutta la larghezza
