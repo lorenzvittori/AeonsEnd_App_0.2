@@ -572,19 +572,53 @@ body { overflow: hidden; }
   background: linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center top / 50% 1px no-repeat,
     linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center bottom / 50% 1px no-repeat;
 }
-/* Pulsante principale con il mazzo nemesi a sinistra e gli scarti a destra, alti come il pulsante */
-.ae-dock { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; }
-.ae-dock > * { grid-column: 2; }
-.ae-dock > .ae-pile { grid-row: 1; height: 52px; }
-.ae-dock > .ae-pile--deck { grid-column: 1; }
-.ae-dock > .ae-pile--discard { grid-column: 3; }
-.ae-dock .ae-pile-count { min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px; font-size: 12px; }
-@media (min-width: 900px) {
-  .ae-dock { grid-template-columns: auto minmax(0, 360px) auto; justify-content: center; }
-  .ae-dock > .ae-pile { width: auto; max-width: none; }
-}
 /* Inizia partita: la pagina iniziale esce a sinistra, il turno giocatori entra da destra */
 .start-screen.is-sliding-out { animation: ae-slide-out-left .38s ease-in-out forwards; }
 .ae-shell.is-sliding-in { animation: ae-slide-in-right .38s ease-in-out; }
 @keyframes ae-slide-out-left { from { transform: none; } to { transform: translateX(-100%); } }
 @keyframes ae-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+
+/* Testata: mazzo nemesi e scarti uno accanto all'altro a sinistra (al posto di Undo, che è nel Menu), nome al centro, Menu
+   a destra. Griglia a tre colonne: il nome resta al centro della pagina */
+.ae-shell.clear-header > .ae-header { display: grid; grid-template-columns: 1fr minmax(0, auto) 1fr; }
+.ae-header-piles { justify-self: start; display: flex; align-items: center; gap: 6px; }
+.ae-header-piles .ae-pile { height: 44px; }
+.ae-header-piles .ae-pile-count { min-width: 22px; height: 22px; padding: 0 4px; border-radius: 11px; font-size: 12px; }
+.ae-shell.clear-header > .ae-header > .ae-menu-button { justify-self: end; }
+/* La pila degli scarti riceve una carta: piccolo rimbalzo con un lampo dorato */
+.ae-pile--discard.is-bump { animation: ae-pile-bump .42s cubic-bezier(.2, 1.4, .4, 1); }
+.ae-pile--discard.is-bump img { animation: ae-pile-flash .6s ease-out; }
+@keyframes ae-pile-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+@keyframes ae-pile-flash { 0% { box-shadow: 0 0 0 0 rgba(255, 196, 60, 0); } 30% { box-shadow: 0 0 16px 5px rgba(255, 196, 60, .9); } 100% { box-shadow: 2px 2px 0 -1px #2a2c34, 4px 4px 0 -1px #1b1d24, 0 2px 8px rgba(0, 0, 0, .7); } }
+/* Copia della carta che vola verso gli scarti (animata da script.js con Web Animations) */
+.ae-fly-ghost {
+  position: fixed; z-index: 70; margin: 0; pointer-events: none; border-radius: 5% / 3.58%; overflow: visible;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .65), 0 0 18px 2px rgba(223, 174, 89, .45); will-change: transform, opacity;
+}
+.ae-fly-ghost .ae-new-tag, .ae-fly-ghost .ae-rail-flag, .ae-fly-ghost .queue-hp-tag { display: none; }
+
+/* Pulsante principale "Salva modifiche": dorato */
+.ae-button.is-save { background: var(--ae-gold); color: #20160B; border-color: var(--ae-gold); text-shadow: none; letter-spacing: .04em; }
+
+/* Banner "Turno Nemesi": fascia che entra da sinistra, si ferma al centro ed esce a destra */
+.ae-turn-banner {
+  position: fixed; left: 0; right: 0; top: 50%; z-index: 80; height: 76px; margin-top: -38px; pointer-events: none;
+  display: grid; place-items: center; overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(60, 12, 12, .92) 18%, rgba(60, 12, 12, .92) 82%, transparent);
+  border-top: 1px solid rgba(223, 174, 89, .7); border-bottom: 1px solid rgba(223, 174, 89, .7);
+  animation: ae-turn-banner 1.3s cubic-bezier(.3, 0, .2, 1) forwards;
+}
+.ae-turn-banner-text {
+  font: 600 30px/1 var(--ae-font-display); color: #f3cf86; letter-spacing: .14em; text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(223, 120, 40, .7), 0 2px 6px rgba(0, 0, 0, .9);
+}
+@keyframes ae-turn-banner {
+  0% { transform: translateX(-100%); } 25% { transform: translateX(0); } 72% { transform: translateX(0); } 100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) { .ae-turn-banner { animation: ae-fade 1.3s linear reverse forwards; } }
+
+/* Passo Pesca e carta pescata: un po' più grandi (fronte e retro); crescono verso il basso, nello spazio libero */
+.ae-focus-slide.is-big .ae-focus-stage { scale: 1.08; transform-origin: 50% 0; }
+
+/* Fascia del turno nemesi: il token del potere da risolvere sfuma insieme a quello della carta grande */
+.ae-compact-rail .ae-status-badge.is-auto-token .ae-token:last-child { animation: ae-token-leave .9s ease-in var(--ae-token-delay, 1s) forwards; }
