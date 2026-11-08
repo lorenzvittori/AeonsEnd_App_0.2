@@ -556,3 +556,35 @@ body { overflow: hidden; }
 .ae-shell.is-nemesis-turn { background: linear-gradient(rgba(16, 17, 22, .75), rgba(16, 17, 22, .75)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 .ae-shell.is-nemesis-turn.is-draw-phase { background: linear-gradient(rgba(24, 18, 8, .9), rgba(24, 18, 8, .9)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 .queue-view .queue-rail { flex-basis: 106px; height: 106px; }
+
+/* Turno giocatori: carte senza il bordo bianco */
+.queue-view .ae-queue-item .ae-card-art { border: 0; }
+/* Undo e Menu dello stesso colore di "Turno N" */
+.ae-shell.clear-header .ae-header .ae-icon-button { color: var(--ae-text-muted); }
+/* Linee sopra e sotto la fascia piccola: lunghe metà e centrate */
+.queue-view .queue-rail, .ae-rail-row {
+  border-top: 0; border-bottom: 0;
+  background: linear-gradient(var(--ae-border), var(--ae-border)) center top / 50% 1px no-repeat,
+    linear-gradient(var(--ae-border), var(--ae-border)) center bottom / 50% 1px no-repeat;
+}
+.ae-rail-row { padding: 1px 10px; }
+.ae-resolve-layout.is-draw-phase .ae-rail-row {
+  background: linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center top / 50% 1px no-repeat,
+    linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center bottom / 50% 1px no-repeat;
+}
+/* Pulsante principale con il mazzo nemesi a sinistra e gli scarti a destra, alti come il pulsante */
+.ae-dock { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; }
+.ae-dock > * { grid-column: 2; }
+.ae-dock > .ae-pile { grid-row: 1; height: 52px; }
+.ae-dock > .ae-pile--deck { grid-column: 1; }
+.ae-dock > .ae-pile--discard { grid-column: 3; }
+.ae-dock .ae-pile-count { min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px; font-size: 12px; }
+@media (min-width: 900px) {
+  .ae-dock { grid-template-columns: auto minmax(0, 360px) auto; justify-content: center; }
+  .ae-dock > .ae-pile { width: auto; max-width: none; }
+}
+/* Inizia partita: la pagina iniziale esce a sinistra, il turno giocatori entra da destra */
+.start-screen.is-sliding-out { animation: ae-slide-out-left .38s ease-in-out forwards; }
+.ae-shell.is-sliding-in { animation: ae-slide-in-right .38s ease-in-out; }
+@keyframes ae-slide-out-left { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes ae-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }

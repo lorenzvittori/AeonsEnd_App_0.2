@@ -97,6 +97,9 @@ const I18N_IT = {
   save: 'Salva',
   saveLabel: name => `Salva le modifiche a ${name}`,
   paidNote: 'Costo pagato',
+  killedNote: 'Ucciso',
+  minionKilled: name => `${name}: ucciso, andrà negli scarti`,
+  deckLabel: n => `Mazzo nemesi, ${n} ${n === 1 ? 'carta' : 'carte'}`,
   powerPaid: name => `${name}: costo pagato, andrà negli scarti`,
   cancelPay: 'Annulla',
   draftDiscarded: 'Modifiche non salvate annullate',
@@ -202,9 +205,8 @@ const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
 // Retro della carta pescata, mostrato prima che si giri (630 x 880 WebP)
-// Dorso delle carte nemesi: il retro decorativo del kit di design (il primo usato); la versione con l'immagine
-// dell'utente è Assets/ui/decor/card-back.webp, ancora nel repo
-const CARD_BACK = 'Assets/ui/decor/card-back.svg';
+// Dorso delle carte nemesi: l'immagine dell'utente (il retro del kit di design è Assets/ui/decor/card-back.svg)
+const CARD_BACK = 'Assets/ui/decor/card-back.webp';
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
 let allCards = [];
@@ -424,8 +426,14 @@ function hpChanged(entry) {
 // Uguale nella coda e nella fascia della VistaRisoluzione.
 // Carta che si attiverà nel prossimo turno nemesi: minion (ogni turno) e potere con 1 solo token rimasto
 function activatesNextTurn(entry) {
-  if (entry.paid) return false;
+  if (isGone(entry)) return false;
   return hasHp(entry) || (entry.data.type === 'Power' && entry.tokens === 1);
+}
+
+// Carta che va negli scarti all'inizio del prossimo turno nemesi: potere con costo pagato o minion ucciso (vita 0 salvata).
+// Nel turno giocatori resta in coda, grigia.
+function isGone(entry) {
+  return !!entry.paid || (hasHp(entry) && entry.hp <= 0);
 }
 
 // Turno giocatori: modifiche non ancora salvate di una carta (vita in bozza, costo pagato in bozza)
@@ -445,7 +453,8 @@ function setDraft(entry, patch) {
 // Copia della carta con la vita in bozza, per disegnare box e fascia
 function displayEntry(entry) {
   const d = draftOf(entry);
-  return d && d.hp !== undefined ? Object.assign({}, entry, { hp: d.hp }) : entry;
+  // isDraft: la vita è in bozza, il box mostra "x/tot" (dopo Salva solo "x")
+  return d && d.hp !== undefined ? Object.assign({}, entry, { hp: d.hp, isDraft: true }) : entry;
 }
 
 function statusBadge(entry) {
@@ -453,8 +462,8 @@ function statusBadge(entry) {
   badge.setAttribute('aria-hidden', 'true');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
-    // Goccia + vita; se in questo turno ha subito danni o è stato curato: vita / massimo
-    badge.append(icon('heart'), el('span', '', hpChanged(entry) ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp)));
+    // Vita + goccia; con una modifica non ancora salvata: vita / massimo
+    badge.append(el('span', '', entry.isDraft ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp)), icon('heart'));
   } else if (entry.data.type === 'Power') {
     badge.classList.add('ae-status-badge--tokens');
     badge.appendChild(tokenIcons(entry.tokens));
@@ -474,13 +483,14 @@ function queueItem(entry, opts) {
   button.dataset.uid = entry.uid;
   button.setAttribute('role', 'listitem');
   if (entry.isNew) button.classList.add('is-new');
-  if (entry.paid) button.classList.add('is-paid');
+  if (isGone(entry)) button.classList.add('is-paid');
   if (opts.current) button.setAttribute('aria-current', 'true');
   if (opts.viewed) button.dataset.viewed = 'true';
 
   const parts = [data.name, typeName(data), statusText(entry), I18N_IT.cardOf(opts.index + 1, opts.total)];
   if (entry.isNew) parts.push(I18N_IT.newTag.toLowerCase());
   if (entry.paid) parts.push(I18N_IT.paidNote.toLowerCase());
+  else if (isGone(entry)) parts.push(I18N_IT.killedNote.toLowerCase());
   if (opts.current) parts.push('da risolvere');
   if (opts.viewed && !opts.current) parts.push('in anteprima');
   button.setAttribute('aria-label', parts.filter(Boolean).join(', '));
@@ -752,21 +762,15 @@ function cardControls(entry) {
       || queueList.querySelector(`.queue-controls [data-uid="${uid}"]`);
     if (target) target.focus({ preventScroll: true });
   };
-  const removeEntry = message => {
-    const index = queue.indexOf(entry);
-    act(() => discardEntry(entry));
-    render();
-    focusQueueItem(neighbourUid(index));
-    showToast(message);
-  };
-
-  if (hasHp(entry)) {
-    // I tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo).
+  if (hasHp(entry) && entry.hp <= 0) {
+    // Minion ucciso (vita 0 salvata): grigio, va negli scarti al prossimo turno nemesi; si torna indietro con Undo
+    box.appendChild(el('p', 'queue-note is-paid', I18N_IT.killedNote));
+  } else if (hasHp(entry)) {
+    // I tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo); a 0 con Salva il minion è ucciso.
     // +1 si può usare solo per rimettere vita tolta in questo turno (fino alla vita di inizio turno): altrimenti è oscurato
     const shown = draftHp(entry);
     const cap = Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
-    const steps = shown > 0 ? [-5, -1, 1] : [1];
-    steps.forEach(step => {
+    [-5, -1, 1].forEach(step => {
       const key = String(step);
       const b = ctl(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', key,
         (step > 0 ? 'Rimetti ' : 'Togli ') + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
@@ -776,15 +780,9 @@ function cardControls(entry) {
           render();
           refocus(key);
         });
-      if (step > 0 && shown >= cap) { b.disabled = true; b.classList.add('is-dimmed'); }
+      if ((step > 0 && shown >= cap) || (step < 0 && shown <= 0)) { b.disabled = true; b.classList.add('is-dimmed'); }
       box.appendChild(b);
     });
-    if (shown <= 0) {
-      box.appendChild(ctl(I18N_IT.deleteMinion, 'danger', 'delete', null, () => {
-        ui.drafts.delete(entry.uid);
-        removeEntry(I18N_IT.minionDeleted(entry.data.name));
-      }));
-    }
   } else if (entry.data.type === 'Power' && entry.paid) {
     box.appendChild(el('p', 'queue-note is-paid', I18N_IT.paidNote));
   } else if (entry.data.type === 'Power' && entry.data.removable !== false) {
@@ -846,7 +844,7 @@ function renderQueue() {
     }
     slot.append(card, cardControls(entry));
     // "Salva" in basso a destra sulla carta quando c'è una modifica non salvata (un minion a 0 si elimina, non si salva)
-    if (d && !(hasHp(entry) && draftHp(entry) <= 0)) {
+    if (d) {
       const save = el('button', 'queue-save', I18N_IT.save);
       save.type = 'button';
       save.setAttribute('aria-label', I18N_IT.saveLabel(entry.data.name));
@@ -1032,8 +1030,8 @@ function buildHpPanel(dialog, panel, entry, close) {
     const change = draft - original;
     delta.className = 'ae-hp-delta' + (change < 0 ? ' is-loss' : change > 0 ? ' is-gain' : '');
     delta.replaceChildren();
-    if (draft === 0) delta.append(icon('heart'), el('span', '', I18N_IT.willBeDeleted));
-    else if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
+    if (draft === 0) delta.append(el('span', '', I18N_IT.willBeDeleted), icon('heart'));
+    else if (change !== 0) delta.append(el('span', '', I18N_IT.hpDelta(change)), icon('heart'));
     stepButtons.forEach(([step, b]) => {
       if (step > 0 && !resolving) { b.disabled = draft >= cap; b.classList.toggle('is-dimmed', draft >= cap); }
     });
@@ -1055,7 +1053,8 @@ function buildHpPanel(dialog, panel, entry, close) {
     act(() => {
       entry.hp = value;
       if (value <= 0) {
-        if (resolving) removeWhileResolving(entry); else discardEntry(entry);
+        // turno nemesi: esce subito; turno giocatori: resta grigio fino al turno nemesi (isGone)
+        if (resolving) removeWhileResolving(entry);
       }
     });
     if (wasResolving) {
@@ -1065,10 +1064,10 @@ function buildHpPanel(dialog, panel, entry, close) {
       showToast(value <= 0 ? I18N_IT.minionDeleted(name) : I18N_IT.hpLeftToast(name, value));
       return;
     }
-    ui.queueAnchor = value <= 0 ? { uid: neighbourUid(index), align: 'nearest' } : { uid: entry.uid, align: 'nearest' };
+    ui.queueAnchor = { uid: entry.uid, align: 'nearest' };
     render();
-    focusQueueItem(ui.queueAnchor ? ui.queueAnchor.uid : (value <= 0 ? neighbourUid(index) : entry.uid));
-    showToast(value <= 0 ? I18N_IT.minionDeleted(name) : I18N_IT.hpLeftToast(name, value));
+    focusQueueItem(entry.uid);
+    showToast(value <= 0 ? I18N_IT.minionKilled(name) : I18N_IT.hpLeftToast(name, value));
   }
 
   update();
@@ -1506,10 +1505,9 @@ function startGame() {
   ui.drafts.clear();
   undoStack = [];
   newGame();
-  closeStart();
   render();
   save();
-  nemesisBtn.focus();
+  slideToGame(() => nemesisBtn.focus());
 }
 
 // Riprendi partita: si ricarica lo stato salvato nel browser, compreso l'undo
@@ -1706,6 +1704,7 @@ function render() {
   else nemesisBtn.style.removeProperty('--ae-nemesis-art');
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   updateInfo();
+  renderDockPiles();
   updateUndoBtn();
   if (ui.tierBanner) {
     ui.tierWaitUntil = performance.now() + TIER_BANNER_MS;
@@ -1817,7 +1816,7 @@ function focusStatus(entry) {
   if (hasHp(entry)) {
     status.classList.add('is-hp');
     // Minion appena pescato: solo il valore della vita (senza /totale)
-    status.append(icon('heart'), el('span', '', entry.isNew ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.data.hp)));
+    status.append(el('span', '', entry.isNew ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.data.hp)), icon('heart'));
   } else if (entry.data.type === 'Power') {
     status.classList.add('is-token');
     status.appendChild(tokenIcons(entry.tokens));
@@ -1889,7 +1888,7 @@ function drawSlide() {
 }
 
 function focusStateSignature() {
-  return (isDrawStep() ? 'draw|' : '') + 'c' + currentIndex + '|' + queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
+  return (isDrawStep() ? 'draw' + ui.viewedUid + '|' : '') + 'c' + currentIndex + '|' + queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
     + '#' + (ui.reveal ? ui.reveal.uid + ':' + ui.reveal.status : '') + '#' + (ui.holdUid || '');
 }
 
@@ -1905,8 +1904,15 @@ function renderFocus(viewed) {
   const viewedChanged = prevUid !== String(viewed.uid);
   focusEl.dataset.uid = viewed.uid;
   if (focusStateSignature() !== focusSignature || !focusTrack.children.length) {
-    const slides = queue.map(focusSlide);
-    if (isDrawStep()) slides.push(drawSlide());
+    // Passo Pesca: si vede solo la carta da girare (le carte già risolte a sinistra spariscono); se si guarda un'altra
+    // carta dalla fascia, c'è solo quella accanto
+    let slides;
+    if (isDrawStep()) {
+      const other = viewed.uid !== DRAW_UID ? entryByUid(viewed.uid) : null;
+      slides = [...(other ? [focusSlide(other)] : []), drawSlide()];
+    } else {
+      slides = queue.map(focusSlide);
+    }
     focusTrack.replaceChildren(...slides);
     // La firma si calcola dopo: disegnare la carta pescata può far avanzare il suo stato (pronta → si gira)
     focusSignature = focusStateSignature();
@@ -2104,7 +2110,7 @@ function nemesisTurn() {
   queue.forEach(e => { e.turnHp = e.hp; });
   // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
   ui.drafts.clear();
-  queue.filter(e => e.paid).forEach(discardEntry);
+  queue.filter(isGone).forEach(discardEntry);
   startResolution();
 }
 
@@ -2367,6 +2373,64 @@ menuBtn.addEventListener('click', openSideMenu);
   if (spacer) spacer.replaceWith(menuBtn);
   infoRow.remove();
 })();
+
+// Ai lati del pulsante principale (in entrambi i turni): a sinistra il mazzo nemesi (dorso con il numero di carte
+// rimaste), a destra la pila degli scarti (ultima carta scartata con il numero; toccandola si apre la pila).
+// Alti come il pulsante. Creati qui, così valgono anche con un index.html vecchio.
+const dockEl = document.getElementById('dock');
+const dockDeck = el('div', 'ae-pile ae-pile--deck');
+const dockDiscard = el('button', 'ae-pile ae-pile--discard');
+dockDiscard.type = 'button';
+dockDiscard.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+dockEl.prepend(dockDeck);
+dockEl.appendChild(dockDiscard);
+
+function pileContent(node, imgSrc, count) {
+  node.classList.toggle('is-empty', !imgSrc);
+  const img = node.querySelector('img');
+  if (imgSrc) {
+    const image = img || document.createElement('img');
+    image.alt = '';
+    if (image.getAttribute('src') !== imgSrc) image.src = imgSrc;
+    if (!img) node.prepend(image);
+  } else if (img) {
+    img.remove();
+  }
+  let n = node.querySelector('.ae-pile-count');
+  if (!n) {
+    n = el('span', 'ae-pile-count');
+    n.setAttribute('aria-hidden', 'true');
+    node.appendChild(n);
+  }
+  n.textContent = String(count);
+}
+
+function renderDockPiles() {
+  pileContent(dockDeck, deck.length ? CARD_BACK : null, deck.length);
+  dockDeck.setAttribute('aria-label', I18N_IT.deckLabel(deck.length));
+  dockDeck.setAttribute('role', 'img');
+  const last = discard[discard.length - 1];
+  pileContent(dockDiscard, last ? encodeURI(last.thumb || last.image) : null, discard.length);
+  dockDiscard.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
+}
+
+// Dalla pagina iniziale alla partita: la pagina iniziale esce a sinistra e la partita entra da destra
+const START_SLIDE_MS = 380;
+function slideToGame(then) {
+  if (reducedMotion.matches) {
+    closeStart();
+    if (then) then();
+    return;
+  }
+  startLayer.classList.add('is-sliding-out');
+  app.classList.add('is-sliding-in');
+  setTimeout(() => {
+    startLayer.classList.remove('is-sliding-out');
+    app.classList.remove('is-sliding-in');
+    closeStart();
+    if (then) then();
+  }, START_SLIDE_MS);
+}
 
 function openSideMenu() {
   if (ui.isTransitioning) return;
