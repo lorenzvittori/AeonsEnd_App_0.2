@@ -132,6 +132,8 @@ body { overflow: hidden; }
 }
 .start-box { width: min(100% - 32px, 480px); margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 .start-title { margin-top: 8px; text-align: center; font: 600 28px/34px var(--ae-font-display); }
+/* Logo del gioco al posto del titolo in Cinzel */
+.start-logo { display: block; width: min(100%, 320px); height: auto; margin: 0 auto; }
 .start-group { display: flex; flex-direction: column; }
 .start-label { margin-bottom: 10px; font: 600 14px/20px var(--ae-font-ui); color: var(--ae-text-muted); letter-spacing: .08em; text-transform: uppercase; }
 .choices { display: flex; gap: 8px; }
