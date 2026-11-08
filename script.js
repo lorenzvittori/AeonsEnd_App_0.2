@@ -638,12 +638,21 @@ function ensureQueueRail() {
     markQueueRail(Number(item.dataset.uid));
   });
   queueViewport.addEventListener('scroll', () => {
+    // Lo sfondo segue lo scorrimento subito (costa poco), la fascia si aggiorna una volta per fotogramma
+    moveQueueBackground();
     if (queueRailFrame) return;
     queueRailFrame = requestAnimationFrame(() => { queueRailFrame = 0; markQueueRail(centredQueueUid()); });
   }, { passive: true });
   return queueRail;
 }
 let queueRailFrame = 0;
+
+// Lo sfondo del turno giocatori scorre con le carte: prima carta = parte sinistra dell'immagine, ultima = parte destra
+function moveQueueBackground() {
+  const max = queueViewport.scrollWidth - queueViewport.clientWidth;
+  const ratio = max > 1 ? Math.min(1, Math.max(0, queueViewport.scrollLeft / max)) : 0;
+  queueView.style.setProperty('--ae-bg-x', (ratio * 100).toFixed(2) + '%');
+}
 
 function scrollQueueTo(item) {
   const cRect = queueViewport.getBoundingClientRect();
@@ -787,6 +796,7 @@ function renderQueue() {
     queueViewport.scrollTop = previousTop;
   }
   markQueueRail(centredQueueUid());
+  moveQueueBackground();
 }
 
 // Allinea la coda su una carta: 'anchor' = centro della carta al 62% (si vede cosa la precede), 'center', 'nearest'
