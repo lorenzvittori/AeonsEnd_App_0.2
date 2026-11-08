@@ -521,3 +521,6 @@ body { overflow: hidden; }
 
 /* Vita/token, carta e pulsanti alzati di 14px in entrambi i turni */
 .ae-focus-track, .queue-view .ae-queue-list { transform: translateY(-14px); }
+
+/* Nessuna linea di separazione tra fascia piccola e carte grandi, in entrambi i turni */
+.ae-compact-rail, .ae-rail-row, .ae-resolve-layout.is-draw-phase .ae-compact-rail, .ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom: 0; }

@@ -807,13 +807,10 @@ function sizeQueue() {
   const gap = parseFloat(getComputedStyle(queueList).columnGap) || 18;
   // Stessa regola del carosello del turno nemesi (sizeFocus): la carta riempie l'altezza, ai lati si vede un pezzo delle vicine
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0; // come nel carosello: stessa larghezza della carta
-  const byWidth = queueViewport.clientWidth - 32 - peekRoom;
   // Come sizeFocus: sopra la carta il box vita/token (41px) e 8px di spazio. I comandi stanno fuori dal flusso, sotto la
   // carta, così la carta ha la stessa posizione e dimensione del turno nemesi; solo su schermi bassi la si rimpicciolisce
   // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
-  const byHeight = (queueViewport.clientHeight - padY - 41 - 8) / CARD_RATIO;
-  const byControls = (queueViewport.clientHeight - 2 * 52 - 41 - 8) / CARD_RATIO;
-  const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight, byControls)));
+  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight, padY, peekRoom));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
   // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
   const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
@@ -1966,19 +1963,26 @@ focusEl.addEventListener('scroll', () => {
   }, 16);
 }, { passive: true });
 
+// Larghezza della carta grande: UNA sola regola per turno giocatori e turno nemesi, così sono sempre uguali.
+// Sopra la carta il box vita/token (41px + 8 di spazio); i comandi del turno giocatori (52px) stanno sotto, quindi si
+// riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
+function sharedCardWidth(boxW, boxH, padY, peekRoom) {
+  const byWidth = boxW - 32 - peekRoom;
+  const byHeight = (boxH - padY - 41 - 8) / CARD_RATIO;
+  const byControls = (boxH - 2 * 52 - 41 - 8) / CARD_RATIO;
+  return Math.floor(Math.min(byWidth, byHeight, byControls));
+}
+
 // Dimensiona le carte del carosello: alte quanto lo spazio, ma più strette dell'area quanto basta per vedere un pezzo
 // delle vicine. Il margine ai lati permette di centrare anche la prima e l'ultima carta.
 function sizeFocus(recentre = true) {
   if (resolveView.hidden || !focusTrack) return;
   const slide = focusTrack.querySelector('.ae-focus-slide');
   if (!slide) return;
-  const status = slide.querySelector('.ae-focus-status');
   const style = getComputedStyle(focusEl);
-  const availH = Math.max(80, focusEl.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
-    - (status ? status.offsetHeight : 0) - 8);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
-  const availW = focusEl.clientWidth - 32 - peekRoom;
-  const width = Math.floor(Math.max(40, Math.min(availW, availH / CARD_RATIO)));
+  const width = Math.max(40, sharedCardWidth(focusEl.clientWidth, focusEl.clientHeight, padY, peekRoom));
   focusEl.style.setProperty('--ae-focus-w', width + 'px');
   focusEl.style.setProperty('--cw', width + 'px');
   focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';
