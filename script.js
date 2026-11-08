@@ -36,6 +36,13 @@ if (!Element.prototype.replaceChildren) {
 const I18N_IT = {
   phasePlayers: 'Turno dei giocatori',
   phaseNemesis: 'Turno nemesi',
+  phaseNemesisN: n => `Turno nemesi ${n}`,
+  stepResolve: 'Risoluzione',
+  stepDraw: 'Pesca',
+  infoDeck: n => `Mazzo ${n}`,
+  infoDiscard: n => `Scarti ${n}`,
+  ctaPowerNext: 'Vai avanti',
+  ctaPowerLast: 'Effetto risolto e scarta',
   turnInfo: (turn, deck) => `Turno ${turn} · Mazzo ${deck}`,
   discardButton: n => `Scarti ${n}`,
   discardButtonLabel: n => `Apri gli scarti, ${n} ${n === 1 ? 'carta' : 'carte'}`,
@@ -407,8 +414,6 @@ function activatesNextTurn(entry) {
 function statusBadge(entry) {
   const badge = el('span', 'ae-status-badge');
   badge.setAttribute('aria-hidden', 'true');
-  // Nel turno dei giocatori il box di queste carte lampeggia di rosso scuro
-  if (!resolving && activatesNextTurn(entry)) badge.classList.add('is-imminent');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
     // Goccia + vita; se in questo turno ha subito danni o è stato curato: vita / massimo
@@ -432,6 +437,8 @@ function queueItem(entry, opts) {
   button.dataset.uid = entry.uid;
   button.setAttribute('role', 'listitem');
   if (entry.isNew) button.classList.add('is-new');
+  // Turno dei giocatori: tutta la carta lampeggia di rosso se si attiverà nel prossimo turno nemesi
+  if (!resolving && activatesNextTurn(entry)) button.classList.add('is-imminent');
   if (opts.current) button.setAttribute('aria-current', 'true');
   if (opts.viewed) button.dataset.viewed = 'true';
 
@@ -1543,9 +1550,9 @@ function lockFor(ms, then) {
 
 // --- 8. VistaRisoluzione (turno nemesi) ---------------------------------------------------------------------------
 
-// Scritta "Tier N" al centro: resta 1 secondo, poi svanisce in 0,5 secondi. Intanto l'app è oscurata del 60%
+// Scritta "Tier N" al centro, marcata: entra ingrandendosi con un bagliore dorato, resta, poi svanisce (2,2 s). App oscurata
 // e non si può toccare; dopo si continua normalmente.
-const TIER_BANNER_MS = 1500;
+const TIER_BANNER_MS = 2200;
 function showTierBanner(tier) {
   const banner = el('div', 'ae-tier-banner');
   banner.setAttribute('role', 'status');
@@ -1556,7 +1563,8 @@ function showTierBanner(tier) {
 
 // Disegna tutto in base allo stato
 function render() {
-  phaseLabel.textContent = resolving ? I18N_IT.phaseNemesis : I18N_IT.phasePlayers;
+  // Nel turno nemesi l'intestazione ha sempre il numero del turno
+  phaseLabel.textContent = resolving ? I18N_IT.phaseNemesisN(turn) : I18N_IT.phasePlayers;
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
   nemesisBtn.hidden = resolving;
@@ -1601,13 +1609,29 @@ function canDraw() {
 function actionText(entry, isNew) {
   const { data, tokens } = entry;
   if (isNew) return data.type === 'Attack' ? I18N_IT.ctaDiscardNext : I18N_IT.ctaPutInPlay;
-  if (data.type === 'Power' && tokens > 1) return I18N_IT.ctaTokenNext;
+  // Potere: il token se ne va da solo (dopo 1 secondo); il pulsante dice solo cosa succede dopo
+  if (data.type === 'Power') return tokens > 1 ? I18N_IT.ctaPowerNext : I18N_IT.ctaPowerLast;
   if (data.type === 'Minion') return I18N_IT.ctaMinionNext;
   return I18N_IT.ctaDiscardNext;
 }
 
+// Barra in cima al turno nemesi: nemesi affrontata, fase (Risoluzione / Pesca), carte nel mazzo e negli scarti
+function renderResolveInfo(drawStep) {
+  let bar = document.getElementById('resolve-info');
+  if (!bar) {
+    bar = el('div', 'ae-resolve-info');
+    bar.id = 'resolve-info';
+    resolveView.prepend(bar);
+  }
+  const phase = el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve);
+  const counts = el('span', 'ae-resolve-counts', I18N_IT.infoDeck(deck.length) + ' · ' + I18N_IT.infoDiscard(discard.length));
+  bar.replaceChildren(el('span', 'ae-resolve-nemesis', settings.nemesis || ''), phase, counts);
+  resolveView.classList.toggle('is-draw-phase', drawStep);
+}
+
 function renderResolve() {
   const drawStep = isDrawStep();
+  renderResolveInfo(drawStep);
   const active = activeEntry();
   if (!active && !drawStep) return;
   const isNewStep = newIndex >= 0;
@@ -1640,6 +1664,8 @@ function renderResolve() {
   resolveBtn.hidden = previewing;
   backBtn.hidden = !previewing;
   resolveBtn.textContent = text;
+  // Fase di pesca: pulsante dorato, diverso da quelli della risoluzione
+  resolveBtn.classList.toggle('is-draw', drawStep);
   // Durante l'animazione il pulsante resta focalizzabile ma non accetta tocchi (aria-disabled, controllato in onResolveClick)
   resolveBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Niente suggerimento sopra il pulsante: lo spazio resta alla carta
@@ -1656,7 +1682,8 @@ function focusStatus(entry) {
   const status = el('p', 'ae-focus-status');
   if (hasHp(entry)) {
     status.classList.add('is-hp');
-    status.append(icon('heart'), el('span', '', I18N_IT.hp(entry.hp, entry.data.hp)));
+    // Minion appena pescato: solo il valore della vita (senza /totale)
+    status.append(icon('heart'), el('span', '', entry.isNew ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.data.hp)));
   } else if (entry.data.type === 'Power') {
     status.classList.add('is-token');
     status.appendChild(tokenIcons(entry.tokens));
@@ -1695,6 +1722,13 @@ function focusSlide(entry) {
   // Stato sopra la carta: la riga c'è sempre, anche vuota (attacchi), così ogni carta ha la stessa dimensione
   const status = focusStatus(entry);
   if (ui.holdUid === entry.uid) status.classList.add('is-dropping', 'is-bumped');
+  // Potere da risolvere: dopo 1 secondo un token sfuma da solo (il pulsante poi va solo avanti o scarta)
+  if (newIndex < 0 && entry === queue[currentIndex] && entry.data.type === 'Power') status.classList.add('is-auto-token');
+  // Carta appena pescata: durante il caricamento la riga è nascosta; mentre si gira, i token o la vita compaiono dopo
+  // la rotazione. Un attacco pescato lampeggia di rosso.
+  if (reveal && reveal.status === 'loading') slide.classList.add('is-draw-loading');
+  if (reveal && (reveal.status === 'ready' || reveal.status === 'flipping')) slide.classList.add('is-drawing');
+  if (entry.isNew && newIndex >= 0 && entry.data.type === 'Attack' && !(reveal && reveal.status === 'loading')) stage.classList.add('is-attack-drawn');
   slide.append(status, stage);
   return slide;
 }
@@ -1717,7 +1751,7 @@ function drawSlide() {
 }
 
 function focusStateSignature() {
-  return (isDrawStep() ? 'draw|' : '') + queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
+  return (isDrawStep() ? 'draw|' : '') + 'c' + currentIndex + '|' + queue.map(e => [e.uid, e.hp, e.tokens, e.isNew ? 1 : 0].join(':')).join('|')
     + '#' + (ui.reveal ? ui.reveal.uid + ':' + ui.reveal.status : '') + '#' + (ui.holdUid || '');
 }
 
@@ -2002,16 +2036,6 @@ function onResolveClick() {
   }
 
   const next = activeEntry();
-  if (effect === 'token') {
-    // La carta resta in primo piano con il token in meno, poi si passa alla carta dopo
-    ui.holdUid = active.uid;
-    lockFor(duration('token'), () => {
-      ui.holdUid = null;
-      showActive(next);
-    });
-    render();
-    return;
-  }
   if (effect === 'discard' && ghost) document.body.appendChild(ghost);
   showActive(next);
   lockFor(duration(effect === 'discard' ? 'discard' : 'focus'));

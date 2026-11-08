@@ -152,13 +152,13 @@ body { overflow: hidden; }
 /* Scritta "Tier N" alla prima carta del Tier 2 e 3: app oscurata del 60%, 1s ferma poi 0,5s di dissolvenza */
 .ae-tier-banner {
   position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;
-  background: rgba(0, 0, 0, .6); animation: ae-tier-banner 1.5s linear forwards;
+  background: radial-gradient(ellipse at center, rgba(60, 40, 10, .55) 0%, rgba(0, 0, 0, .82) 70%); animation: ae-tier-banner 2.2s linear forwards;
 }
 .ae-tier-banner-text {
   font: 600 48px/1.2 var(--ae-font-display); color: var(--ae-gold); letter-spacing: .06em;
   text-shadow: 0 2px 16px rgba(0, 0, 0, .8);
 }
-@keyframes ae-tier-banner { 0%, 66.67% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes ae-tier-banner { 0% { opacity: 0; } 8%, 75% { opacity: 1; } 100% { opacity: 0; } }
 
 /* Copia della carta scartata che sfuma */
 .ae-discard-ghost { position: fixed; z-index: 20; margin: 0; pointer-events: none; animation: ae-ghost-out var(--ae-duration-discard) ease-in forwards; }
@@ -374,16 +374,7 @@ body { overflow: hidden; }
 .ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .ae-side-exit { margin-top: auto; }
 
-/* Turno dei giocatori: il box vita/token delle carte che si attiveranno nel prossimo turno nemesi (minion e poteri
-   con 1 token) lampeggia di rosso scuro */
-.ae-status-badge.is-imminent { animation: ae-imminent 1.2s ease-in-out infinite; }
-@keyframes ae-imminent {
-  0%, 100% { background-color: var(--ae-surface-raised); border-color: var(--ae-border); }
-  50% { background-color: #6b1616; border-color: #8e2222; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ae-status-badge.is-imminent { animation: none; background-color: #6b1616; border-color: #8e2222; }
-}
+
 /* Pulsante "Turno Nemesi" con l'illustrazione della nemesi scelta al posto del fondo avorio: velo scuro al 55% sopra
    l'immagine e scritta avorio con un'ombra, così si legge su qualsiasi illustrazione */
 .ae-button.has-nemesis-art {
@@ -392,3 +383,65 @@ body { overflow: hidden; }
   text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 10px rgba(0, 0, 0, .6); letter-spacing: .04em;
 }
 .ae-button.has-nemesis-art:disabled { opacity: .55; }
+/* --- Turno nemesi: barra informazioni (nemesi, fase, mazzo, scarti) e due fasi distinte --- */
+.ae-resolve-info {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 6px 16px;
+  background: rgba(16, 17, 22, .72); border-bottom: 1px solid var(--ae-border);
+  font: 600 12px/16px var(--ae-font-ui); color: var(--ae-text-muted); font-variant-numeric: tabular-nums;
+}
+.ae-resolve-nemesis { font: 600 14px/18px var(--ae-font-display); color: var(--ae-gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ae-resolve-counts { margin-left: auto; white-space: nowrap; }
+.ae-phase-chip { padding: 2px 8px; border-radius: 999px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.ae-phase-chip.is-resolve { background: rgba(217, 94, 92, .18); color: #f0a09e; border: 1px solid rgba(217, 94, 92, .55); }
+.ae-phase-chip.is-draw { background: rgba(223, 174, 89, .18); color: var(--ae-gold); border: 1px solid rgba(223, 174, 89, .6); }
+/* Fase di pesca: sfondo più scuro e caldo, fascia con la linea dorata, pulsante "Pesca" dorato */
+.ae-resolve-layout.is-draw-phase {
+  background: linear-gradient(rgba(24, 18, 8, .8), rgba(24, 18, 8, .8)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg);
+}
+.ae-resolve-layout.is-draw-phase .ae-compact-rail { border-bottom-color: rgba(223, 174, 89, .6); }
+.ae-button.is-draw { background: var(--ae-gold); color: #20160B; letter-spacing: .08em; text-transform: uppercase; }
+
+/* Potere da risolvere: dopo 1 secondo un token sfuma fino a sparire (0,9 s) */
+.ae-focus-status.is-auto-token .ae-token:last-child { animation: ae-token-leave .9s ease-in 1s forwards; }
+@keyframes ae-token-leave { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.6); } }
+
+/* Turno dei giocatori: tutta la carta lampeggia di rosso (minion e poteri con 1 token) */
+.ae-queue-item.is-imminent .ae-card-art { animation: ae-card-imminent 1.2s ease-in-out infinite; }
+@keyframes ae-card-imminent {
+  0%, 100% { border-color: rgba(236, 232, 222, .85); box-shadow: 0 0 0 0 rgba(217, 40, 40, 0); }
+  50% { border-color: #c0292b; box-shadow: 0 0 14px 4px rgba(217, 40, 40, .75); }
+}
+
+/* Attacco appena pescato: lampeggia di rosso (dopo che si è girato) */
+.ae-focus-stage.is-attack-drawn { animation: ae-attack-pulse 1s ease-in-out infinite; }
+.ae-focus-slide.is-drawing .ae-focus-stage.is-attack-drawn { animation-delay: .4s; }
+@keyframes ae-attack-pulse {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(217, 40, 40, .35); }
+  50% { box-shadow: 0 0 calc(var(--cw, 300px) * .12) calc(var(--cw, 300px) * .03) rgba(230, 40, 40, .95); }
+}
+
+/* Carta pescata: la riga sopra è nascosta mentre carica; dopo la rotazione compaiono i token uno alla volta o la vita */
+.ae-focus-slide.is-draw-loading .ae-focus-status { visibility: hidden; }
+.ae-focus-slide.is-drawing .ae-focus-status.is-hp > * { animation: ae-pop .4s cubic-bezier(.2, 1.4, .4, 1) .4s both; }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token { animation: ae-pop .35s cubic-bezier(.2, 1.4, .4, 1) .4s both; }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(2) { animation-delay: .55s; }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(3) { animation-delay: .7s; }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(4) { animation-delay: .85s; }
+.ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(n+5) { animation-delay: 1s; }
+@keyframes ae-pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+
+/* Scritta "Tier N" più marcata */
+.ae-tier-banner-text {
+  font-size: 64px; letter-spacing: .12em; color: #f3cf86;
+  text-shadow: 0 0 18px rgba(223, 174, 89, .9), 0 0 42px rgba(223, 120, 40, .6), 0 3px 10px rgba(0, 0, 0, .9);
+  padding: 8px 28px; border-top: 2px solid rgba(223, 174, 89, .7); border-bottom: 2px solid rgba(223, 174, 89, .7);
+  animation: ae-tier-text 2.2s cubic-bezier(.2, .8, .2, 1) forwards;
+}
+@keyframes ae-tier-text { 0% { transform: scale(1.6); letter-spacing: .4em; } 25% { transform: scale(1); letter-spacing: .12em; } 100% { transform: scale(1.04); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ae-queue-item.is-imminent .ae-card-art { animation: none; border-color: #c0292b; box-shadow: 0 0 10px 3px rgba(217, 40, 40, .6); }
+  .ae-focus-stage.is-attack-drawn { animation: none; box-shadow: 0 0 16px 4px rgba(230, 40, 40, .85); }
+  .ae-focus-status.is-auto-token .ae-token:last-child { animation-duration: .01s; }
+  .ae-tier-banner-text { animation: none; }
+}
