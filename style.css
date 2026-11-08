@@ -511,3 +511,10 @@ body { overflow: hidden; }
 /* Carta da pescare: si tocca per pescare. Attacco risolto: sfuma restando nel turno nemesi */
 .ae-focus-slide--draw .ae-focus-stage { cursor: pointer; }
 .ae-focus-stage.is-discarding, .ae-focus-stage.is-attack-drawn.is-discarding { animation: ae-ghost-out .45s ease-in forwards; }
+
+/* Turno giocatori: stessa posizione e dimensione della carta del turno nemesi. I comandi sono sotto la carta, fuori dal flusso */
+.queue-view .ae-queue-viewport { padding-top: 12px; padding-bottom: 12px; }
+.queue-slot { gap: 0; }
+.queue-slot > .ae-queue-item { gap: 8px; }
+.queue-slot > .queue-controls { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; }
+.queue-save { bottom: 8px; }

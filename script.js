@@ -806,9 +806,12 @@ function sizeQueue() {
   // Stessa regola del carosello del turno nemesi (sizeFocus): la carta riempie l'altezza, ai lati si vede un pezzo delle vicine
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0; // come nel carosello: stessa larghezza della carta
   const byWidth = queueViewport.clientWidth - 32 - peekRoom;
-  const extra = 41 + 6 + 52; // box vita/token sopra la carta (41px + spazio) e riga dei comandi sotto (44px + spazio)
-  const byHeight = (queueViewport.clientHeight - padY - extra) / CARD_RATIO;
-  const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
+  // Come sizeFocus: sopra la carta il box vita/token (41px) e 8px di spazio. I comandi stanno fuori dal flusso, sotto la
+  // carta, così la carta ha la stessa posizione e dimensione del turno nemesi; solo su schermi bassi la si rimpicciolisce
+  // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
+  const byHeight = (queueViewport.clientHeight - padY - 41 - 8) / CARD_RATIO;
+  const byControls = (queueViewport.clientHeight - 2 * 52 - 41 - 8) / CARD_RATIO;
+  const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight, byControls)));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
   // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
   const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
