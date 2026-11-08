@@ -383,15 +383,39 @@ body { overflow: hidden; }
   text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 10px rgba(0, 0, 0, .6); letter-spacing: .04em;
 }
 .ae-button.has-nemesis-art:disabled { opacity: .55; }
-/* --- Turno nemesi: barra informazioni (nemesi, fase, mazzo, scarti) e due fasi distinte --- */
-.ae-resolve-info {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 6px 16px;
-  background: rgba(16, 17, 22, .72); border-bottom: 1px solid var(--ae-border);
-  font: 600 12px/16px var(--ae-font-ui); color: var(--ae-text-muted); font-variant-numeric: tabular-nums;
+/* --- BannerInfoNemesi: mazzo, nome della nemesi e fase, pila degli scarti; dietro l'illustrazione che sfuma dal nero --- */
+.ae-banner-nemesi {
+  position: relative; flex: 0 0 auto; height: 84px; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  background: #000; overflow: hidden; border-bottom: 1px solid var(--ae-border);
 }
-.ae-resolve-nemesis { font: 600 14px/18px var(--ae-font-display); color: var(--ae-gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ae-resolve-counts { margin-left: auto; white-space: nowrap; }
-.ae-phase-chip { padding: 2px 8px; border-radius: 999px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.ae-banner-nemesi::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 22%; right: 0; pointer-events: none;
+  background: var(--ae-banner-art) center 30% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+}
+/* velo a destra: la pila degli scarti resta leggibile sopra l'illustrazione */
+.ae-banner-nemesi::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to left, rgba(0, 0, 0, .55), transparent 35%); }
+.ae-banner-nemesi > * { position: relative; z-index: 1; }
+.ae-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.ae-banner-name {
+  max-width: 100%; font: 600 18px/22px var(--ae-font-display); color: var(--ae-gold); letter-spacing: .04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0, 0, 0, .95), 0 0 10px rgba(0, 0, 0, .8);
+}
+/* Pile di carte: dorso del mazzo e ultima carta scartata, con un'ombra a scalini che fa da "pila" e il numero sopra */
+.ae-pile { position: relative; flex: 0 0 auto; height: 68px; aspect-ratio: 63 / 88; padding: 0; border: 0; background: none; color: inherit; }
+.ae-pile img {
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 5% / 3.58%;
+  box-shadow: 2px 2px 0 -1px #2a2c34, 4px 4px 0 -1px #1b1d24, 0 2px 8px rgba(0, 0, 0, .7);
+}
+.ae-pile.is-empty { border: 1px dashed rgba(236, 232, 222, .35); border-radius: 5% / 3.58%; }
+.ae-pile-count {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); min-width: 30px; height: 30px; padding: 0 6px;
+  display: grid; place-items: center; border-radius: 15px; background: rgba(16, 17, 22, .88); border: 1px solid rgba(223, 174, 89, .7);
+  color: var(--ae-text); font: 700 15px/1 var(--ae-font-ui); font-variant-numeric: tabular-nums;
+}
+.ae-pile--discard { cursor: pointer; }
+/* Fase di pesca: il mazzo brilla d'oro (è da lì che si pesca) */
+.ae-resolve-layout.is-draw-phase .ae-pile--deck img { box-shadow: 2px 2px 0 -1px #2a2c34, 4px 4px 0 -1px #1b1d24, 0 0 14px 3px rgba(223, 174, 89, .75); }.ae-phase-chip { padding: 2px 8px; border-radius: 999px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
 .ae-phase-chip.is-resolve { background: rgba(217, 94, 92, .18); color: #f0a09e; border: 1px solid rgba(217, 94, 92, .55); }
 .ae-phase-chip.is-draw { background: rgba(223, 174, 89, .18); color: var(--ae-gold); border: 1px solid rgba(223, 174, 89, .6); }
 /* Fase di pesca: sfondo più scuro e caldo, fascia con la linea dorata, pulsante "Pesca" dorato */

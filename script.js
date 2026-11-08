@@ -1615,17 +1615,45 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// Barra in cima al turno nemesi: nemesi affrontata, fase (Risoluzione / Pesca), carte nel mazzo e negli scarti
+// BannerInfoNemesi: in cima al turno nemesi. Da sinistra: mazzo della nemesi (dorso con il numero di carte rimaste),
+// nome della nemesi e fase (Risoluzione / Pesca), a destra la pila degli scarti (ultima carta scartata a faccia in su
+// con il numero di scarti; toccandola si apre la pila). Dietro, il ritaglio dell'illustrazione della nemesi che
+// sfuma dal nero a sinistra, come nel menu iniziale.
 function renderResolveInfo(drawStep) {
   let bar = document.getElementById('resolve-info');
   if (!bar) {
-    bar = el('div', 'ae-resolve-info');
+    bar = el('div', 'ae-banner-nemesi');
     bar.id = 'resolve-info';
     resolveView.prepend(bar);
   }
-  const phase = el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve);
-  const counts = el('span', 'ae-resolve-counts', I18N_IT.infoDeck(deck.length) + ' · ' + I18N_IT.infoDiscard(discard.length));
-  bar.replaceChildren(el('span', 'ae-resolve-nemesis', settings.nemesis || ''), phase, counts);
+  const art = settings.nemesis && nemesisArt[settings.nemesis];
+  bar.style.setProperty('--ae-banner-art', art ? `url("${encodeURI(art.portrait)}")` : 'none');
+
+  const pile = (cls, imgSrc, count, label) => {
+    const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
+    node.setAttribute('aria-label', label);
+    if (imgSrc) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = imgSrc;
+      node.appendChild(img);
+    }
+    const n = el('span', 'ae-pile-count', String(count));
+    n.setAttribute('aria-hidden', 'true');
+    node.appendChild(n);
+    return node;
+  };
+  const deckPile = pile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
+  const last = discard[discard.length - 1];
+  const discardPile = pile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
+    I18N_IT.discardButtonLabel(discard.length));
+  discardPile.type = 'button';
+  discardPile.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+
+  const text = el('div', 'ae-banner-text');
+  text.append(el('strong', 'ae-banner-name', settings.nemesis || ''),
+    el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve));
+  bar.replaceChildren(deckPile, text, discardPile);
   resolveView.classList.toggle('is-draw-phase', drawStep);
 }
 
