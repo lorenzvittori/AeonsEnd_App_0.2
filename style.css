@@ -469,3 +469,9 @@ body { overflow: hidden; }
   .ae-focus-status.is-auto-token .ae-token:last-child { animation-duration: .01s; }
   .ae-tier-banner-text { animation: none; }
 }
+/* Turno nemesi: mazzo (sinistra) e scarti (destra) ai lati della fascia piccola */
+.ae-rail-row { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--ae-border); }
+.ae-rail-row > .ae-compact-rail { flex: 1 1 auto; min-width: 0; border-bottom: 0; padding: 0 6px; }
+.ae-rail-row > .ae-pile { height: 64px; }
+.ae-rail-row > .ae-pile .ae-pile-count { min-width: 26px; height: 26px; font-size: 13px; }
+.ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom-color: rgba(223, 174, 89, .6); }

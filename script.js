@@ -1615,49 +1615,45 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// BannerInfoNemesi: in fondo al turno nemesi, sopra il pulsante principale. Da sinistra: mazzo della nemesi (dorso con il numero di carte rimaste),
-// nome della nemesi e fase (Risoluzione / Pesca), a destra la pila degli scarti (ultima carta scartata a faccia in su
-// con il numero di scarti; toccandola si apre la pila). Dietro, il ritaglio dell'illustrazione della nemesi che
-// sfuma dal nero a sinistra, come nel menu iniziale.
-function renderResolveInfo(drawStep) {
-  let bar = document.getElementById('resolve-info');
-  if (!bar) {
-    bar = el('div', 'ae-banner-nemesi');
-    bar.id = 'resolve-info';
-    // In fondo all'area del turno nemesi, subito sopra il pulsante principale
-    resolveView.append(bar);
+// Box del mazzo e degli scarti ai lati della fascia piccola del turno nemesi (al posto del BannerInfoNemesi, che è
+// salvato nel tag git v104-banner-info-nemesi). Mazzo: dorso con il numero di carte rimaste. Scarti: ultima carta
+// scartata a faccia in su con il numero di scarti; toccandolo si apre la pila degli scarti.
+function railPile(cls, imgSrc, count, label) {
+  const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
+  node.setAttribute('aria-label', label);
+  if (imgSrc) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = imgSrc;
+    node.appendChild(img);
   }
-  const art = settings.nemesis && nemesisArt[settings.nemesis];
-  bar.style.setProperty('--ae-banner-art', art ? `url("${encodeURI(art.portrait)}")` : 'none');
+  const n = el('span', 'ae-pile-count', String(count));
+  n.setAttribute('aria-hidden', 'true');
+  node.appendChild(n);
+  return node;
+}
 
-  const pile = (cls, imgSrc, count, label) => {
-    const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
-    node.setAttribute('aria-label', label);
-    if (imgSrc) {
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = imgSrc;
-      node.appendChild(img);
-    }
-    const n = el('span', 'ae-pile-count', String(count));
-    n.setAttribute('aria-hidden', 'true');
-    node.appendChild(n);
-    return node;
-  };
-  const deckPile = pile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
+function renderResolveInfo(drawStep) {
+  const old = document.getElementById('resolve-info');
+  if (old) old.remove();
+  // La fascia va in una riga con i due box ai lati (creata qui una volta sola)
+  let row = rail.parentElement;
+  if (!row.classList.contains('ae-rail-row')) {
+    row = el('div', 'ae-rail-row');
+    rail.before(row);
+    row.appendChild(rail);
+  }
+  const deckPile = railPile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
   const last = discard[discard.length - 1];
-  const discardPile = pile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
+  const discardPile = railPile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
     I18N_IT.discardButtonLabel(discard.length));
   discardPile.type = 'button';
   discardPile.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
-
-  const text = el('div', 'ae-banner-text');
-  text.append(el('strong', 'ae-banner-name', settings.nemesis || ''),
-    el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve));
-  bar.replaceChildren(deckPile, text, discardPile);
+  row.querySelectorAll(':scope > .ae-pile').forEach(p => p.remove());
+  row.prepend(deckPile);
+  row.appendChild(discardPile);
   resolveView.classList.toggle('is-draw-phase', drawStep);
 }
-
 function renderResolve() {
   const drawStep = isDrawStep();
   renderResolveInfo(drawStep);
