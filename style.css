@@ -14,10 +14,18 @@ body { overflow: hidden; }
 /* --- VistaCoda --- */
 .queue-view {
   flex: 1; min-height: 0; display: flex; flex-direction: column; animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard);
-  /* Sfondo del turno giocatori al 50%: l'immagine (orizzontale) è alta quanto l'area e scorre insieme alle carte
-     (--ae-bg-x da 0% = bordo sinistro, alla prima carta, a 100% = bordo destro, all'ultima; script.js) */
-  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/players-turn-bg.webp') var(--ae-bg-x, 0%) center / auto 100% no-repeat, var(--ae-bg);
+  position: relative; background: var(--ae-bg);
 }
+/* Sfondo del turno giocatori al 50%: immagine 16:9 alta quanto l'area, in un livello sotto le carte. Si sposta da
+   0 (bordo sinistro, prima carta) a -(--ae-bg-pan) (bordo destro, ultima carta) seguendo lo scorrimento */
+.queue-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.queue-bg::after { content: ''; position: absolute; inset: 0; background: rgba(16, 17, 22, .5); }
+.queue-bg-img {
+  position: absolute; top: 0; left: 0; height: 100%; aspect-ratio: 16 / 9; will-change: transform;
+  background: url('Assets/ui/decor/players-turn-bg.webp') center / cover no-repeat;
+}
+.queue-view > .queue-col, .queue-view > .queue-side { position: relative; z-index: 1; }
+
 .queue-col { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .queue-title { display: none; }
 .queue-side { display: none; }
