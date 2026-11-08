@@ -518,3 +518,6 @@ body { overflow: hidden; }
 .queue-slot > .ae-queue-item { gap: 8px; }
 .queue-slot > .queue-controls { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; }
 .queue-save { bottom: 8px; }
+
+/* Vita/token, carta e pulsanti alzati di 14px in entrambi i turni */
+.ae-focus-track, .queue-view .ae-queue-list { transform: translateY(-14px); }
