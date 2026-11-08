@@ -82,6 +82,8 @@ const I18N_IT = {
   powerCostInfo: "L'app non paga il costo al posto dei giocatori",
   powerRemoved: name => `${name}: carta rimossa, negli scarti`,
   removePowerShort: 'Rimuovi · costo pagato',
+  notRemovable: 'Non rimovibile',
+  hpTurnTag: d => `HP: ${d > 0 ? '+' : '−'}${Math.abs(d)}`,
   discardZoomTitle: 'Carta negli scarti',
   mostRecent: 'Più recente',
   leastRecent: 'Meno recente',
@@ -302,7 +304,8 @@ function drawFromDeck() {
 
 // Carta in gioco (nella coda) con il suo stato
 function makeEntry(data) {
-  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, isNew: false };
+  // turnHp: vita del minion all'inizio del turno dei giocatori (per mostrare il danno o la cura del turno)
+  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false };
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -383,6 +386,10 @@ function tokenIcons(n) {
   return row;
 }
 
+function hpChanged(entry) {
+  return hasHp(entry) && entry.turnHp !== undefined && entry.turnHp !== null && entry.hp !== entry.turnHp;
+}
+
 // Badge fuori dalla scansione (box grigio scuro): goccia + vita attuale (minion), un token per ogni token (potere).
 // Uguale nella coda e nella fascia della VistaRisoluzione.
 function statusBadge(entry) {
@@ -390,7 +397,8 @@ function statusBadge(entry) {
   badge.setAttribute('aria-hidden', 'true');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
-    badge.append(icon('heart'), el('span', '', String(entry.hp)));
+    // Goccia + vita; se in questo turno ha subito danni o è stato curato: vita / massimo
+    badge.append(icon('heart'), el('span', '', hpChanged(entry) ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp)));
   } else if (entry.data.type === 'Power') {
     badge.classList.add('ae-status-badge--tokens');
     badge.appendChild(tokenIcons(entry.tokens));
@@ -707,6 +715,9 @@ function cardControls(entry) {
   } else if (entry.data.type === 'Power' && entry.data.removable !== false) {
     box.appendChild(ctl(I18N_IT.removePowerShort, 'danger', 'remove', I18N_IT.removePower + ': ' + entry.data.name,
       () => removeEntry(I18N_IT.powerRemoved(entry.data.name))));
+  } else if (entry.data.type === 'Power') {
+    // Potere senza "TO DISCARD": nota piccola al posto del pulsante
+    box.appendChild(el('p', 'queue-note', I18N_IT.notRemovable));
   }
   return box;
 }
@@ -739,6 +750,13 @@ function renderQueue() {
     slot.setAttribute('role', 'listitem');
     const card = queueItem(entry, { full: true, index: i, total: queue.length, lazy: i > 3 });
     card.removeAttribute('role');
+    if (hpChanged(entry)) {
+      // Danno o cura di questo turno, in alto a destra sulla carta
+      const change = entry.hp - entry.turnHp;
+      const tag = el('span', 'queue-hp-tag ' + (change < 0 ? 'is-loss' : 'is-gain'), I18N_IT.hpTurnTag(change));
+      tag.setAttribute('aria-hidden', 'true');
+      card.querySelector('.ae-card-art').appendChild(tag);
+    }
     slot.append(card, cardControls(entry));
     return slot;
   }));
@@ -1387,7 +1405,7 @@ function snapshot() {
     turn,
     deck: deck.map(c => c.id),
     discard: discard.map(c => c.id),
-    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, isNew: !!e.isNew })),
+    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew })),
     resolving,
     currentIndex,
     newIndex,
@@ -1406,7 +1424,7 @@ function restore(s) {
   // Prima si leggono tutti i dati: se qualcosa non va, la partita in corso resta com'è
   const newDeck = s.deck.map(get);
   const newDiscard = s.discard.map(get);
-  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), { tokens: q.tokens, hp: q.hp, isNew: !!q.isNew }));
+  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), { tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew }));
 
   clearTransition();
   closeAllModals();
@@ -1752,6 +1770,8 @@ function endResolution() {
 
 function nemesisTurn() {
   turn++;
+  // Finisce il turno dei giocatori: danno e cura del turno si azzerano (la vita attuale diventa il riferimento)
+  queue.forEach(e => { e.turnHp = e.hp; });
   startResolution();
 }
 
