@@ -638,40 +638,12 @@ function ensureQueueRail() {
     markQueueRail(Number(item.dataset.uid));
   });
   queueViewport.addEventListener('scroll', () => {
-    // Lo sfondo segue lo scorrimento subito (costa poco), la fascia si aggiorna una volta per fotogramma
-    moveQueueBackground();
     if (queueRailFrame) return;
     queueRailFrame = requestAnimationFrame(() => { queueRailFrame = 0; markQueueRail(centredQueueUid()); });
   }, { passive: true });
   return queueRail;
 }
 let queueRailFrame = 0;
-
-// Lo sfondo del turno giocatori scorre con le carte: prima carta = parte sinistra dell'immagine, ultima = parte destra.
-// È un livello a parte (.queue-bg) spostato con transform: il browser lo muove senza ridisegnarlo (prima cambiava la
-// posizione dello sfondo e ridisegnava tutta l'area a ogni movimento, per questo restava indietro rispetto alle carte).
-let queueBgImg = null;
-function ensureQueueBg() {
-  if (queueBgImg) return;
-  const layer = el('div', 'queue-bg');
-  layer.setAttribute('aria-hidden', 'true');
-  queueBgImg = el('div', 'queue-bg-img');
-  layer.appendChild(queueBgImg);
-  queueView.prepend(layer);
-}
-function sizeQueueBg() {
-  if (!queueBgImg || queueView.hidden) return;
-  // Quanto può spostarsi l'immagine: sua larghezza (alta quanto l'area, 16:9) meno la larghezza dell'area
-  const pan = Math.max(0, queueBgImg.offsetWidth - queueView.clientWidth);
-  queueView.style.setProperty('--ae-bg-pan', pan + 'px');
-}
-function moveQueueBackground() {
-  if (!queueBgImg) return;
-  const max = queueViewport.scrollWidth - queueViewport.clientWidth;
-  const ratio = max > 1 ? Math.min(1, Math.max(0, queueViewport.scrollLeft / max)) : 0;
-  const pan = parseFloat(queueView.style.getPropertyValue('--ae-bg-pan')) || 0;
-  queueBgImg.style.transform = `translate3d(${-ratio * pan}px, 0, 0)`;
-}
 
 function scrollQueueTo(item) {
   const cRect = queueViewport.getBoundingClientRect();
@@ -815,9 +787,6 @@ function renderQueue() {
     queueViewport.scrollTop = previousTop;
   }
   markQueueRail(centredQueueUid());
-  ensureQueueBg();
-  sizeQueueBg();
-  moveQueueBackground();
 }
 
 // Allinea la coda su una carta: 'anchor' = centro della carta al 62% (si vede cosa la precede), 'center', 'nearest'
@@ -2203,7 +2172,7 @@ window.addEventListener('resize', () => { sizeFocus(); sizeQueue(); });
 // Se lo spazio della carta grande cambia per altri motivi (font caricato, pulsanti del dock), si ridimensiona subito
 if (window.ResizeObserver) {
   new ResizeObserver(() => sizeFocus()).observe(focusEl);
-  new ResizeObserver(() => { sizeQueue(); sizeQueueBg(); moveQueueBackground(); }).observe(queueViewport);
+  new ResizeObserver(() => sizeQueue()).observe(queueViewport);
 }
 
 // Avvio: legge cards.json, deck-setup.json e nemesis.json, mostra la pagina iniziale (con "Riprendi partita" se ce n'è una salvata)
