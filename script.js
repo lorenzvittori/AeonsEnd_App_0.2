@@ -1701,7 +1701,10 @@ function sizeFocus() {
   stage.style.width = width + 'px';
   stage.style.height = (width * CARD_RATIO) + 'px';
   stage.style.setProperty('--cw', width + 'px');
-  if (!swipe || !swipe.dragging) renderPeeks();
+  // Le carte vicine non si mostrano mentre è in corso un'animazione (carta risolta che sfuma, nuova carta che entra,
+  // token tolto): comparirebbero sopra l'animazione. Tornano, con una breve dissolvenza, appena l'animazione finisce.
+  if (ui.isTransitioning) removePeeks();
+  else if (!swipe || !swipe.dragging) renderPeeks();
 }
 
 // Carta pescata: retro (con "Caricamento carta…") finché l'immagine non è pronta, poi si gira in 350ms.

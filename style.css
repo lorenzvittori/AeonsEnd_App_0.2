@@ -362,7 +362,8 @@ body { overflow: hidden; }
 .ae-side-exit { margin-top: auto; }
 /* Carte vicine durante lo slide del turno nemesi (aggiunte e posizionate da script.js) */
 .ae-focus { position: relative; }
-.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; opacity: .55; }
+.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; opacity: .55; animation: ae-peek-in var(--ae-duration-focus) ease-out; }
+@keyframes ae-peek-in { from { opacity: 0; } to { opacity: .55; } }
 .ae-focus-status.ae-focus-peek { justify-content: center; }
 
 /* Turno dei giocatori: il box vita/token delle carte che si attiveranno nel prossimo turno nemesi (minion e poteri
