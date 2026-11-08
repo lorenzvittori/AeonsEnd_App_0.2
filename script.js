@@ -130,8 +130,8 @@ const I18N_IT = {
 };
 
 const app = document.getElementById('app');
-// Testata senza fondo e senza una riga sua: Undo e Menu galleggiano sopra lo sfondo della vista (style.css: .float-header)
-app.classList.add('float-header');
+// Testata trasparente (sopra lo sfondo della vista): Undo, nome della nemesi, Menu. Uguale nei due turni.
+app.classList.add('clear-header');
 const mainEl = document.getElementById('main');
 const phaseLabel = document.getElementById('phase-label');
 const undoBtn = document.getElementById('undo-btn');
@@ -697,8 +697,6 @@ function ensureQueueRail() {
   return queueRail;
 }
 let queueRailFrame = 0;
-// Altezza del BannerInfoNemesi (misurata quando è visibile nel turno nemesi)
-let bannerHeight = 84;
 
 function scrollQueueTo(item) {
   const cRect = queueViewport.getBoundingClientRect();
@@ -814,10 +812,7 @@ function sizeQueue() {
   // Come sizeFocus: sopra la carta il box vita/token (41px) e 8px di spazio. I comandi stanno fuori dal flusso, sotto la
   // carta, così la carta ha la stessa posizione e dimensione del turno nemesi; solo su schermi bassi la si rimpicciolisce
   // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
-  // Il turno nemesi ha in più il BannerInfoNemesi in alto: si toglie la sua altezza, così le carte hanno la stessa dimensione
-  // (il banner si crea al primo turno nemesi: prima si usa l'altezza prevista, 84px)
-  const banner = typeof renderBannerInfoNemesi === 'function' ? bannerHeight : 0;
-  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight - banner, padY, peekRoom));
+  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight, padY, peekRoom));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
   // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
   const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
@@ -1692,7 +1687,8 @@ function showTierBanner(tier) {
 // Disegna tutto in base allo stato
 function render() {
   // Nel turno nemesi l'intestazione ha sempre il numero del turno
-  phaseLabel.textContent = resolving ? I18N_IT.phaseNemesisN(turn) : I18N_IT.phasePlayers;
+  // Tra Undo e Menu: il nome della nemesi della partita, in entrambi i turni
+  phaseLabel.textContent = settings.nemesis || '';
   queueView.hidden = resolving;
   resolveView.hidden = !resolving;
   app.classList.toggle('is-nemesis-turn', resolving);
@@ -1746,49 +1742,10 @@ function actionText(entry, isNew) {
   return I18N_IT.ctaDiscardNext;
 }
 
-// TEST: BannerInfoNemesi di nuovo in cima al turno nemesi (come nella prima versione) e testata Undo/Menu nascosta.
-// Stato di prima: tag git v113-prima-test-banner.
-// Da sinistra: mazzo (dorso con il numero di carte rimaste), nome della nemesi e fase (Risoluzione / Pesca), pila degli
-// scarti (ultima carta scartata a faccia in su con il numero; toccandola si apre la pila). Dietro, il ritaglio
-// dell'illustrazione della nemesi che sfuma dal nero a sinistra.
-function bannerPile(cls, imgSrc, count, label) {
-  const node = el(cls === 'discard' ? 'button' : 'div', 'ae-pile ae-pile--' + cls + (imgSrc ? '' : ' is-empty'));
-  node.setAttribute('aria-label', label);
-  if (imgSrc) {
-    const img = document.createElement('img');
-    img.alt = '';
-    img.src = imgSrc;
-    node.appendChild(img);
-  }
-  const n = el('span', 'ae-pile-count', String(count));
-  n.setAttribute('aria-hidden', 'true');
-  node.appendChild(n);
-  return node;
-}
-
-function renderBannerInfoNemesi(drawStep) {
-  let bar = document.getElementById('resolve-info');
-  if (!bar) {
-    bar = el('div', 'ae-banner-nemesi');
-    bar.id = 'resolve-info';
-  }
-  if (resolveView.firstElementChild !== bar) resolveView.prepend(bar);
-  const art = settings.nemesis && nemesisArt[settings.nemesis];
-  bar.style.setProperty('--ae-banner-art', art ? `url("${encodeURI(art.portrait)}")` : 'none');
-  const deckPile = bannerPile('deck', deck.length || discard.length ? CARD_BACK : null, deck.length, I18N_IT.infoDeck(deck.length));
-  const last = discard[discard.length - 1];
-  const discardPile = bannerPile('discard', last ? encodeURI(last.thumb || last.image) : null, discard.length,
-    I18N_IT.discardButtonLabel(discard.length));
-  discardPile.type = 'button';
-  discardPile.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
-  const text = el('div', 'ae-banner-text');
-  text.append(el('strong', 'ae-banner-name', settings.nemesis || ''),
-    el('span', 'ae-phase-chip ' + (drawStep ? 'is-draw' : 'is-resolve'), drawStep ? I18N_IT.stepDraw : I18N_IT.stepResolve));
-  bar.replaceChildren(deckPile, text, discardPile);
-}
-
+// BannerInfoNemesi tolto (recuperabile dai tag v104-banner-info-nemesi e dal commit 38279cf).
 function renderResolveInfo(drawStep) {
-  renderBannerInfoNemesi(drawStep);
+  const oldBar = document.getElementById('resolve-info');
+  if (oldBar) oldBar.remove();
   // La fascia va in una riga con i due box ai lati (creata qui una volta sola)
   let row = rail.parentElement;
   if (!row.classList.contains('ae-rail-row')) {
@@ -1801,8 +1758,6 @@ function renderResolveInfo(drawStep) {
   resolveView.classList.toggle('is-draw-phase', drawStep);
   // Lo sfondo della vista è sull'app intera (anche dietro al pulsante principale)
   app.classList.toggle('is-draw-phase', drawStep);
-  const bar = document.getElementById('resolve-info');
-  if (bar && bar.offsetHeight) bannerHeight = bar.offsetHeight;
 }
 function renderResolve() {
   const drawStep = isDrawStep();

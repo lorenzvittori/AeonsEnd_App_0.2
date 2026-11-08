@@ -525,35 +525,22 @@ body { overflow: hidden; }
 /* Nessuna linea di separazione tra fascia piccola e carte grandi, in entrambi i turni */
 .ae-compact-rail, .ae-rail-row, .ae-resolve-layout.is-draw-phase .ae-compact-rail, .ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom: 0; }
 
-/* Testata senza fondo e senza riga propria: Undo a sinistra e Menu a destra galleggiano sopra lo sfondo della vista.
-   Turno giocatori: centrati sulla fascia piccola; turno nemesi: centrati sul BannerInfoNemesi. Il titolo della fase non c'è. */
-.ae-shell.float-header { grid-template-rows: minmax(0, 1fr) auto; position: relative; }
-.ae-shell.float-header > .ae-main { padding-top: var(--ae-safe-top); }
-.ae-shell.float-header > .ae-header {
-  position: absolute; top: calc(var(--ae-safe-top) + 38px); left: 0; right: 0; z-index: 12; min-height: 0; padding: 0 8px;
-  background: none; border: 0; pointer-events: none;
+/* Testata trasparente, uguale nei due turni: Undo a sinistra, nome della nemesi al centro, Menu a destra.
+   Sta sopra lo sfondo della vista (che è su tutta l'app), senza fondo né linea. */
+.ae-shell.clear-header > .ae-header { background: none; border-bottom: 0; }
+.ae-shell.clear-header .ae-phase {
+  font: 600 18px/24px var(--ae-font-display); color: var(--ae-gold); letter-spacing: .05em; text-transform: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0, 0, 0, .9);
 }
-.ae-shell.float-header.is-nemesis-turn > .ae-header { top: calc(var(--ae-safe-top) + 20px); }
-.ae-shell.float-header > .ae-header > * { pointer-events: auto; }
-.ae-shell.float-header .ae-phase { visibility: hidden; }
-.ae-shell.float-header .ae-header .ae-icon-button { text-shadow: 0 1px 3px rgba(0, 0, 0, .9); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .9)); }
-/* Turno nemesi: il contenuto del banner lascia lo spazio ai due pulsanti */
-.ae-shell.float-header .ae-banner-nemesi { padding-left: 60px; padding-right: 60px; }
+.ae-shell.clear-header .ae-header .ae-icon-button { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .9)); }
 
-/* Sfondo della vista su tutta l'app (anche dietro al pulsante principale); le due viste sono trasparenti */
+/* Sfondo della vista su tutta l'app (anche dietro a testata e pulsante principale); le due viste sono trasparenti */
 .ae-shell { background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/players-turn-bg.webp') left center / cover no-repeat, var(--ae-bg); }
 .ae-shell.is-nemesis-turn { background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 .ae-shell.is-nemesis-turn.is-draw-phase { background: linear-gradient(rgba(24, 18, 8, .8), rgba(24, 18, 8, .8)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 .queue-view, .ae-resolve-layout, .ae-resolve-layout.is-draw-phase { background: none; }
 /* Pulsante principale senza il box del dock */
 .ae-dock { background: none; border-top: 0; }
-
-/* Fascia piccola in un box grigio arrotondato (turno giocatori: tra Undo e Menu) */
-.ae-compact-rail { background: rgba(58, 60, 70, .82); border-radius: 12px; }
-.queue-view .queue-rail { flex: 0 0 104px; margin: 8px 60px 0; }
-.ae-rail-row { padding: 8px 12px 0; }
-.ae-rail-row > .ae-compact-rail { padding: 0 10px; }
-@media (min-width: 900px) {
-  .ae-shell.float-header > .ae-header, .ae-shell.float-header.is-nemesis-turn > .ae-header { top: var(--ae-safe-top); }
-  .queue-view .queue-rail { margin: 0; }
-}
+/* Fascia piccola: senza box, a tutta larghezza; stessa posizione nei due turni (16px ai lati) */
+.ae-rail-row { padding: 0 10px; }
+.ae-rail-row > .ae-compact-rail { padding: 0 6px; }
