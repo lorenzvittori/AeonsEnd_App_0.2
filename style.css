@@ -32,7 +32,11 @@ body { overflow: hidden; }
 .queue-rail[hidden] { display: none; }
 
 /* --- VistaRisoluzione --- */
-.ae-resolve-layout { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.ae-resolve-layout {
+  flex: 1; display: flex; flex-direction: column; min-height: 0;
+  /* Sfondo del turno nemesi (immagine dell'utente), sempre a tutta area */
+  background: #0b0000 url('Assets/ui/decor/nemesis-turn-bg.webp') center / cover no-repeat;
+}
 .ae-resolve-layout.is-entering { animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard); }
 
 .ae-compact-rail {
