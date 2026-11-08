@@ -186,7 +186,7 @@ function duration(name) {
 }
 
 // Dove si allinea la carta appena pescata nella coda: centro della carta al 62% della larghezza visibile
-const ANCHOR_RATIO = 0.62;
+const ANCHOR_RATIO = 0.5;
 
 // Partita salvata nel browser (localStorage) e numero massimo di passi di undo conservati.
 // lorenzvittori.github.io è lo stesso dominio per tutti i siti: la chiave è diversa da quella di AeonsEnd_APP
@@ -470,8 +470,6 @@ function queueItem(entry, opts) {
   button.setAttribute('role', 'listitem');
   if (entry.isNew) button.classList.add('is-new');
   if (entry.paid) button.classList.add('is-paid');
-  // Turno dei giocatori: tutta la carta lampeggia di rosso se si attiverà nel prossimo turno nemesi
-  if (!resolving && activatesNextTurn(entry)) button.classList.add('is-imminent');
   if (opts.current) button.setAttribute('aria-current', 'true');
   if (opts.viewed) button.dataset.viewed = 'true';
 
@@ -758,18 +756,23 @@ function cardControls(entry) {
   };
 
   if (hasHp(entry)) {
-    // Solo −5 e −1 (niente +1): i tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo)
+    // I tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo).
+    // +1 si può usare solo per rimettere vita tolta in questo turno (fino alla vita di inizio turno): altrimenti è oscurato
     const shown = draftHp(entry);
-    const steps = shown > 0 ? [-5, -1] : [];
+    const cap = Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
+    const steps = shown > 0 ? [-5, -1, 1] : [1];
     steps.forEach(step => {
       const key = String(step);
-      box.appendChild(ctl('−' + Math.abs(step), 'secondary', key, 'Togli ' + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
-        const value = Math.max(0, draftHp(entry) + step);
-        if (value === draftHp(entry)) return;
-        setDraft(entry, { hp: value });
-        render();
-        refocus(key);
-      }));
+      const b = ctl(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', key,
+        (step > 0 ? 'Rimetti ' : 'Togli ') + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
+          const value = Math.min(cap, Math.max(0, draftHp(entry) + step));
+          if (value === draftHp(entry)) return;
+          setDraft(entry, { hp: value });
+          render();
+          refocus(key);
+        });
+      if (step > 0 && shown >= cap) { b.disabled = true; b.classList.add('is-dimmed'); }
+      box.appendChild(b);
     });
     if (shown <= 0) {
       box.appendChild(ctl(I18N_IT.deleteMinion, 'danger', 'delete', null, () => {
@@ -798,15 +801,20 @@ function cardControls(entry) {
 function sizeQueue() {
   if (queueView.hidden) return;
   const style = getComputedStyle(queueViewport);
-  const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
   const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-  const gap = parseFloat(getComputedStyle(queueList).columnGap) || 12;
-  // La carta riempie l'altezza disponibile; in larghezza resta sempre visibile almeno un bordo della successiva (1,15 carte)
-  const byWidth = (queueViewport.clientWidth - padX - gap) / 1.15;
-  const badge = 52; // riga dei comandi sotto la carta (44px + spazio); il box vita/token è sovrapposto alla carta
-  const byHeight = (queueViewport.clientHeight - padY - badge) / CARD_RATIO;
+  const gap = parseFloat(getComputedStyle(queueList).columnGap) || 18;
+  // Stessa regola del carosello del turno nemesi (sizeFocus): la carta riempie l'altezza, ai lati si vede un pezzo delle vicine
+  const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0; // come nel carosello: stessa larghezza della carta
+  const byWidth = queueViewport.clientWidth - 32 - peekRoom;
+  const extra = 41 + 6 + 52; // box vita/token sopra la carta (41px + spazio) e riga dei comandi sotto (44px + spazio)
+  const byHeight = (queueViewport.clientHeight - padY - extra) / CARD_RATIO;
   const width = Math.max(100, Math.floor(Math.min(byWidth, byHeight)));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
+  // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
+  const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
+  queueViewport.style.paddingLeft = side;
+  queueViewport.style.paddingRight = side;
+  queueViewport.style.scrollPaddingInline = side;
 }
 
 function renderQueue() {
@@ -996,12 +1004,15 @@ function buildHpPanel(dialog, panel, entry, close) {
   const delta = el('p', 'ae-hp-delta');
   row.append(number, delta);
   const controls = el('div', 'ae-hp-controls');
-  // Turno giocatori: solo −5 e −1; turno nemesi: −1 e +1
-  (resolving ? [-1, 1] : [-5, -1]).forEach(step => {
+  // Turno giocatori: −5, −1 e +1 (solo fino alla vita di inizio turno); turno nemesi: −1 e +1
+  const cap = resolving ? max : Math.min(max, entry.turnHp === undefined || entry.turnHp === null ? original : entry.turnHp);
+  const stepButtons = [];
+  (resolving ? [-1, 1] : [-5, -1, 1]).forEach(step => {
     const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
-      draft = Math.min(max, Math.max(0, draft + step));
+      draft = Math.min(cap, Math.max(0, draft + step));
       update();
     });
+    stepButtons.push([step, b]);
     b.setAttribute('aria-label', (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita');
     controls.appendChild(b);
   });
@@ -1018,6 +1029,9 @@ function buildHpPanel(dialog, panel, entry, close) {
     delta.replaceChildren();
     if (draft === 0) delta.append(icon('heart'), el('span', '', I18N_IT.willBeDeleted));
     else if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
+    stepButtons.forEach(([step, b]) => {
+      if (step > 0 && !resolving) { b.disabled = draft >= cap; b.classList.toggle('is-dimmed', draft >= cap); }
+    });
     confirm.textContent = draft === 0 ? I18N_IT.deleteMinion : I18N_IT.confirmHp;
     confirm.className = 'ae-button ' + (draft === 0 ? 'ae-button--danger' : 'ae-button--primary');
   }
