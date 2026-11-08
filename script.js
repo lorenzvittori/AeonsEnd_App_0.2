@@ -1684,11 +1684,14 @@ function sizeFocus() {
   const used = others.reduce((sum, c) => sum + c.offsetHeight, 0) + gap * others.length
     + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const availH = Math.max(80, focusEl.clientHeight - used);
-  const availW = focusEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  // Con più carte in coda si lascia ai lati lo spazio per vedere un pezzo della precedente e della successiva
+  const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
+  const availW = focusEl.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - peekRoom;
   const width = Math.max(40, Math.min(availW, availH / CARD_RATIO));
   stage.style.width = width + 'px';
   stage.style.height = (width * CARD_RATIO) + 'px';
   stage.style.setProperty('--cw', width + 'px');
+  if (!swipe || !swipe.dragging) renderPeeks();
 }
 
 // Carta pescata: retro (con "Caricamento carta…") finché l'immagine non è pronta, poi si gira in 350ms.
@@ -1956,31 +1959,42 @@ function moveSwiped(dx, transition) {
     node.style.transform = `translateX(${dx + Number(node.dataset.base || 0)}px)`;
   });
 }
-function addPeeks() {
+// Carte vicine sempre visibili ai lati della carta grande (un pezzo di ognuna, attenuato): fanno capire che si può
+// fare slide. Durante lo slide si muovono insieme alla carta al centro.
+const PEEK_VISIBLE = 22;   // px visibili di ogni carta vicina
+const PEEK_GAP = 12;       // spazio tra le carte
+let peekDistance = 0;
+function renderPeeks() {
+  removePeeks();
   const stage = swipeStage();
   const status = focusEl.querySelector('.ae-focus-status:not(.ae-focus-peek)');
-  if (!stage || !status) return;
+  if (!stage || !status || !resolving) return;
   const box = focusEl.getBoundingClientRect();
   const sr = stage.getBoundingClientRect();
   const tr = status.getBoundingClientRect();
-  const distance = sr.width + 16;
+  if (!sr.width) return;
+  peekDistance = stage.offsetWidth + PEEK_GAP;
   [-1, 1].forEach(step => {
     const entry = neighbourOf(step);
     if (!entry) return;
-    const place = (node, r) => {
+    const place = (node, r, w, h) => {
       node.classList.add('ae-focus-peek');
       node.setAttribute('aria-hidden', 'true');
-      node.dataset.base = String(step * distance);
-      Object.assign(node.style, { left: (r.left - box.left) + 'px', top: (r.top - box.top) + 'px', width: r.width + 'px', height: r.height + 'px' });
+      node.dataset.base = String(step * peekDistance);
+      node.style.transform = `translateX(${step * peekDistance}px)`;
+      Object.assign(node.style, { left: (r.left - box.left) + 'px', top: (r.top - box.top) + 'px', width: w + 'px', height: h + 'px' });
       focusEl.appendChild(node);
     };
     const peekStage = el('div', 'ae-focus-stage');
     peekStage.appendChild(cardArt(entry.data));
     const peekStatus = focusStatus(entry);
-    place(peekStage, sr);
-    place(peekStatus, tr);
+    place(peekStage, sr, stage.offsetWidth, stage.offsetHeight);
+    place(peekStatus, tr, status.offsetWidth, status.offsetHeight);
   });
-  swipe.distance = distance;
+}
+function addPeeks() {
+  if (!focusEl.querySelector('.ae-focus-peek')) renderPeeks();
+  swipe.distance = peekDistance || (swipeStage().offsetWidth + PEEK_GAP);
 }
 function removePeeks() {
   focusEl.querySelectorAll('.ae-focus-peek').forEach(node => node.remove());
@@ -2024,14 +2038,13 @@ function endSwipe(e, cancelled) {
       ui.isTransitioning = false;
       ui.swiped = true;
       moveView(step);
-      removePeeks();
     }, SWIPE_OUT_MS);
   } else {
     moveSwiped(0, `transform ${SWIPE_OUT_MS}ms var(--ae-ease-decelerate)`);
     setTimeout(() => {
       ui.isTransitioning = false;
-      removePeeks();
-      focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => { node.style.transform = ''; node.style.transition = ''; });
+      // Le vicine restano ai lati; la carta al centro torna senza spostamento
+      focusEl.querySelectorAll('.ae-focus-stage, .ae-focus-status').forEach(node => { node.style.transition = ''; });
     }, SWIPE_OUT_MS);
   }
 }

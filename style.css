@@ -106,7 +106,7 @@ body { overflow: hidden; }
 .ae-focus-status.is-token .ae-icon { color: var(--ae-gold); }
 .ae-focus-status.is-dropping .ae-icon { animation: ae-token-out var(--ae-duration-token) ease-out; }
 .ae-focus-status.is-bumped { animation: ae-bump var(--ae-duration-value) ease-out; }
-.ae-focus.is-changing .ae-focus-stage, .ae-focus.is-changing .ae-focus-status { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
+.ae-focus.is-changing .ae-focus-stage:not(.ae-focus-peek), .ae-focus.is-changing .ae-focus-status:not(.ae-focus-peek) { animation: ae-focus-in var(--ae-duration-focus) var(--ae-ease-decelerate); }
 @keyframes ae-token-out { 0% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes ae-focus-in { from { opacity: .4; transform: translateX(var(--ae-slide, 0px)); } to { opacity: 1; transform: none; } }
 
@@ -357,7 +357,7 @@ body { overflow: hidden; }
 .ae-side-exit { margin-top: auto; }
 /* Carte vicine durante lo slide del turno nemesi (aggiunte e posizionate da script.js) */
 .ae-focus { position: relative; }
-.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; }
+.ae-focus .ae-focus-peek { position: absolute; margin: 0; pointer-events: none; opacity: .55; }
 .ae-focus-status.ae-focus-peek { justify-content: center; }
 
 /* Turno dei giocatori: il box vita/token delle carte che si attiveranno nel prossimo turno nemesi (minion e poteri
