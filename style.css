@@ -687,3 +687,7 @@ body { overflow: hidden; }
 
 /* Retro della faccia anteriore della carta che si gira: se l'immagine non fosse ancora disegnata si vede il dorso, non lo sfondo */
 .ae-flip-face--front { background: url('Assets/ui/decor/card-back-logo.webp') center / cover no-repeat; }
+
+/* Turno giocatori: il blocco vita/token + carta + comandi (questi fuori dal flusso, 52px sotto la carta) è centrato tra
+   la fascia in alto e il pulsante principale (prima era -14px come nel turno nemesi, e restava 10px in basso) */
+.queue-view .ae-queue-list { transform: translateY(-24px); }
