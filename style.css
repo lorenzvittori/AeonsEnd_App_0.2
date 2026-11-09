@@ -691,3 +691,7 @@ body { overflow: hidden; }
 /* Turno giocatori: il blocco vita/token + carta + comandi (questi fuori dal flusso, 52px sotto la carta) è centrato tra
    la fascia in alto e il pulsante principale (prima era -14px come nel turno nemesi, e restava 10px in basso) */
 .queue-view .ae-queue-list { transform: translateY(-24px); }
+
+/* Turno giocatori: barra di scorrimento delle carte grandi nascosta (come nel turno nemesi); si scorre col dito */
+.ae-queue-viewport { scrollbar-width: none; }
+.ae-queue-viewport::-webkit-scrollbar { display: none; }
