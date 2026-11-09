@@ -674,3 +674,9 @@ body { overflow: hidden; }
 .ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
   background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-4.webp') center / cover no-repeat, var(--ae-bg);
 }
+
+/* Dal turno nemesi al turno giocatori: niente dissolvenza della vista intera (vedi toPlayersTurn in script.js) */
+.queue-view.is-from-nemesis { animation: none; }
+/* Sfondo del turno nemesi che sfuma sopra quello del turno giocatori, sotto il contenuto */
+.ae-bg-fade { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.ae-shell > .ae-main { position: relative; z-index: 1; }

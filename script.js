@@ -1724,6 +1724,8 @@ function render() {
   turnLine.hidden = turn < 1;
   phaseLabel.replaceChildren(el('span', 'ae-phase-name', settings.nemesis || ''), turnLine);
   queueView.hidden = resolving;
+  // la classe si toglie solo a vista nascosta (toglierla a vista visibile farebbe ripartire la dissolvenza)
+  if (resolving) queueView.classList.remove('is-from-nemesis');
   resolveView.hidden = !resolving;
   app.classList.toggle('is-nemesis-turn', resolving);
   if (!resolving) app.classList.remove('is-draw-phase');
@@ -2240,11 +2242,12 @@ function onResolveClick() {
       // Attacco appena pescato: vola negli scarti restando nel turno nemesi; quando atterra si passa al turno giocatori
       flyToDiscard([ghostSource]);
       ghostSource.style.visibility = 'hidden';
-      lockFor(reducedMotion.matches ? 150 : FLY_MS + 80, () => { render(); nemesisBtn.focus(); });
+      lockFor(reducedMotion.matches ? 150 : FLY_MS + 80, () => { toPlayersTurn(null); nemesisBtn.focus(); });
       return;
     }
-    lockFor(duration('phase'));
-    render();
+    // Carta messa in gioco: passaggio morbido, la carta grande si trasforma nella carta del turno giocatori
+    lockFor(reducedMotion.matches ? duration('phase') : MORPH_MS + 40);
+    toPlayersTurn(kept && ghostSource ? kept.uid : null, ghostSource);
     if (wasNewStep) nemesisBtn.focus();
     return;
   }
@@ -2517,6 +2520,51 @@ function flyToDiscard(nodes) {
       setTimeout(land, delay + 100);
     }
   });
+}
+
+// Dal turno nemesi al turno giocatori senza "sparisci e ricompari":
+//   - la vista del turno giocatori non fa la dissolvenza (classe is-from-nemesis);
+//   - la fascia piccola resta ferma (stesso scorrimento della fascia del turno nemesi);
+//   - lo sfondo del turno nemesi sfuma sopra quello nuovo;
+//   - la carta appena messa in gioco passa dalla sua misura grande a quella del turno giocatori (FLIP); il resto
+//     (carte ai lati, box vita/token, comandi) compare con una breve dissolvenza.
+// Va chiamata al posto di render(): misura prima e dopo il disegno.
+const MORPH_MS = 380;
+function toPlayersTurn(morphUid, fromNode) {
+  const railScroll = rail.scrollLeft;
+  const fromRect = fromNode && fromNode.getBoundingClientRect().width ? fromNode.getBoundingClientRect() : null;
+  const motion = !reducedMotion.matches && !!document.body.animate;
+  if (motion) {
+    const cs = getComputedStyle(app);
+    const fade = el('div', 'ae-bg-fade');
+    ['backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat', 'backgroundColor'].forEach(k => { fade.style[k] = cs[k]; });
+    app.prepend(fade);
+    const anim = fade.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'forwards' });
+    anim.onfinish = () => fade.remove();
+    setTimeout(() => fade.remove(), MORPH_MS + 200);
+  }
+  queueView.classList.add('is-from-nemesis');
+  render();
+  if (queueRail) queueRail.scrollLeft = railScroll;
+  if (!motion) return;
+  const art = morphUid !== null && queueList.querySelector(`.queue-slot .ae-queue-item[data-uid="${morphUid}"] .ae-card-art`);
+  const toRect = art && art.getBoundingClientRect();
+  if (fromRect && toRect && toRect.width) {
+    const dx = fromRect.left + fromRect.width / 2 - (toRect.left + toRect.width / 2);
+    const dy = fromRect.top + fromRect.height / 2 - (toRect.top + toRect.height / 2);
+    const s = fromRect.width / toRect.width;
+    art.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+      { transform: 'none' }
+    ], { duration: MORPH_MS, easing: 'cubic-bezier(.3, 0, .2, 1)' });
+  }
+  // Tutto il resto del turno giocatori compare con una breve dissolvenza, a metà della trasformazione
+  const others = [...queueList.querySelectorAll('.queue-slot')].flatMap(slot => {
+    const isMorph = art && slot.contains(art);
+    return isMorph ? [...slot.querySelectorAll('.queue-controls, .ae-status-badge, .ae-new-tag')] : [slot];
+  });
+  others.forEach(node => node.animate([{ opacity: 0 }, { opacity: 1 }],
+    { duration: 220, delay: art ? MORPH_MS / 2 : 0, easing: 'ease-out', fill: 'backwards' }));
 }
 
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare
