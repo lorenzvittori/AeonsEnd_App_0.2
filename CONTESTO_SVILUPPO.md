@@ -76,7 +76,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   Specifiche). Base e Potenziate sono dorsi con il numero di carte; le Specifiche sono a ventaglio, a faccia in su, e
   toccandole si vedono grandi.
 - Il pulsante "Crea mazzo" gira le Specifiche e fa volare le carte una alla volta nel mazzo in alto (prima il Tier 3,
-  poi il 2, poi l'1). Poi compare il banner **Partita iniziata** e si è nel turno giocatori.
+  poi il 2, poi l'1). Poi compare il banner **Partita iniziata**, con la stessa animazione del banner Tier, e si è nel
+  turno giocatori.
 
 **Testata (uguale nei due turni)**
 - A sinistra il **mazzo** (dorso con il numero di carte) e gli **scarti** (ultima carta con il numero).
@@ -102,6 +103,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 **Turno nemesi**
 - Le carte in gioco si risolvono dalla più vecchia, una alla volta, in un carosello che si scorre con il dito; la fascia
   in alto indica la carta guardata. Guardando un'altra carta compare "Torna alla carta da risolvere".
+- Toccando "Turno Nemesi" il carosello parte dalla carta che si stava guardando e scorre (animato) fino alla carta da
+  risolvere; anche un tocco sulla fascia in alto fa scorrere il carosello, come nel turno giocatori.
+- La carta da risolvere lampeggia di rosso, come l'attacco appena pescato; non lampeggiano i poteri con più di un token.
 - Pulsante in basso:
   - **potere:** un token lampeggia e diventa grigio da solo; il pulsante dice "Vai avanti" (token −1) o "Effetto risolto
     e scarta" (ultimo token: negli scarti);
@@ -109,7 +113,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **attacco:** "Effetto risolto", va negli scarti.
 - **Passo Pesca:** dopo l'ultima carta un dorso vola dal mazzo al centro, con il pulsante dorato **Pesca** (o tocco sul
   dorso). La carta si gira e mostra NUOVA e un bagliore dorato; un attacco lampeggia di rosso.
-  - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "Metti in gioco". Poi si torna al turno giocatori.
+  - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "Metti in gioco". Poi si torna al turno
+    giocatori: la carta messa in gioco si rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
 - **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
 - **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi) → finestra "Vittoria!" con
@@ -137,7 +142,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 | **Carta mostrata / in anteprima** | La carta al centro (`ui.viewedUid`). Se non è quella da risolvere compare "Torna alla carta da risolvere". |
 | **Passo Pesca** (`isDrawStep()`, `DRAW_UID = -1`) | Dopo l'ultima carta risolta: dorso al centro e pulsante dorato "Pesca". |
 | **Carta nuova** | Carta appena pescata: etichetta NUOVA e bagliore dorato; un attacco lampeggia di rosso. |
-| **Banner Tier** | Scritta "Tier 2" / "Tier 3" alla prima carta di quel Tier pescata. |
+| **Banner Tier** (`showBanner`) | Scritta "Tier 2" / "Tier 3" alla prima carta di quel Tier pescata; la stessa animazione serve per "Partita iniziata". |
+| **Lampeggio rosso** (`.is-to-resolve`, `.is-attack-drawn`) | Turno nemesi: carta da risolvere (non i poteri con più di un token) e attacco appena pescato. |
 | **Box mazzo / box scarti** (`.ae-header-piles`, `.ae-pile`) | In testata, a sinistra, in entrambi i turni. |
 | **Bozza** (`ui.drafts`) | Turno giocatori: vita e costi pagati non ancora salvati. "Salva modifiche" / "Annulla modifiche". |
 | **Token automatico** (`.is-auto-token`) | Turno nemesi: sul potere da risolvere un token lampeggia e diventa grigio da solo. |
@@ -191,6 +197,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
     cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
+  - `scrollFocusTo(uid, smooth, jump)`: mentre è in corso uno scorrimento animato avviato dallo script, le chiamate
+    senza `smooth` (ridisegni, `sizeFocus`) aggiornano solo la meta invece di saltare; `jump` forza il salto.
+  - Un `render()` ricostruisce le carte del turno giocatori e interrompe le loro animazioni: per questo `lockFor`, che
+    ridisegna alla fine, deve durare almeno quanto le animazioni avviate (vedi `toPlayersTurn`, `ENTER_MS`).
   - Turno giocatori: `renderQueue()`, con la fascia, `.queue-slot` (carta + comandi) e `sizeQueue()`.
   - La misura delle carte grandi è una sola regola per i due turni (`sharedCardWidth`); `STATUS_H` deve restare uguale
     all'altezza della riga vita/token in `style.css`.

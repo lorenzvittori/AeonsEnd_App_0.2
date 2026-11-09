@@ -384,6 +384,8 @@ body { overflow: hidden; }
 
 /* Attacco appena pescato: lampeggia di rosso (dopo che si è girato) */
 .ae-focus-stage.is-attack-drawn { animation: ae-attack-pulse 1s ease-in-out infinite; }
+/* Carta da risolvere (non i poteri con più di un token): stesso lampeggio rosso */
+.ae-focus-stage.is-to-resolve { animation: ae-attack-pulse 1s ease-in-out infinite; }
 .ae-focus-slide.is-drawing .ae-focus-stage.is-attack-drawn { animation-delay: .4s; }
 @keyframes ae-attack-pulse {
   0%, 100% { box-shadow: 0 0 6px 1px rgba(217, 40, 40, .35); }
@@ -410,7 +412,7 @@ body { overflow: hidden; }
 @keyframes ae-tier-text { 0% { transform: scale(1.6); letter-spacing: .4em; } 25% { transform: scale(1); letter-spacing: .12em; } 100% { transform: scale(1.04); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ae-focus-stage.is-attack-drawn { animation: none; box-shadow: 0 0 16px 4px rgba(230, 40, 40, .85); }
+  .ae-focus-stage.is-attack-drawn, .ae-focus-stage.is-to-resolve { animation: none; box-shadow: 0 0 16px 4px rgba(230, 40, 40, .85); }
   .ae-focus-status.is-auto-token .ae-token:last-child { animation-duration: .01s; }
   .ae-tier-banner-text { animation: none; }
 }
@@ -737,20 +739,8 @@ body { overflow: hidden; }
 .ae-focus-slide.is-big .ae-focus-stage { scale: none; }
 .ae-focus-slide.is-big { scale: var(--ae-big-scale, 1.08); transform-origin: 50% var(--ae-big-origin, 50%); }
 
-/* Banner "Partita iniziata" alla fine della creazione del mazzo */
-.ae-start-banner {
-  position: fixed; left: 0; right: 0; top: 50%; z-index: 80; height: 76px; margin-top: -38px; pointer-events: none;
-  display: grid; place-items: center; overflow: hidden;
-  background: linear-gradient(90deg, transparent, rgba(16, 17, 22, .92) 18%, rgba(16, 17, 22, .92) 82%, transparent);
-  border-top: 1px solid rgba(223, 174, 89, .7); border-bottom: 1px solid rgba(223, 174, 89, .7);
-  animation: ae-start-banner 1.5s cubic-bezier(.3, 0, .2, 1) forwards;
-}
-.ae-start-banner-text {
-  font: 600 28px/1 var(--ae-font-display); color: #f3cf86; letter-spacing: .12em; text-transform: uppercase;
-  text-shadow: 0 0 14px rgba(223, 174, 89, .6), 0 2px 6px rgba(0, 0, 0, .9);
-}
-@keyframes ae-start-banner { 0% { transform: translateX(-100%); } 22% { transform: none; } 75% { transform: none; } 100% { transform: translateX(100%); } }
-@media (prefers-reduced-motion: reduce) { .ae-start-banner { animation: ae-fade 1.5s linear reverse forwards; } }
+/* Banner con testo lungo ("Partita iniziata"): stessa animazione dei Tier, carattere più piccolo per stare nello schermo */
+.ae-tier-banner-text.is-long { max-width: calc(100vw - 24px); font-size: min(64px, 11vw); line-height: 1.15; text-align: center; }
 
 /* --- 9 nov --- */
 /* Riga vita/token sopra le carte grandi al 90% (era 41px, 24px di testo, icona 20px, token 39px); lo spazio va alla carta

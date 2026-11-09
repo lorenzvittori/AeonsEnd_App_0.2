@@ -1861,13 +1861,14 @@ function lockFor(ms, then) {
 
 // --- 8. VistaRisoluzione (turno nemesi) ---------------------------------------------------------------------------
 
-// Scritta "Tier N" al centro, marcata: entra ingrandendosi con un bagliore dorato, resta, poi svanisce (2,2 s). App oscurata
-// e non si può toccare; dopo si continua normalmente.
+// Scritta al centro ("Tier 2", "Tier 3", "Partita iniziata"), marcata: entra ingrandendosi con un bagliore dorato,
+// resta, poi svanisce (1,76 s). App oscurata e non si può toccare; dopo si continua normalmente.
+// Un testo lungo ha un carattere più piccolo (is-long), così sta nello schermo del telefono.
 const TIER_BANNER_MS = 1760;
-function showTierBanner(tier) {
+function showBanner(text) {
   const banner = el('div', 'ae-tier-banner');
   banner.setAttribute('role', 'status');
-  banner.appendChild(el('span', 'ae-tier-banner-text', I18N_IT.tierN(tier)));
+  banner.appendChild(el('span', 'ae-tier-banner-text' + (text.length > 8 ? ' is-long' : ''), text));
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), TIER_BANNER_MS);
 }
@@ -1923,7 +1924,7 @@ function render() {
   updateUndoBtn();
   if (ui.tierBanner) {
     ui.tierWaitUntil = performance.now() + TIER_BANNER_MS;
-    showTierBanner(ui.tierBanner);
+    showBanner(I18N_IT.tierN(ui.tierBanner));
     ui.tierBanner = null;
   }
   if (resolving) renderResolve();
@@ -2089,6 +2090,10 @@ function focusSlide(entry) {
   if (reveal && reveal.status === 'loading') slide.classList.add('is-draw-loading');
   if (reveal && (reveal.status === 'ready' || reveal.status === 'flipping')) slide.classList.add('is-drawing');
   if (entry.isNew && newIndex >= 0 && entry.data.type === 'Attack' && !(reveal && reveal.status === 'loading')) stage.classList.add('is-attack-drawn');
+  // Carta da risolvere: lampeggia di rosso come l'attacco pescato (non i poteri con più di un token)
+  if (newIndex < 0 && entry === queue[currentIndex] && !(entry.data.type === 'Power' && entry.tokens > 1)) {
+    stage.classList.add('is-to-resolve');
+  }
   slide.append(status, stage);
   return slide;
 }
@@ -2152,10 +2157,10 @@ function renderFocus(viewed) {
     const prevStill = prevUid && focusTrack.querySelector(`.ae-focus-slide[data-uid="${prevUid}"]`);
     if (viewedChanged && prevStill) {
       // Si passa a una carta che c'era già (minion che resta, token tolto): il carosello scorre fino a lei
-      scrollFocusTo(prevUid, false);
+      scrollFocusTo(prevUid, false, true);
       scrollFocusTo(viewed.uid, true);
     } else {
-      scrollFocusTo(viewed.uid, false);
+      scrollFocusTo(viewed.uid, false, true);
       // La carta mostrata prima è sparita (risolta, negli scarti): la nuova entra con una breve animazione
       if (viewedChanged && prevUid) {
         const slide = focusTrack.querySelector(`.ae-focus-slide[data-uid="${viewed.uid}"]`);
@@ -2168,10 +2173,14 @@ function renderFocus(viewed) {
   }
 }
 
-function scrollFocusTo(uid, smooth) {
+// smooth = scorrimento animato. Senza smooth la carta va al centro subito, tranne quando è in corso uno scorrimento
+// animato avviato dallo script: allora si aggiorna solo la meta (altrimenti un ridisegno o un ridimensionamento
+// interromperebbe l'animazione con un salto). jump = salto immediato comunque (carosello appena ridisegnato, misure).
+function scrollFocusTo(uid, smooth, jump = false) {
   const slide = focusTrack && focusTrack.querySelector(`.ae-focus-slide[data-uid="${uid}"]`);
   if (!slide) return;
   const left = slide.offsetLeft + slide.offsetWidth / 2 - focusEl.clientWidth / 2;
+  if (!smooth && !jump && performance.now() < focusProgrammaticUntil) smooth = true;
   if (Math.abs(focusEl.scrollLeft - left) < 1) return;
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (smooth && !reduce) {
@@ -2428,11 +2437,16 @@ function onResolveClick() {
       // Attacco appena pescato: vola negli scarti restando nel turno nemesi; quando atterra si passa al turno giocatori
       flyToDiscard([ghostSource]);
       ghostSource.style.visibility = 'hidden';
-      lockFor(reducedMotion.matches ? 150 : FLY_MS + 80, () => { toPlayersTurn(null); nemesisBtn.focus(); });
+      // Il blocco dura anche per l'entrata delle carte da sinistra: lockFor alla fine ridisegna, e farlo prima
+      // interromperebbe l'animazione
+      const flyMs = reducedMotion.matches ? 150 : FLY_MS + 80;
+      lockFor(flyMs + (reducedMotion.matches ? 0 : ENTER_MS + 40));
+      setTimeout(() => { toPlayersTurn(null); nemesisBtn.focus(); }, flyMs);
       return;
     }
-    // Carta messa in gioco: passaggio morbido, la carta grande si trasforma nella carta del turno giocatori
-    lockFor(reducedMotion.matches ? duration('phase') : MORPH_MS + 40);
+    // Carta messa in gioco: passaggio morbido, la carta grande si trasforma nella carta del turno giocatori e le altre
+    // entrano da sinistra (vedi toPlayersTurn)
+    lockFor(reducedMotion.matches ? duration('phase') : Math.max(MORPH_MS, MORPH_MS / 2 + ENTER_MS) + 40);
     toPlayersTurn(kept && ghostSource ? kept.uid : null, ghostSource);
     if (wasNewStep) nemesisBtn.focus();
     return;
@@ -2724,10 +2738,12 @@ function flyToDiscard(nodes) {
 //   - la vista del turno giocatori non fa la dissolvenza (classe is-from-nemesis);
 //   - la fascia piccola resta ferma (stesso scorrimento della fascia del turno nemesi);
 //   - lo sfondo scorre di nuovo verso il lato sinistro (maga);
-//   - la carta appena messa in gioco passa dalla sua misura grande a quella del turno giocatori (FLIP); il resto
-//     (carte ai lati, box vita/token, comandi) compare con una breve dissolvenza.
+//   - la carta appena messa in gioco passa dalla sua misura grande a quella del turno giocatori (FLIP);
+//   - le altre carte della coda entrano da sinistra (ENTER_MS); box vita/token e comandi compaiono con una dissolvenza.
 // Va chiamata al posto di render(): misura prima e dopo il disegno.
 const MORPH_MS = 380;
+// Entrata da sinistra delle altre carte della coda nel turno giocatori
+const ENTER_MS = 320;
 // Durata dello scorrimento dello sfondo tra i due turni (uguale alla transizione di .ae-shell in style.css)
 const BG_SLIDE_MS = 800;
 function toPlayersTurn(morphUid, fromNode) {
@@ -2762,13 +2778,20 @@ function toPlayersTurn(morphUid, fromNode) {
     badge.animate([{ transform: `translate(${bx}px, ${by}px)` }, { transform: 'none' }],
       { duration: MORPH_MS, easing: 'cubic-bezier(.3, 0, .2, 1)' });
   }
-  // Tutto il resto del turno giocatori compare con una breve dissolvenza, a metà della trasformazione
-  const others = [...queueList.querySelectorAll('.queue-slot')].flatMap(slot => {
-    const isMorph = art && slot.contains(art);
-    return isMorph ? [...slot.querySelectorAll('.queue-controls, .ae-new-tag')].concat(badge && fromStatus ? [] : [...slot.querySelectorAll('.ae-status-badge')]) : [slot];
+  // A metà della trasformazione: le altre carte della coda entrano da sinistra; comandi, NUOVA (e il box, se non
+  // scivola) della carta che si trasforma compaiono con una breve dissolvenza
+  const delay = art ? MORPH_MS / 2 : 0;
+  queueList.querySelectorAll('.queue-slot').forEach(slot => {
+    if (art && slot.contains(art)) {
+      const parts = [...slot.querySelectorAll('.queue-controls, .ae-new-tag')]
+        .concat(badge && fromStatus ? [] : [...slot.querySelectorAll('.ae-status-badge')]);
+      parts.forEach(node => node.animate([{ opacity: 0 }, { opacity: 1 }],
+        { duration: 220, delay, easing: 'ease-out', fill: 'backwards' }));
+      return;
+    }
+    slot.animate([{ opacity: 0, transform: `translateX(${-slot.offsetWidth}px)` }, { opacity: 1, transform: 'none' }],
+      { duration: ENTER_MS, delay, easing: 'cubic-bezier(.2, 0, .2, 1)', fill: 'backwards' });
   });
-  others.forEach(node => node.animate([{ opacity: 0 }, { opacity: 1 }],
-    { duration: 220, delay: art ? MORPH_MS / 2 : 0, easing: 'ease-out', fill: 'backwards' }));
 }
 
 // Finestra "Vittoria" quando la condizione si avvera nel turno giocatori. Chiusa una volta, non si ripropone finché lo
@@ -2897,15 +2920,6 @@ function openSpecificViewer(tier) {
   if (first) track.scrollLeft = first.offsetLeft - track.offsetLeft;
 }
 
-// Banner "Partita iniziata": fascia che entra da sinistra, si ferma un attimo al centro ed esce a destra
-const START_BANNER_MS = 1500;
-function showStartBanner() {
-  const banner = el('div', 'ae-start-banner');
-  banner.setAttribute('role', 'status');
-  banner.appendChild(el('span', 'ae-start-banner-text', I18N_IT.gameStarted));
-  document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), START_BANNER_MS + 100);
-}
 
 function closeDeckBuild() {
   mainEl.classList.remove('is-deck-building');
@@ -2928,7 +2942,8 @@ function runDeckBuild() {
     }
     render();
     nemesisBtn.focus({ preventScroll: true });
-    showStartBanner();
+    // Banner "Partita iniziata", uguale a quello dei Tier
+    showBanner(I18N_IT.gameStarted);
   };
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
   // Tempi di partenza: una carta ogni DECK_FLY_STAGGER, senza pause tra un Tier e l'altro (la prima del Tier dopo
@@ -3025,7 +3040,7 @@ function animateDrawIn(delay = 0) {
   // La carta da pescare non deve avere l'animazione di entrata (la sposterebbe): si misura dove starà davvero
   const slide = stage.closest('.ae-focus-slide');
   if (slide) slide.classList.remove('is-entering');
-  scrollFocusTo(DRAW_UID, false);
+  scrollFocusTo(DRAW_UID, false, true);
   const to = stage.getBoundingClientRect();
   if (!to.width) return;
   stage.style.visibility = 'hidden';
