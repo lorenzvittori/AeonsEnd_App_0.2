@@ -1935,7 +1935,15 @@ function render() {
   playersIcon.setAttribute('aria-label', I18N_IT.players(players));
   const turnText = el('span', '', I18N_IT.turnN(turn));
   turnText.hidden = turn < 1;
-  turnLine.append(playersIcon, turnText);
+  // Battaglia della nemesi: numero dentro la fiamma (Assets/ui/icons/flame.png); le informazioni sono separate da |
+  const battleNo = battleOf(settings.nemesis);
+  const battle = el('span', 'ae-battle-flame', battleNo ? String(battleNo) : '?');
+  battle.setAttribute('role', 'img');
+  battle.setAttribute('aria-label', battleNo ? I18N_IT.battle(battleNo) : I18N_IT.battleMissing);
+  const sep = () => { const s = el('span', 'ae-info-sep', '|'); s.setAttribute('aria-hidden', 'true'); return s; };
+  const sep2 = sep();
+  sep2.hidden = turn < 1;
+  turnLine.append(battle, sep(), playersIcon, sep2, turnText);
   phaseLabel.replaceChildren(el('span', 'ae-phase-name', settings.nemesis || ''), turnLine);
   queueView.hidden = resolving;
   // la classe si toglie solo a vista nascosta (toglierla a vista visibile farebbe ripartire la dissolvenza)

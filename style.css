@@ -797,3 +797,19 @@ body { overflow: hidden; }
 .deck-build-fan-inner > img { box-shadow: 0 0 0 1px rgba(236, 232, 222, .45), 0 3px 10px rgba(0, 0, 0, .7); }
 .ae-fly-ghost.ae-deck-card img { box-shadow: 0 0 0 1px rgba(236, 232, 222, .45); }
 .deck-build-fan-card { width: calc(min(13vh, 100px) * 63 / 88); }
+
+/* Riga sotto il nome della nemesi: fiamma con il numero della battaglia | giocatori | Turno N */
+.ae-phase-turn { gap: 8px; }
+.ae-info-sep { color: var(--ae-text-muted); opacity: .6; font-weight: 400; }
+.ae-battle-flame {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; padding-top: 4px;
+  background: url('Assets/ui/icons/flame.png') center / contain no-repeat;
+  color: #3a1405; font: 800 10px/1 var(--ae-font-ui); letter-spacing: 0; text-shadow: 0 0 2px rgba(255, 240, 180, .8);
+}
+
+/* Creazione del mazzo: quando le Specifiche si girano si raccolgono in un mazzo dritto, come gli altri */
+.deck-build-fan-card { transition: transform .35s cubic-bezier(.3, 0, .2, 1); }
+.deck-build.is-flipping .deck-build-fan-card { transform: translateX(-50%); }
+.deck-build.is-flipping .deck-build-fan-card:nth-child(1) { transform: translate(-50%, 0); }
+.deck-build.is-flipping .deck-build-fan-card:nth-child(2) { transform: translate(calc(-50% + 2px), -2px); }
+.deck-build.is-flipping .deck-build-fan-card:nth-child(3) { transform: translate(calc(-50% + 4px), -4px); }
