@@ -125,6 +125,8 @@ const I18N_IT = {
   menu: 'Menu',
   menuTurn: 'Turno nemesi',
   menuDeck: 'Carte nel mazzo',
+  background: 'Sfondo',
+  backgrounds: { masked: 'Nemesi mascherata', horned: 'Demone cornuto', maw: 'Bocca con tentacoli' },
   exitGame: 'Esci dalla partita'
 };
 
@@ -3166,7 +3168,7 @@ function slideToGame(then) {
   // decodificando; i primi fotogrammi andavano persi e la pagina "saltava". Ora: prima si aspettano le immagini
   // (al massimo 400 ms), le due pagine diventano livelli separati (will-change), e l'animazione parte un attimo dopo,
   // a disegno finito.
-  const images = [CARD_BACK, 'Assets/ui/decor/battle-bg.webp',
+  const images = [CARD_BACK, currentBackground().src,
     ...[1, 2, 3].flatMap(t => specificCardsOf(t).map(c => c.thumb))];
   const ready = Promise.race([Promise.all(images.map(src => loadImage(src))), new Promise(r => setTimeout(r, 400))]);
   startLayer.style.willChange = 'transform';
@@ -3186,6 +3188,28 @@ function slideToGame(then) {
   }, 30));
 }
 
+// Sfondo dell'app (maga a sinistra, nemesi a destra): si sceglie nel Menu, la scelta resta salvata nel browser.
+// Non fa parte della partita (niente undo).
+const BACKGROUND_KEY = 'aeonsend-app-0.2-background';
+const BACKGROUNDS = [
+  { id: 'masked', src: 'Assets/ui/decor/battle-bg.webp' },
+  { id: 'horned', src: 'Assets/ui/decor/battle-bg-2.webp' },
+  { id: 'maw', src: 'Assets/ui/decor/battle-bg-3.webp' }
+];
+function currentBackground() {
+  let id = null;
+  try { id = localStorage.getItem(BACKGROUND_KEY); } catch (err) { /* si usa quello predefinito */ }
+  return BACKGROUNDS.find(b => b.id === id) || BACKGROUNDS[0];
+}
+function applyBackground() {
+  app.style.setProperty('--ae-battle-bg', `url("${currentBackground().src}")`);
+}
+function setBackground(id) {
+  try { localStorage.setItem(BACKGROUND_KEY, id); } catch (err) { console.warn(err); }
+  applyBackground();
+}
+applyBackground();
+
 function openSideMenu() {
   if (ui.isTransitioning) return;
   let close = () => {};
@@ -3195,6 +3219,13 @@ function openSideMenu() {
   const stats = el('dl', 'ae-side-stats');
   stats.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
     el('dt', '', I18N_IT.menuDeck), el('dd', '', String(deck.length)));
+  // Menu a tendina dello sfondo: cambia subito, si vede dietro al pannello
+  const bgRow = el('label', 'ae-side-field');
+  const bgSelect = el('select', 'ae-select');
+  bgSelect.append(...BACKGROUNDS.map(b => Object.assign(el('option', '', I18N_IT.backgrounds[b.id]), { value: b.id })));
+  bgSelect.value = currentBackground().id;
+  bgSelect.addEventListener('change', () => setBackground(bgSelect.value));
+  bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), bgSelect);
   const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
@@ -3204,7 +3235,7 @@ function openSideMenu() {
   const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
-  panel.append(stats, undoItem, discardOpen, exit);
+  panel.append(stats, undoItem, discardOpen, bgRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
 }

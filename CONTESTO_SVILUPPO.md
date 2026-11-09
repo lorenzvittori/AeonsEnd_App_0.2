@@ -124,7 +124,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Turno nemesi N e carte nel mazzo.
 - **Annulla ultima azione:** chiude il menu e lascia un pulsante sospeso che si può toccare più volte. Il primo Annulla
   toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.
-- Scarti; Esci dalla partita.
+- Scarti.
+- **Sfondo:** menu a tendina con tre sfondi (Nemesi mascherata, Demone cornuto, Bocca con tentacoli). Cambia subito e
+  resta salvato nel browser; non entra nella partita né nell'undo.
+- Esci dalla partita.
 
 **Salvataggio:** la partita si salva da sola nel browser, insieme alla cronologia dell'undo.
 
@@ -149,7 +152,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 | **Token automatico** (`.is-auto-token`) | Turno nemesi: sul potere da risolvere un token lampeggia e diventa grigio da solo. |
 | **Crea mazzo** (`#deck-build`, `ui.deckBuilding`) | Schermata dei 9 mazzi dopo "Inizia partita". |
 | **Collezione** | Prodotti posseduti (wave e mini espansioni), scelti in "La mia collezione". |
-| **Sfondo unico** (`battle-bg.webp`) | Un'immagine sola su tutta l'app: maga a sinistra (turno giocatori), nemesi a destra (turno nemesi). |
+| **Sfondo unico** (`--ae-battle-bg`, `BACKGROUNDS`) | Un'immagine sola su tutta l'app: maga a sinistra (turno giocatori), nemesi a destra (turno nemesi). Si sceglie nel Menu tra `battle-bg.webp`, `battle-bg-2.webp`, `battle-bg-3.webp` (1672 x 941). |
 | **BannerInfoNemesi** | Tolto in v105, recuperabile dal tag `v104-banner-info-nemesi`. |
 
 ## 6. Architettura
@@ -192,8 +195,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   `lockFor(ms)`, reveal, queueAnchor, drafts, flyingDiscards, tierBanner, deckBuilding, …).
 - **Undo e salvataggio:** `act(fn)` fa `snapshot()` per l'undo, esegue l'azione e salva.
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
-  - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita) e `aeonsend-app-0.2-collection` (collezione), diverse
-    da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
+  - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione) e
+    `aeonsend-app-0.2-background` (sfondo), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
     cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
@@ -239,7 +242,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - `thumbs/<id>.webp`: miniature (264 x 369).
   - `Assets/nemesis/`: per ogni nemesi `<slug>.webp` (carta), `<slug>-back.webp` (retro con setup e storia),
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
-  - `Assets/ui/decor/`: `card-back-logo.webp` (dorso), `battle-bg.webp` (sfondo unico).
+  - `Assets/ui/decor/`: `card-back-logo.webp` (dorso), `battle-bg.webp`, `battle-bg-2.webp`, `battle-bg-3.webp`
+    (sfondi scelti nel Menu).
   - `Assets/power-token-2.webp` (token), `Assets/ui/icons/`: `life-drop.webp` (goccia della vita), `alert.webp` ("!"),
     `flame.png` (battaglia), `players-1..4.png`, icone SVG usate come maschera (undo, eye, close, discard, empty-deck).
   - Immagini non più usate tolte in v148 (vecchi sfondi dei due turni, vecchi dorsi, gocce di vita, logo, icone del

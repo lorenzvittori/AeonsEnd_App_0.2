@@ -351,6 +351,10 @@ body { overflow: hidden; }
 .ae-side-stats dt { color: var(--ae-text-muted); }
 .ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .ae-side-exit { margin-top: auto; }
+/* Menu: scelta dello sfondo (menu a tendina con l'etichetta sopra) */
+.ae-side-field { display: flex; flex-direction: column; gap: 6px; }
+.ae-side-field-label { color: var(--ae-text-muted); font: 500 15px/20px var(--ae-font-ui); }
+.ae-side-field .ae-select { margin-bottom: 0; }
 
 
 /* Pulsante "Turno Nemesi" con l'illustrazione della nemesi scelta al posto del fondo avorio: velo scuro al 55% sopra
@@ -584,11 +588,12 @@ body { overflow: hidden; }
 .queue-view.is-from-nemesis { animation: none; }
 .ae-shell > .ae-main { position: relative; z-index: 1; }
 
-/* --- Sfondo unico (Assets/ui/decor/battle-bg.webp): la maga a sinistra, la nemesi a destra ---
+/* --- Sfondo unico: la maga a sinistra, la nemesi a destra ---
+   Immagine scelta nel Menu (--ae-battle-bg, impostata da script.js; BACKGROUNDS), predefinita battle-bg.webp.
    Turno giocatori: si vede il lato sinistro; turno nemesi (anche in pesca): lo sfondo scorre e si vede il lato destro.
    Velo scuro al 50%. Stato precedente (due sfondi): tag git v123-prima-sfondo-unico */
 .ae-shell, .ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
-  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/battle-bg.webp') 0% center / cover no-repeat, var(--ae-bg);
+  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), var(--ae-battle-bg, url('Assets/ui/decor/battle-bg.webp')) 0% center / cover no-repeat, var(--ae-bg);
   transition: background-position .8s cubic-bezier(.45, 0, .2, 1);
 }
 .ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase { background-position: 0 0, 100% center, 0 0; }
