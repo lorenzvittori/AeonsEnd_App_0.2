@@ -398,11 +398,12 @@ function placeholderArt(data) {
 }
 
 // Immagine di una carta. thumb = miniatura WebP (se non c'è si usa la scansione); se manca anche quella, segnaposto.
-function cardArt(data, { thumb = false, lazy = false } = {}) {
+// sync: immagine già scaricata e decodificata (carte grandi del turno nemesi): si disegna subito, senza lampo vuoto
+function cardArt(data, { thumb = false, lazy = false, sync = false } = {}) {
   const box = el('span', 'ae-card-art');
   const img = document.createElement('img');
   img.alt = '';
-  img.decoding = 'async';
+  img.decoding = sync ? 'sync' : 'async';
   img.width = 264;
   img.height = 369;
   if (lazy) img.loading = 'lazy';
@@ -675,15 +676,28 @@ function announce(text) {
 }
 
 // Promessa che si risolve con true quando l'immagine è scaricata, false se non si carica (al massimo 8 secondi)
+const decodedImages = new Map();
+function keepDecoded(src, img) {
+  decodedImages.delete(src);
+  decodedImages.set(src, img);
+  while (decodedImages.size > 12) decodedImages.delete(decodedImages.keys().next().value);
+}
+
 function loadImage(src) {
   return new Promise(resolve => {
     const img = new Image();
     let done = false;
     const finish = ok => { if (!done) { done = true; resolve(ok); } };
-    img.onload = () => finish(true);
+    // Scaricata e anche decodificata (pronta da disegnare): così la carta pescata si vede subito quando si gira.
+    // L'immagine resta in memoria (decodedImages) finché serve, così il browser non butta la decodifica.
+    img.onload = () => {
+      keepDecoded(src, img);
+      if (img.decode) img.decode().then(() => finish(true), () => finish(true));
+      else finish(true);
+    };
     img.onerror = () => finish(false);
     img.src = src;
-    if (img.complete && img.naturalWidth) finish(true);
+    if (img.complete && img.naturalWidth) img.onload();
     setTimeout(() => finish(false), 8000);
   });
 }
@@ -1894,7 +1908,7 @@ function focusSlide(entry) {
   if (reveal && reveal.status !== 'done') {
     stage.appendChild(flipCard(entry, reveal));
   } else {
-    stage.appendChild(cardArt(entry.data));
+    stage.appendChild(cardArt(entry.data, { sync: true }));
   }
   if (entry.isNew) {
     // Carta appena pescata: glow dorato attorno (come nella versione 1) ed etichetta NUOVA
@@ -2100,7 +2114,7 @@ function flipCard(entry, reveal) {
     return flip;
   }
 
-  front.appendChild(cardArt(entry.data));
+  front.appendChild(cardArt(entry.data, { sync: true }));
   if (reveal.status === 'loading') {
     flip.appendChild(el('p', 'ae-hint ae-flip-loading', I18N_IT.loadingCard));
   } else if (reveal.status === 'ready') {

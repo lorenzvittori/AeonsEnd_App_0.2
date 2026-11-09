@@ -684,3 +684,6 @@ body { overflow: hidden; }
 .queue-view .ae-queue-viewport { padding-top: 6px; padding-bottom: 6px; }
 /* Carta da pescare e carta pescata: scala calcolata da sizeFocus (fino a 1,15) */
 .ae-focus-slide.is-big .ae-focus-stage { scale: var(--ae-big-scale, 1.08); }
+
+/* Retro della faccia anteriore della carta che si gira: se l'immagine non fosse ancora disegnata si vede il dorso, non lo sfondo */
+.ae-flip-face--front { background: url('Assets/ui/decor/card-back-logo.webp') center / cover no-repeat; }
