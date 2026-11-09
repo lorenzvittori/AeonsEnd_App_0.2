@@ -770,8 +770,11 @@ body { overflow: hidden; }
 /* Turno giocatori con modifiche: "Annulla modifiche" e "Salva modifiche" sulla stessa riga */
 .ae-main-row { display: flex; gap: 8px; }
 .ae-main-row[hidden] { display: none; }
-.ae-main-row > .ae-button { flex: 1 1 0; min-width: 0; }
-.ae-main-row > .ae-cancel-drafts { flex: 0 0 auto; padding-left: 14px; padding-right: 14px; }
+/* Testo sempre su una riga: così i due pulsanti restano alti come il pulsante principale anche sui telefoni stretti
+   (prima, sotto i ~375px, "Salva modifiche" andava a capo e la riga diventava più alta) */
+.ae-main-row > .ae-button { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; padding-left: 12px; padding-right: 12px; }
+.ae-main-row > .ae-cancel-drafts { flex: 0 0 auto; }
+@media (max-width: 345px) { .ae-main-row > .ae-button { font-size: 14px; padding-left: 8px; padding-right: 8px; } }
 
 /* Creazione del mazzo: animazioni più veloci del 25% */
 .deck-build-fan-inner { transition-duration: .34s; }
