@@ -669,3 +669,8 @@ body { overflow: hidden; }
   position: absolute; min-width: 0; min-height: 44px; padding: 0 18px; box-shadow: 0 6px 20px rgba(0, 0, 0, .7);
   animation: ae-pop .2s cubic-bezier(.2, 1.4, .4, 1) both;
 }
+
+/* Sfondo del turno nemesi (anche in pesca): Gravehold sotto il cielo rosso, immagine al 50% (velo scuro al 50%) */
+.ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
+  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-4.webp') center / cover no-repeat, var(--ae-bg);
+}
