@@ -1632,6 +1632,8 @@ function restore(s) {
     resolving = true;
     currentIndex = Math.max(0, Math.min(s.currentIndex, queue.length - 1));
     newIndex = s.newIndex >= 0 ? Math.min(s.newIndex, queue.length - 1) : -1;
+    // Dopo un undo le carte hanno uid nuovi: la carta appena pescata è quella in newIndex
+    if (newIndex >= 0) ui.lastDrawnUid = queue[newIndex].uid;
     ui.viewedUid = queue[currentIndex].uid;
   } else {
     resolving = false;
@@ -2258,7 +2260,8 @@ function onResolveClick() {
 
   if (!resolving) {
     // Fine del turno nemesi: si torna alla VistaCoda con la carta pescata in vista
-    const kept = entryByUid(ui.lastDrawnUid);
+    // Carta appena pescata e messa in gioco (si prende dalla carta risolta, non da ui.lastDrawnUid: dopo un undo gli uid cambiano)
+    const kept = (wasNewStep && entryByUid(active.uid)) || entryByUid(ui.lastDrawnUid);
     const anchorUid = kept ? kept.uid : (queue.length ? queue[queue.length - 1].uid : null);
     ui.queueAnchor = anchorUid ? { uid: anchorUid, align: queue.length === 1 ? 'center' : 'anchor' } : null;
     ui.reveal = null;
