@@ -1743,8 +1743,16 @@ function render() {
   // Nel turno nemesi l'intestazione ha sempre il numero del turno
   // Tra Undo e Menu: il nome della nemesi della partita, in entrambi i turni
   // e sotto "Turno N" con il numero del turno nemesi (nascosto prima del primo turno nemesi)
-  const turnLine = el('span', 'ae-phase-turn', I18N_IT.turnN(turn));
-  turnLine.hidden = turn < 1;
+  // A sinistra di "Turno N" l'icona del numero di giocatori (Assets/ui/icons/players-1..4.png, usata come maschera)
+  const turnLine = el('span', 'ae-phase-turn');
+  const players = Math.max(1, Math.min(4, Number(settings.players) || 1));
+  const playersIcon = el('span', 'ae-players-icon');
+  playersIcon.style.setProperty('--ae-players-icon', `url('Assets/ui/icons/players-${players}.png')`);
+  playersIcon.setAttribute('role', 'img');
+  playersIcon.setAttribute('aria-label', I18N_IT.players(players));
+  const turnText = el('span', '', I18N_IT.turnN(turn));
+  turnText.hidden = turn < 1;
+  turnLine.append(playersIcon, turnText);
   phaseLabel.replaceChildren(el('span', 'ae-phase-name', settings.nemesis || ''), turnLine);
   queueView.hidden = resolving;
   // la classe si toglie solo a vista nascosta (toglierla a vista visibile farebbe ripartire la dissolvenza)

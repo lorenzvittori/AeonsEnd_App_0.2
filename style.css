@@ -706,3 +706,10 @@ body { overflow: hidden; }
 /* Finestra Vittoria */
 .ae-victory .ae-modal-title { color: var(--ae-gold); }
 .ae-victory-text { color: var(--ae-text-muted); font: 500 15px/22px var(--ae-font-ui); }
+
+/* Icona dei giocatori (2, 3, 4 figure) a sinistra di "Turno N", dello stesso colore del testo */
+.ae-phase-turn { display: inline-flex; align-items: center; gap: 6px; }
+.ae-players-icon {
+  display: inline-block; height: 14px; aspect-ratio: 132 / 70; background-color: currentColor;
+  -webkit-mask: var(--ae-players-icon) center / contain no-repeat; mask: var(--ae-players-icon) center / contain no-repeat;
+}
