@@ -1823,11 +1823,12 @@ function renderResolve() {
   // La fascia si ridisegna spesso: l'animazione riparte dal punto giusto (ritardo negativo) o il token resta nascosto.
   if (newIndex < 0 && active && active.data.type === 'Power') {
     const key = turn + ':' + currentIndex + ':' + active.uid + ':' + active.tokens;
-    if (ui.autoTokenKey !== key) { ui.autoTokenKey = key; ui.autoTokenAt = performance.now(); }
+    // Prima carta del turno: l'animazione parte quando lo sfondo ha finito di scorrere (ui.bgSlideUntil)
+    if (ui.autoTokenKey !== key) { ui.autoTokenKey = key; ui.autoTokenAt = Math.max(performance.now(), ui.bgSlideUntil || 0); }
     const badge = railItems[currentIndex] && railItems[currentIndex].querySelector('.ae-status-badge');
     if (badge) {
       badge.classList.add('is-auto-token');
-      badge.style.setProperty('--ae-token-delay', -(performance.now() - ui.autoTokenAt) + 'ms');
+      badge.style.setProperty('--ae-token-delay', (ui.autoTokenAt - performance.now()) + 'ms');
     }
   }
   // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
@@ -1906,7 +1907,11 @@ function focusSlide(entry) {
   const status = focusStatus(entry);
   if (ui.holdUid === entry.uid) status.classList.add('is-dropping', 'is-bumped');
   // Potere da risolvere: dopo 1 secondo un token sfuma da solo (il pulsante poi va solo avanti o scarta)
-  if (newIndex < 0 && entry === queue[currentIndex] && entry.data.type === 'Power') status.classList.add('is-auto-token');
+  if (newIndex < 0 && entry === queue[currentIndex] && entry.data.type === 'Power') {
+    status.classList.add('is-auto-token');
+    // stesso istante della fascia (dopo lo scorrimento dello sfondo, se è la prima carta del turno)
+    status.style.setProperty('--ae-token-delay', ((ui.autoTokenAt || 0) - performance.now()) + 'ms');
+  }
   // Carta appena pescata: durante il caricamento la riga è nascosta; mentre si gira, i token o la vita compaiono dopo
   // la rotazione. Un attacco pescato lampeggia di rosso.
   if (reveal && reveal.status === 'loading') slide.classList.add('is-draw-loading');
@@ -2282,7 +2287,8 @@ function onNemesisClick() {
     return;
   }
   act(nemesisTurn);
-  if (resolving) showTurnBanner();
+  // Lo sfondo scorre verso il lato della nemesi (0,8 s, style.css .ae-shell): il token della prima carta aspetta
+  ui.bgSlideUntil = reducedMotion.matches ? 0 : performance.now() + BG_SLIDE_MS;
   ui.viewedUid = null;
   if (resolving) {
     showActive(activeEntry());
@@ -2530,6 +2536,8 @@ function flyToDiscard(nodes) {
 //     (carte ai lati, box vita/token, comandi) compare con una breve dissolvenza.
 // Va chiamata al posto di render(): misura prima e dopo il disegno.
 const MORPH_MS = 380;
+// Durata dello scorrimento dello sfondo tra i due turni (uguale alla transizione di .ae-shell in style.css)
+const BG_SLIDE_MS = 800;
 function toPlayersTurn(morphUid, fromNode) {
   const railScroll = rail.scrollLeft;
   const fromRect = fromNode && fromNode.getBoundingClientRect().width ? fromNode.getBoundingClientRect() : null;
@@ -2679,15 +2687,6 @@ function openDeckDraw() {
   close = openModal(dialog, { onCancel: putBack });
 }
 
-// Banner veloce "Turno Nemesi": entra da sinistra, si ferma un attimo al centro ed esce a destra
-const TURN_BANNER_MS = 1300;
-function showTurnBanner() {
-  const banner = el('div', 'ae-turn-banner');
-  banner.setAttribute('aria-hidden', 'true');
-  banner.appendChild(el('span', 'ae-turn-banner-text', I18N_IT.nemesisButton));
-  document.body.appendChild(banner);
-  setTimeout(() => banner.remove(), TURN_BANNER_MS + 100);
-}
 // Dalla pagina iniziale alla partita: la pagina iniziale esce a sinistra e la partita entra da destra
 const START_SLIDE_MS = 380;
 function slideToGame(then) {
