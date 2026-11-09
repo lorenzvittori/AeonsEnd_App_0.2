@@ -813,3 +813,23 @@ body { overflow: hidden; }
 .deck-build.is-flipping .deck-build-fan-card:nth-child(1) { transform: translate(-50%, 0); }
 .deck-build.is-flipping .deck-build-fan-card:nth-child(2) { transform: translate(calc(-50% + 2px), -2px); }
 .deck-build.is-flipping .deck-build-fan-card:nth-child(3) { transform: translate(calc(-50% + 4px), -4px); }
+
+/* Carta da pescare e carta pescata più grandi: si ingrandisce tutto il blocco (vita/token + carta), dal punto
+   calcolato da sizeFocus (--ae-big-origin), così dorso e fronte hanno la stessa misura */
+.ae-focus-slide.is-big .ae-focus-stage { scale: none; }
+.ae-focus-slide.is-big { scale: var(--ae-big-scale, 1.08); transform-origin: 50% var(--ae-big-origin, 50%); }
+
+/* Banner "Partita iniziata" alla fine della creazione del mazzo */
+.ae-start-banner {
+  position: fixed; left: 0; right: 0; top: 50%; z-index: 80; height: 76px; margin-top: -38px; pointer-events: none;
+  display: grid; place-items: center; overflow: hidden;
+  background: linear-gradient(90deg, transparent, rgba(16, 17, 22, .92) 18%, rgba(16, 17, 22, .92) 82%, transparent);
+  border-top: 1px solid rgba(223, 174, 89, .7); border-bottom: 1px solid rgba(223, 174, 89, .7);
+  animation: ae-start-banner 1.5s cubic-bezier(.3, 0, .2, 1) forwards;
+}
+.ae-start-banner-text {
+  font: 600 28px/1 var(--ae-font-display); color: #f3cf86; letter-spacing: .12em; text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(223, 174, 89, .6), 0 2px 6px rgba(0, 0, 0, .9);
+}
+@keyframes ae-start-banner { 0% { transform: translateX(-100%); } 22% { transform: none; } 75% { transform: none; } 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .ae-start-banner { animation: ae-fade 1.5s linear reverse forwards; } }

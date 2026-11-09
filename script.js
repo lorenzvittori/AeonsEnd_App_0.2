@@ -101,6 +101,7 @@ const I18N_IT = {
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
   buildDeck: 'Crea mazzo',
+  gameStarted: 'Partita iniziata',
   tierN: n => 'Tier ' + n,
   deckBuildTitle: 'Mazzo nemesi',
   deckBuildKinds: { basic: 'Base', upgraded: 'Potenziate', specific: 'Specifiche' },
@@ -2285,12 +2286,21 @@ function sizeFocus(recentre = true) {
   focusEl.style.setProperty('--ae-focus-w', width + 'px');
   focusEl.style.setProperty('--cw', width + 'px');
   focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';
-  // Carta da pescare e carta pescata: più grandi (fino al 15%) quanto lo spazio sotto la carta permette, senza
-  // toccare il pulsante e senza uscire dallo schermo in larghezza (crescono verso il basso: transform-origin in alto)
+  // Carta da pescare e carta pescata: più grandi (fino al 30%), carta e riga vita/token insieme (stessa misura per
+  // dorso e fronte). Si usa tutto lo spazio libero sopra e sotto il blocco: il punto fisso dell'ingrandimento
+  // (transform-origin) divide la crescita in proporzione allo spazio sopra e sotto. In larghezza resta nello schermo.
   const cardH = width * CARD_RATIO;
-  const freeBelow = (focusEl.clientHeight - padY - (41 + 8 + cardH)) / 2 + parseFloat(style.paddingBottom) - 4;
-  const big = Math.max(1, Math.min(1.15, 1 + freeBelow / cardH, (focusEl.clientWidth - 8) / width));
+  const blockH = 41 + 8 + cardH;
+  const inner = focusEl.clientHeight - padY;
+  const blockTop = (inner - blockH) / 2;
+  const shift = 14; // .ae-focus-track è alzato di 14px (style.css)
+  const padTop = parseFloat(style.paddingTop);
+  const topRoom = Math.max(0, blockTop - (shift - padTop) - 4);
+  const bottomRoom = Math.max(0, (focusEl.clientHeight - padTop + shift) - (blockTop + blockH) - 4);
+  const big = Math.max(1, Math.min(1.3, 1 + (topRoom + bottomRoom) / blockH, (focusEl.clientWidth - 8) / width));
+  const origin = topRoom + bottomRoom > 0 ? blockTop + blockH * topRoom / (topRoom + bottomRoom) : blockTop + blockH / 2;
   focusEl.style.setProperty('--ae-big-scale', big.toFixed(3));
+  focusEl.style.setProperty('--ae-big-origin', origin.toFixed(1) + 'px');
   if (recentre && focusEl.dataset.uid) scrollFocusTo(focusEl.dataset.uid, false);
 }
 
@@ -2847,7 +2857,7 @@ function checkVictory() {
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
 const DECK_FLY_MS = 520;
 const DECK_FLY_STAGGER = 70;
-const DECK_TIER_PAUSE = 250;
+const DECK_TIER_PAUSE = 100;
 // Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte
 const DECK_FAN_FLIP_MS = 450;
 
@@ -2942,6 +2952,16 @@ function openSpecificViewer(tier) {
   if (first) track.scrollLeft = first.offsetLeft - track.offsetLeft;
 }
 
+// Banner "Partita iniziata": fascia che entra da sinistra, si ferma un attimo al centro ed esce a destra
+const START_BANNER_MS = 1500;
+function showStartBanner() {
+  const banner = el('div', 'ae-start-banner');
+  banner.setAttribute('role', 'status');
+  banner.appendChild(el('span', 'ae-start-banner-text', I18N_IT.gameStarted));
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), START_BANNER_MS + 100);
+}
+
 function closeDeckBuild() {
   mainEl.classList.remove('is-deck-building');
   const old = document.getElementById('deck-build');
@@ -2963,6 +2983,7 @@ function runDeckBuild() {
     }
     render();
     nemesisBtn.focus({ preventScroll: true });
+    showStartBanner();
   };
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
   // Tempi di partenza: dentro un Tier una carta ogni DECK_FLY_STAGGER; il Tier dopo parte DECK_TIER_PAUSE dopo
@@ -3180,14 +3201,29 @@ function slideToGame(then) {
     if (then) then();
     return;
   }
-  startLayer.classList.add('is-sliding-out');
-  app.classList.add('is-sliding-in');
-  setTimeout(() => {
-    startLayer.classList.remove('is-sliding-out');
-    app.classList.remove('is-sliding-in');
-    closeStart();
-    if (then) then();
-  }, START_SLIDE_MS);
+  // Perché era a scatti: l'animazione partiva nello stesso istante in cui la pagina della partita veniva disegnata
+  // e le immagini della creazione del mazzo (dorsi, Specifiche) e lo sfondo si stavano ancora scaricando e
+  // decodificando; i primi fotogrammi andavano persi e la pagina "saltava". Ora: prima si aspettano le immagini
+  // (al massimo 400 ms), le due pagine diventano livelli separati (will-change), e l'animazione parte un attimo dopo,
+  // a disegno finito.
+  const images = [CARD_BACK, 'Assets/ui/decor/battle-bg.webp',
+    ...[1, 2, 3].flatMap(t => specificCardsOf(t).map(c => c.thumb))];
+  const ready = Promise.race([Promise.all(images.map(src => loadImage(src))), new Promise(r => setTimeout(r, 400))]);
+  startLayer.style.willChange = 'transform';
+  app.style.willChange = 'transform';
+  ready.then(() => setTimeout(() => {
+    void app.offsetWidth;
+    startLayer.classList.add('is-sliding-out');
+    app.classList.add('is-sliding-in');
+    setTimeout(() => {
+      startLayer.classList.remove('is-sliding-out');
+      app.classList.remove('is-sliding-in');
+      startLayer.style.willChange = '';
+      app.style.willChange = '';
+      closeStart();
+      if (then) then();
+    }, START_SLIDE_MS);
+  }, 30));
 }
 
 function openSideMenu() {
