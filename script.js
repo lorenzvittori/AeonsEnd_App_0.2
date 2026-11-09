@@ -100,6 +100,12 @@ const I18N_IT = {
   paidNote: 'Costo pagato',
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
+  drawCard: 'Pesca carta',
+  putBack: 'Rimetti nel mazzo',
+  discardDrawn: 'Scarta',
+  deckCardTitle: 'Carta pescata dal mazzo',
+  cardPutBack: name => `${name}: rimessa in cima al mazzo`,
+  cardDiscarded: name => `${name}: negli scarti`,
   saveChanges: 'Salva modifiche',
   minionKilled: name => `${name}: ucciso, andrà negli scarti`,
   deckLabel: n => `Mazzo nemesi, ${n} ${n === 1 ? 'carta' : 'carte'}`,
@@ -1811,7 +1817,7 @@ function renderResolve() {
   const railItems = queue.map((entry, i) => queueItem(entry, {
     compact: true, index: i, total: queue.length, current: entry === active, viewed: entry === viewed
   }));
-  // Potere da risolvere: anche nella fascia il token sfuma insieme a quello della carta grande (dopo 1 s, in 0,9 s).
+  // Potere da risolvere: anche nella fascia il token lampeggia e diventa grigio insieme a quello della carta grande.
   // La fascia si ridisegna spesso: l'animazione riparte dal punto giusto (ritardo negativo) o il token resta nascosto.
   if (newIndex < 0 && active && active.data.type === 'Power') {
     const key = turn + ':' + currentIndex + ':' + active.uid + ':' + active.tokens;
@@ -1819,7 +1825,7 @@ function renderResolve() {
     const badge = railItems[currentIndex] && railItems[currentIndex].querySelector('.ae-status-badge');
     if (badge) {
       badge.classList.add('is-auto-token');
-      badge.style.setProperty('--ae-token-delay', (1000 - (performance.now() - ui.autoTokenAt)) + 'ms');
+      badge.style.setProperty('--ae-token-delay', -(performance.now() - ui.autoTokenAt) + 'ms');
     }
   }
   // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
@@ -2380,6 +2386,7 @@ document.addEventListener('keydown', e => {
   const top = topLayer();
   if (e.key === 'Escape') {
     if (undoFloat && !modals.length) { closeUndoFloat(); return; }
+    if (deckPopover && !modals.length) { closeDeckPopover(); return; }
     if (modals.length) modals[modals.length - 1].onCancel();
     else if (top === discardLayer) closeDiscard();
     return;
@@ -2426,6 +2433,11 @@ const dockDeck = el('div', 'ae-pile ae-pile--deck');
 const dockDiscard = el('button', 'ae-pile ae-pile--discard');
 dockDiscard.type = 'button';
 dockDiscard.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+// Tocco sul mazzo: compare il pulsante "Pesca carta" (per gli effetti che fanno pescare o guardare la carta in cima)
+dockDeck.setAttribute('role', 'button');
+dockDeck.tabIndex = 0;
+dockDeck.addEventListener('click', () => { if (!ui.isTransitioning && !modals.length) openDeckPopover(); });
+dockDeck.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dockDeck.click(); } });
 headerPiles.append(dockDeck, dockDiscard);
 undoBtn.before(headerPiles);
 undoBtn.hidden = true;
@@ -2454,7 +2466,7 @@ function pileContent(node, imgSrc, count) {
 function renderDockPiles() {
   pileContent(dockDeck, deck.length ? CARD_BACK : null, deck.length);
   dockDeck.setAttribute('aria-label', I18N_IT.deckLabel(deck.length));
-  dockDeck.setAttribute('role', 'img');
+  dockDeck.setAttribute('aria-haspopup', 'true');
   const shown = Math.max(0, discard.length - ui.flyingDiscards);
   const last = discard[shown - 1];
   pileContent(dockDiscard, last ? encodeURI(last.thumb || last.image) : null, shown);
@@ -2514,6 +2526,10 @@ function animateDrawIn() {
   const stage = focusEl.querySelector('.ae-focus-slide--draw .ae-focus-stage');
   const from = dockDeck.getBoundingClientRect();
   if (!stage || !from.width || reducedMotion.matches || !document.body.animate) return;
+  // La carta da pescare non deve avere l'animazione di entrata (la sposterebbe): si misura dove starà davvero
+  const slide = stage.closest('.ae-focus-slide');
+  if (slide) slide.classList.remove('is-entering');
+  scrollFocusTo(DRAW_UID, false);
   const to = stage.getBoundingClientRect();
   if (!to.width) return;
   stage.style.visibility = 'hidden';
@@ -2568,6 +2584,59 @@ function closeUndoFloat() {
   if (!undoFloat) return;
   undoFloat.remove();
   undoFloat = null;
+}
+
+// Tocco sul mazzo in alto: sotto compare "Pesca carta" (un tocco fuori lo chiude). "Pesca carta" apre la carta in cima
+// al mazzo in grande con "Rimetti nel mazzo" (resta in cima, nessun cambiamento) e "Scarta" (va negli scarti, un passo
+// di undo). Se il mazzo è vuoto il pulsante è disattivato (gli scarti non si rimescolano qui).
+let deckPopover = null;
+function openDeckPopover() {
+  closeDeckPopover();
+  const layer = el('div', 'ae-deck-popover');
+  const r = dockDeck.getBoundingClientRect();
+  const b = button(I18N_IT.drawCard, 'primary', e => {
+    e.stopPropagation();
+    closeDeckPopover();
+    openDeckDraw();
+  });
+  b.classList.add('ae-deck-popover-button');
+  b.disabled = deck.length === 0;
+  b.style.left = Math.max(8, r.left) + 'px';
+  b.style.top = (r.bottom + 8) + 'px';
+  layer.addEventListener('click', e => { if (e.target === layer) closeDeckPopover(); });
+  layer.appendChild(b);
+  document.body.appendChild(layer);
+  deckPopover = layer;
+  b.focus({ preventScroll: true });
+}
+function closeDeckPopover() {
+  if (!deckPopover) return;
+  deckPopover.remove();
+  deckPopover = null;
+}
+
+function openDeckDraw() {
+  const data = deck[deck.length - 1];
+  if (!data) return;
+  let close = () => {};
+  const putBack = () => { close(); showToast(I18N_IT.cardPutBack(data.name)); };
+  const dialog = dialogShell(I18N_IT.deckCardTitle, data.name, putBack, { displayTitle: false });
+  dialog.classList.add('ae-deck-draw');
+  const art = cardArt(data);
+  art.classList.add('ae-modal-art');
+  const footer = el('div', 'ae-modal-footer');
+  const discardBtnEl = button(I18N_IT.discardDrawn, 'danger', () => {
+    const source = art.getBoundingClientRect().width ? art : null;
+    act(() => { discard.push(deck.pop()); });
+    // La carta vola dalla finestra alla pila degli scarti
+    if (source) flyToDiscard([source]);
+    close();
+    render();
+    showToast(I18N_IT.cardDiscarded(data.name));
+  });
+  footer.append(button(I18N_IT.putBack, 'secondary', putBack), discardBtnEl);
+  dialog.append(art, footer);
+  close = openModal(dialog, { onCancel: putBack });
 }
 
 // Banner veloce "Turno Nemesi": entra da sinistra, si ferma un attimo al centro ed esce a destra
