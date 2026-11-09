@@ -117,14 +117,20 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     giocatori: la carta messa in gioco si rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
 - **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
-- **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi) → finestra "Vittoria!" con
-  *Nuova partita*.
+- **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi), oppure "Nemesi uccisa" nel
+  Menu → schermata Vittoria: la scritta "Vittoria!" entra come il banner dei Tier e resta ferma; sotto *Statistiche*,
+  *Nuova partita* e *Chiudi* (si torna alla partita, che non cambia).
+- **Statistiche:** turni nemesi, carte giocate del mazzo nemesi (mazzo iniziale − carte rimaste, quindi anche quelle
+  scartate con "Pesca carta"), carte rimanenti, minion uccisi, poteri scartati pagando il costo, poteri risolti, Æ spesi
+  per i poteri (solo i costi "Spend N Æ"; gli altri costi valgono 0), attacchi risolti e, per ogni minion, i turni nemesi
+  passati da quando è stato pescato (uccisi e ancora in gioco).
 
 **Menu (pannello laterale al 70%)**
 - Turno nemesi N e carte nel mazzo.
 - **Annulla ultima azione:** chiude il menu e lascia un pulsante sospeso che si può toccare più volte. Il primo Annulla
   toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.
 - Scarti.
+- **Nemesi uccisa:** per quando la nemesi muore al tavolo; apre la schermata Vittoria.
 - **Sfondo:** menu a tendina con tre sfondi (Nemesi mascherata, Demone cornuto, Bocca con tentacoli). Cambia subito e
   resta salvato nel browser; non entra nella partita né nell'undo.
 - Esci dalla partita.
@@ -186,9 +192,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 
 ### Stato
 
-- Partita (entra nel salvataggio e nell'undo): `queue` (voci `{ uid, data, tokens, hp, turnHp, isNew, paid }`, dove
-  `data` è la carta di `cards.json`), `deck` e `discard` (array di `data`; si pesca dalla fine di `deck`),
-  `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata), `resolving`, `turn`, `maxTierDrawn`.
+- Partita (entra nel salvataggio e nell'undo): `queue` (voci `{ uid, data, tokens, hp, turnHp, isNew, paid, bornTurn }`,
+  dove `data` è la carta di `cards.json` e `bornTurn` il turno in cui è stata pescata), `deck` e `discard` (array di
+  `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
+  `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
+  `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
 - Impostazioni: `settings = { players, nemesis, includeUpgraded }`; collezione in `collection` (Set di id prodotto
   `"<wave>|base"` o `"<wave>|<mini espansione>"`).
 - `ui`: stato solo visivo, dichiarato tutto nell'oggetto `ui` in cima (viewedUid, holdUid, isTransitioning con

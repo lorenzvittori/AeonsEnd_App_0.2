@@ -628,9 +628,17 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-status-badge.is-long { gap: 1px; padding: 1px 3px; font-size: 10px; letter-spacing: -.02em; }
 .ae-compact-rail .ae-status-badge.is-long .ae-icon { width: 10px; height: 10px; }
 
-/* Finestra Vittoria */
-.ae-victory .ae-modal-title { color: var(--ae-gold); }
-.ae-victory-text { color: var(--ae-text-muted); font: 500 15px/22px var(--ae-font-ui); }
+/* Schermata Vittoria: stesso fondo e stessa scritta del banner dei Tier (che qui resta ferma), sotto i pulsanti */
+.ae-modal-backdrop.ae-victory-backdrop {
+  background: radial-gradient(ellipse at center, rgba(60, 40, 10, .55) 0%, rgba(0, 0, 0, .82) 70%);
+  animation: ae-fade .3s linear;
+}
+.ae-victory-screen { width: min(340px, 100%); display: flex; flex-direction: column; align-items: center; gap: 48px; }
+.ae-victory-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; animation: ae-fade .4s ease-out 1s both; }
+@media (prefers-reduced-motion: reduce) { .ae-victory-actions { animation: none; } }
+/* Statistiche */
+.ae-stats-subtitle { margin-top: 4px; color: var(--ae-gold); font: 600 15px/20px var(--ae-font-display); }
+.ae-stats-empty { color: var(--ae-text-muted); font: 500 14px/20px var(--ae-font-ui); }
 
 /* Icona dei giocatori (2, 3, 4 figure) a sinistra di "Turno N", dello stesso colore del testo */
 .ae-phase-turn { display: inline-flex; align-items: center; gap: 6px; }

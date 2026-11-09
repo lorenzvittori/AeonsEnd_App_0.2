@@ -85,7 +85,22 @@ const I18N_IT = {
   collectionSaved: 'Collezione salvata',
   collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
   victoryTitle: 'Vittoria!',
-  victoryText: 'Il mazzo nemesi è vuoto e non ci sono più poteri né minion della nemesi in gioco: i giocatori vincono.',
+  nemesisKilled: 'Nemesi uccisa',
+  statsTitle: 'Statistiche',
+  statsRows: {
+    turns: 'Turni nemesi',
+    played: 'Carte giocate del mazzo nemesi',
+    left: 'Carte rimanenti nel mazzo',
+    minionsKilled: 'Minion uccisi',
+    powersPaid: 'Poteri scartati pagando il costo',
+    powersResolved: 'Poteri risolti',
+    aetherSpent: 'Æ spesi per i poteri',
+    attacksResolved: 'Attacchi risolti'
+  },
+  statsMinionsTitle: 'Turni in gioco dei minion',
+  statsNoMinions: 'Nessun minion in gioco in questa partita',
+  minionTurns: n => (n === 1 ? '1 turno' : `${n} turni`),
+  stillInPlay: 'ancora in gioco',
   drawCard: 'Pesca carta',
   putBack: 'Rimetti nel mazzo',
   discardDrawn: 'Scarta',
@@ -233,6 +248,12 @@ let discard = [];
 let turn = 0;
 // Tier più alto pescato finora: alla prima carta del Tier 2 e del Tier 3 compare la scritta "Tier N"
 let maxTierDrawn = 0;
+// Statistiche della partita (finestra Statistiche della Vittoria). Fanno parte della partita: entrano nel salvataggio e
+// nell'undo. minions: minion usciti dal gioco uccisi, con i turni nemesi passati da quando erano stati pescati.
+let stats = emptyStats(0);
+function emptyStats(deckSize) {
+  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [] };
+}
 
 // Undo: uno stato della partita salvato prima di ogni azione
 let undoStack = [];
@@ -386,6 +407,31 @@ function newGame() {
   discard = [];
   turn = 0;
   maxTierDrawn = 0;
+  stats = emptyStats(deck.length);
+}
+
+// --- Statistiche: si aggiornano quando una carta esce dal gioco ---
+
+// Costo in Æ per scartare un potere ("TO DISCARD: Spend 7 Æ."); 0 se il costo non è in Æ (carte in mano, varchi...)
+function aetherCost(data) {
+  const m = /Spend\s+(\d+)/i.exec(data.toDiscard || '');
+  return m ? Number(m[1]) : 0;
+}
+// Minion ucciso (vita a 0, negli scarti)
+function countMinionKilled(entry) {
+  stats.minionsKilled++;
+  stats.minions.push({ name: entry.data.name, turns: Math.max(0, turn - (entry.bornTurn || 0)) });
+}
+// Potere scartato pagando il costo
+function countPowerPaid(entry) {
+  stats.powersPaid++;
+  stats.aetherSpent += aetherCost(entry.data);
+}
+// Carte grigie che escono dal gioco (minion a 0, poteri pagati): contate e messe negli scarti
+function discardGone(entry) {
+  if (entry.data.type === 'Minion') countMinionKilled(entry);
+  else if (entry.data.type === 'Power') countPowerPaid(entry);
+  discardEntry(entry);
 }
 
 // Pesca la carta in cima al mazzo. Regole di Aeon's End: il mazzo nemesi non si rimescola; se è vuoto la nemesi non
@@ -403,7 +449,8 @@ function isVictory() {
 function makeEntry(data) {
   // turnHp: vita del minion all'inizio del turno dei giocatori (per mostrare il danno o la cura del turno)
   // paid: potere con costo pagato (salvato nel turno giocatori), grigio fino al turno nemesi, poi negli scarti
-  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false };
+  // bornTurn: turno nemesi in cui la carta è stata pescata (per i turni in gioco dei minion nelle statistiche)
+  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false, bornTurn: turn };
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -987,7 +1034,7 @@ function saveAllDrafts() {
       if (d.paid) entry.paid = true;
     });
     gone.push(...queue.filter(isGone));
-    gone.forEach(discardEntry);
+    gone.forEach(discardGone);
   });
   // Le carte sono ancora nella pagina (non ridisegnata): partono da lì
   flyToDiscard(gone.map(e => queueList.querySelector(`.ae-queue-item[data-uid="${e.uid}"] .ae-card-art`)));
@@ -999,6 +1046,7 @@ function saveAllDrafts() {
 function removeWhileResolving(entry) {
   const index = queue.indexOf(entry);
   const wasNew = newIndex >= 0 && index === newIndex;
+  countMinionKilled(entry);
   discardEntry(entry);
   if (wasNew) { endResolution(); return; }
   if (index < currentIndex) currentIndex--;
@@ -1732,12 +1780,13 @@ function snapshot() {
     turn,
     deck: deck.map(c => c.id),
     discard: discard.map(c => c.id),
-    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid })),
+    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid, bornTurn: e.bornTurn })),
     resolving,
     currentIndex,
     newIndex,
-    // In più rispetto alla v48 (i salvataggi senza questo campo restano validi)
-    maxTierDrawn
+    // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
+    maxTierDrawn,
+    stats: Object.assign({}, stats, { minions: stats.minions.map(m => Object.assign({}, m)) })
   };
 }
 
@@ -1751,7 +1800,10 @@ function restore(s) {
   // Prima si leggono tutti i dati: se qualcosa non va, la partita in corso resta com'è
   const newDeck = s.deck.map(get);
   const newDiscard = s.discard.map(get);
-  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), { tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew, paid: !!q.paid }));
+  const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), {
+    tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew, paid: !!q.paid,
+    bornTurn: typeof q.bornTurn === 'number' ? q.bornTurn : s.turn
+  }));
 
   clearTransition();
   ui.drafts.clear();
@@ -1770,6 +1822,9 @@ function restore(s) {
   // Salvataggi senza il campo: il tier più alto tra le carte già uscite (coda e scarti)
   maxTierDrawn = typeof s.maxTierDrawn === 'number' ? s.maxTierDrawn
     : Math.max(0, ...queue.map(e => e.data.tier || 0), ...discard.map(c => c.tier || 0));
+  // Salvataggi senza statistiche: si parte da zero (mazzo iniziale = tutte le carte della partita)
+  stats = Object.assign(emptyStats(deck.length + queue.length + discard.length), s.stats || {});
+  stats.minions = Array.isArray(stats.minions) ? stats.minions.map(m => Object.assign({}, m)) : [];
 
   if (s.resolving && queue.length > 0) {
     resolving = true;
@@ -2361,7 +2416,7 @@ function nemesisTurn() {
   queue.forEach(e => { e.turnHp = e.hp; });
   // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
   ui.drafts.clear();
-  queue.filter(isGone).forEach(discardEntry);
+  queue.filter(isGone).forEach(discardGone);
   startResolution();
 }
 
@@ -2376,6 +2431,7 @@ function resolveCurrent() {
   if (newIndex >= 0) {
     let effect;
     if (data.type === 'Attack') {
+      stats.attacksResolved++;
       discardEntry(entry);
       effect = 'discard';
     } else {
@@ -2398,6 +2454,8 @@ function resolveCurrent() {
     effect = 'next';
   } else {
     // Potere all'ultimo token o attacco: risolto, va negli scarti (la carta dopo prende il suo posto)
+    if (data.type === 'Power') stats.powersResolved++;
+    else if (data.type === 'Attack') stats.attacksResolved++;
     discardEntry(entry);
     effect = 'discard';
   }
@@ -2806,16 +2864,70 @@ function checkVictory() {
   victoryKey = key;
   setTimeout(() => {
     if (resolving || !isVictory() || modals.length) return;
-    let close = () => {};
-    const cancel = () => close();
-    const dialog = dialogShell(I18N_IT.victoryTitle, '', cancel);
-    dialog.classList.add('ae-victory');
-    dialog.appendChild(el('p', 'ae-victory-text', I18N_IT.victoryText));
-    const footer = el('div', 'ae-modal-footer');
-    footer.append(button(I18N_IT.close, 'secondary', cancel), button(I18N_IT.newGame, 'primary', () => { close(); openStart(); }));
-    dialog.appendChild(footer);
-    close = openModal(dialog, { onCancel: cancel });
+    showVictory();
   }, reducedMotion.matches ? 0 : MORPH_MS + 100);
+}
+
+// Schermata Vittoria: scritta "Vittoria!" come il banner dei Tier, ma resta ferma sullo schermo; sotto Statistiche,
+// Nuova partita e Chiudi (si torna alla partita com'era). Si apre da sola (checkVictory) o dal Menu ("Nemesi uccisa").
+function showVictory() {
+  let close = () => {};
+  const cancel = () => close();
+  const screen = el('div', 'ae-victory-screen');
+  screen.setAttribute('role', 'dialog');
+  screen.setAttribute('aria-modal', 'true');
+  const text = I18N_IT.victoryTitle;
+  const title = el('h2', 'ae-tier-banner-text' + (text.length > 8 ? ' is-long' : ''), text);
+  title.id = 'victory-title';
+  screen.setAttribute('aria-labelledby', title.id);
+  const actions = el('div', 'ae-victory-actions');
+  const statsBtn = button(I18N_IT.statsTitle, 'primary', openStats);
+  const fresh = button(I18N_IT.newGame, 'secondary', () => { close(); openStart(); });
+  const back = button(I18N_IT.close, 'secondary', cancel);
+  [statsBtn, fresh, back].forEach(b => b.classList.add('ae-button--full'));
+  actions.append(statsBtn, fresh, back);
+  screen.append(title, actions);
+  close = openModal(screen, { onCancel: cancel, initialFocus: statsBtn, closeOnScrim: false });
+  screen.parentElement.classList.add('ae-victory-backdrop');
+}
+
+// Statistiche della partita, in sola lettura
+function openStats() {
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.statsTitle, settings.nemesis || '', cancel, { displayTitle: false });
+  dialog.classList.add('ae-stats');
+  const rows = I18N_IT.statsRows;
+  const list = el('dl', 'ae-side-stats');
+  [
+    [rows.turns, turn],
+    [rows.played, Math.max(0, stats.deckSize - deck.length)],
+    [rows.left, deck.length],
+    [rows.minionsKilled, stats.minionsKilled],
+    [rows.powersPaid, stats.powersPaid],
+    [rows.powersResolved, stats.powersResolved],
+    [rows.aetherSpent, stats.aetherSpent],
+    [rows.attacksResolved, stats.attacksResolved]
+  ].forEach(([label, value]) => list.append(el('dt', '', label), el('dd', '', String(value))));
+  // Turni in gioco di ogni minion: prima quelli uccisi, poi quelli ancora in gioco
+  const minions = [
+    ...stats.minions.map(m => ({ name: m.name, turns: m.turns, alive: false })),
+    ...queue.filter(e => e.data.type === 'Minion').map(e => ({ name: e.data.name, turns: Math.max(0, turn - (e.bornTurn || 0)), alive: true }))
+  ];
+  const minionTitle = el('h3', 'ae-stats-subtitle', I18N_IT.statsMinionsTitle);
+  let minionList;
+  if (minions.length) {
+    minionList = el('dl', 'ae-side-stats');
+    minions.forEach(m => minionList.append(
+      el('dt', '', m.name + (m.alive ? ' (' + I18N_IT.stillInPlay + ')' : '')),
+      el('dd', '', I18N_IT.minionTurns(m.turns))));
+  } else {
+    minionList = el('p', 'ae-stats-empty', I18N_IT.statsNoMinions);
+  }
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
+  dialog.append(list, minionTitle, minionList, footer);
+  close = openModal(dialog, { onCancel: cancel });
 }
 
 // --- Creazione del mazzo nemesi (dopo "Inizia partita") ---
@@ -3216,8 +3328,8 @@ function openSideMenu() {
   const cancel = () => close();
   const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
   panel.classList.add('ae-side-menu');
-  const stats = el('dl', 'ae-side-stats');
-  stats.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
+  const statsList = el('dl', 'ae-side-stats');
+  statsList.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
     el('dt', '', I18N_IT.menuDeck), el('dd', '', String(deck.length)));
   // Menu a tendina dello sfondo: cambia subito, si vede dietro al pannello
   const bgRow = el('label', 'ae-side-field');
@@ -3229,13 +3341,16 @@ function openSideMenu() {
   const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
+  // Nemesi uccisa al tavolo (vita a 0): si va alla schermata Vittoria; la partita non cambia (Chiudi torna indietro)
+  const killed = button(I18N_IT.nemesisKilled, 'secondary', () => { close(); showVictory(); });
+  killed.classList.add('ae-button--full');
   const exit = button(I18N_IT.exitGame, 'secondary', () => { close(); openStart(); });
   exit.classList.add('ae-button--full', 'ae-side-exit');
   // Undo: annulla l'ultima azione (prima le modifiche non salvate)
   const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
-  panel.append(stats, undoItem, discardOpen, bgRow, exit);
+  panel.append(statsList, undoItem, discardOpen, killed, bgRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
 }
