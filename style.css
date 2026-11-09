@@ -713,3 +713,20 @@ body { overflow: hidden; }
   display: inline-block; height: 14px; aspect-ratio: 132 / 70; background-color: currentColor;
   -webkit-mask: var(--ae-players-icon) center / contain no-repeat; mask: var(--ae-players-icon) center / contain no-repeat;
 }
+
+/* --- La mia collezione: schermata a parte con le wave e le loro mini espansioni --- */
+.start-collection { gap: 6px; }
+.collection-screen {
+  position: fixed; inset: 0; z-index: 45; display: flex; flex-direction: column; background: var(--ae-bg);
+  padding: calc(var(--ae-safe-top) + 8px) 0 calc(var(--ae-safe-bottom) + 12px); animation: ae-fade .2s ease-out;
+}
+.collection-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px 0 16px; min-height: 52px; }
+.collection-title { font: 600 20px/26px var(--ae-font-display); color: var(--ae-gold); }
+.collection-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.collection-wave { display: flex; flex-direction: column; gap: 2px; padding: 6px 12px; border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface); }
+.collection-item { min-height: 44px; }
+.collection-item.is-wave > span:first-child { font: 600 15px/20px var(--ae-font-ui); }
+.collection-item.is-mini { padding-left: 18px; color: var(--ae-text-muted); font-size: 14px; }
+.collection-item.is-disabled { opacity: .4; }
+.collection-footer { padding: 8px 16px 0; }
+@media (min-width: 900px) { .collection-body, .collection-head, .collection-footer { width: min(100%, 560px); margin-inline: auto; } }

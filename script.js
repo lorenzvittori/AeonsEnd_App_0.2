@@ -100,6 +100,12 @@ const I18N_IT = {
   paidNote: 'Costo pagato',
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
+  baseBox: 'Scatola base',
+  myCollection: 'La mia collezione',
+  collectionHint: 'Spunta quello che possiedi: nemesi e carte nemesi usciranno solo da questi prodotti.',
+  collectionSave: 'Salva collezione',
+  collectionSaved: 'Collezione salvata',
+  collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
   victoryTitle: 'Vittoria!',
   victoryText: 'Il mazzo nemesi è vuoto e non ci sono più poteri né minion della nemesi in gioco: i giocatori vincono.',
   drawCard: 'Pesca carta',
@@ -298,9 +304,69 @@ function battleOf(nemesisName) {
   return info ? info.battle : null;
 }
 
-// Un boss si può scegliere solo se ha una battaglia e le sue carte sono nel progetto
+// --- Collezione: wave possedute e, per ogni wave, scatola base e mini espansioni (scelte nella schermata "La mia
+// collezione", salvate nel browser). Un prodotto ha id "<wave>|base" o "<wave>|<mini espansione>".
+// Le nemesi e le carte Basic / Upgraded Basic si usano solo se il loro prodotto è nella collezione.
+const COLLECTION_KEY = 'aeonsend-app-0.2-collection';
+let collection = null; // Set di id prodotto
+
+function productOfNemesis(info) {
+  return info.wave + '|' + (info.miniExpansion ? info.miniExpansion : 'base');
+}
+
+// Prodotto di una carta Basic / Upgraded Basic dal prefisso del codice (cards.json non ha il campo): le carte
+// NA- sono della scatola base di The New Age, TA- di The Ancients, SD- di Shattered Dreams, ITW- di Into The Wild.
+// Un prefisso sconosciuto: la carta resta sempre ammessa.
+const CARD_PRODUCT_PREFIX = [
+  ['TA-', 'The Ancients'], ['SD-', 'Shattered Dreams'], ['ITW-', 'Into The Wild'], ['NA-', null]
+];
+const NEW_AGE_WAVE = '4 - The New Age';
+function productOfCard(card) {
+  const hit = CARD_PRODUCT_PREFIX.find(([prefix]) => String(card.id).startsWith(prefix));
+  if (!hit) return null;
+  return NEW_AGE_WAVE + '|' + (hit[1] || 'base');
+}
+
+// Tutti i prodotti per wave, nell'ordine delle wave: [{ wave, products: [{ id, name, isBase }] }]
+function collectionCatalog() {
+  const waves = [...new Set([...nemeses].sort((a, b) => a.waveOrder - b.waveOrder).map(n => n.wave))];
+  return waves.map(wave => {
+    const minis = [...new Set(nemeses.filter(n => n.wave === wave && n.miniExpansion).map(n => n.miniExpansion))];
+    return {
+      wave,
+      products: [{ id: wave + '|base', name: I18N_IT.baseBox, isBase: true },
+        ...minis.map(m => ({ id: wave + '|' + m, name: m, isBase: false }))]
+    };
+  });
+}
+
+function loadCollection() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COLLECTION_KEY));
+    if (Array.isArray(saved)) { collection = new Set(saved); return; }
+  } catch (err) { /* collezione illeggibile: si riparte da quella predefinita */ }
+  // Predefinita: i prodotti delle nemesi segnate come possedute in nemesis.json
+  collection = new Set(nemeses.filter(n => n.owned).map(productOfNemesis));
+}
+
+function saveCollection() {
+  try { localStorage.setItem(COLLECTION_KEY, JSON.stringify([...collection])); } catch (err) { console.warn(err); }
+}
+
+function ownsProduct(id) {
+  return !collection || collection.has(id);
+}
+
+// Carta Basic / Upgraded Basic ammessa: il suo prodotto è nella collezione (o non si sa di che prodotto è)
+function cardAllowed(card) {
+  const product = productOfCard(card);
+  return !product || ownsProduct(product);
+}
+
+// Un boss si può scegliere solo se ha una battaglia, le sue carte sono nel progetto e il suo prodotto è nella collezione
 function isPlayable(info) {
-  return info.battle !== null && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
+  return info.battle !== null && ownsProduct(productOfNemesis(info))
+    && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
 }
 
 // Mazzo per la battaglia del boss scelto (Nemesis Deck Setup): per ogni Tier si estraggono a caso le carte base e
@@ -318,8 +384,9 @@ function buildDeck() {
     const basicCount = setup.basic[tier] + (settings.includeUpgraded ? 0 : setup.upgradedBasic[tier]);
     const upgradedCount = settings.includeUpgraded ? setup.upgradedBasic[tier] : 0;
     const group = [
-      ...pickRandom(allCards.filter(c => c.category === 'Basic Nemesis' && ofTier(c)), basicCount),
-      ...pickRandom(allCards.filter(c => c.category === 'Upgraded Basic Nemesis' && ofTier(c)), upgradedCount),
+      // solo le carte dei prodotti della collezione
+      ...pickRandom(allCards.filter(c => c.category === 'Basic Nemesis' && ofTier(c) && cardAllowed(c)), basicCount),
+      ...pickRandom(allCards.filter(c => c.category === 'Upgraded Basic Nemesis' && ofTier(c) && cardAllowed(c)), upgradedCount),
       ...allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && ofTier(c))
     ];
     result.push(...shuffle(group));
@@ -1430,6 +1497,8 @@ function renderBosses(wave) {
 
 function renderStartChoices() {
   nemesisPreviewOpen = false;
+  startOptions.waves = ownedWaves();
+  ensureCollectionButton();
   renderPlayers();
   const waveSelect = document.getElementById('wave-select');
   const current = nemeses.find(n => n.name === settings.nemesis);
@@ -1438,7 +1507,7 @@ function renderStartChoices() {
     option.value = wave;
     return option;
   }));
-  waveSelect.value = current ? current.wave : startOptions.waves[0];
+  waveSelect.value = current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0];
   renderBosses(waveSelect.value);
   document.getElementById('upgraded-switch').checked = settings.includeUpgraded !== false;
 }
@@ -1509,12 +1578,109 @@ function updateStartActions() {
   startBtn.title = startBtn.disabled ? I18N_IT.chooseNemesis : '';
 }
 
+// Wave nella scelta della nemesi: solo quelle della collezione (se nessuna, tutte)
+function ownedWaves() {
+  const all = [...new Set([...nemeses].sort((a, b) => a.waveOrder - b.waveOrder).map(n => n.wave))];
+  const owned = all.filter(w => [...collection].some(id => id.startsWith(w + '|')));
+  return owned.length ? owned : all;
+}
+
 function buildStartPage() {
-  const waves = [...new Set([...nemeses].sort((a, b) => a.waveOrder - b.waveOrder).map(n => n.wave))];
-  startOptions = { players: Object.keys(deckSetup.battles[0].players).map(Number), waves };
+  loadCollection();
+  startOptions = { players: Object.keys(deckSetup.battles[0].players).map(Number), waves: ownedWaves() };
   const firstPlayable = nemeses.find(isPlayable);
   settings = { players: startOptions.players[0], nemesis: firstPlayable ? firstPlayable.name : null, includeUpgraded: true };
   renderStartChoices();
+}
+
+// Pulsante "La mia collezione" nella pagina iniziale (creato qui, così vale anche con un index.html vecchio)
+function ensureCollectionButton() {
+  let row = document.getElementById('collection-row');
+  if (!row) {
+    row = el('section', 'start-group start-collection');
+    row.id = 'collection-row';
+    const b = button(I18N_IT.myCollection, 'secondary', openCollection);
+    b.classList.add('ae-button--full', 'collection-open');
+    row.append(b, el('p', 'start-note collection-summary'));
+    const players = document.getElementById('choices-players').closest('.start-group');
+    players.before(row);
+  }
+  const waves = new Set([...collection].map(id => id.split('|')[0]));
+  row.querySelector('.collection-summary').textContent = I18N_IT.collectionSummary(waves.size, collection.size);
+}
+
+// Schermata "La mia collezione": per ogni wave un interruttore (la wave, cioè la sua scatola base) e sotto le sue
+// mini espansioni. Togliendo una wave si tolgono anche le sue mini espansioni. Le scelte valgono solo con
+// "Salva collezione"; la X torna indietro senza salvare.
+function openCollection() {
+  const draft = new Set(collection);
+  const layer = el('div', 'collection-screen');
+  layer.setAttribute('role', 'dialog');
+  layer.setAttribute('aria-modal', 'true');
+  layer.setAttribute('aria-label', I18N_IT.myCollection);
+  const head = el('div', 'collection-head');
+  const close = () => { layer.remove(); updateInert(); document.querySelector('.collection-open').focus(); };
+  const x = el('button', 'ae-icon-button');
+  x.type = 'button';
+  x.setAttribute('aria-label', I18N_IT.close);
+  x.appendChild(icon('close'));
+  x.addEventListener('click', close);
+  head.append(el('h2', 'collection-title', I18N_IT.myCollection), x);
+  const body = el('div', 'collection-body');
+  body.appendChild(el('p', 'start-note', I18N_IT.collectionHint));
+
+  const toggle = (label, id, extraClass) => {
+    const row = el('label', 'ae-switch-row collection-item' + (extraClass ? ' ' + extraClass : ''));
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('role', 'switch');
+    input.checked = draft.has(id);
+    input.dataset.id = id;
+    const sw = el('span', 'ae-switch');
+    sw.setAttribute('aria-hidden', 'true');
+    row.append(el('span', '', label), input, sw);
+    return row;
+  };
+  collectionCatalog().forEach(({ wave, products }) => {
+    const block = el('section', 'collection-wave');
+    const base = products[0];
+    const waveRow = toggle(wave, base.id, 'is-wave');
+    const minis = products.slice(1).map(m => toggle(m.name, m.id, 'is-mini'));
+    const sync = () => {
+      const on = draft.has(base.id);
+      minis.forEach(r => {
+        const input = r.querySelector('input');
+        input.disabled = !on;
+        r.classList.toggle('is-disabled', !on);
+      });
+    };
+    waveRow.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) draft.add(base.id);
+      else { draft.delete(base.id); products.slice(1).forEach(m => draft.delete(m.id)); minis.forEach(r => { r.querySelector('input').checked = false; }); }
+      sync();
+    });
+    minis.forEach(r => r.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) draft.add(e.target.dataset.id); else draft.delete(e.target.dataset.id);
+    }));
+    block.append(waveRow, ...minis);
+    sync();
+    body.appendChild(block);
+  });
+  const footer = el('div', 'collection-footer');
+  const saveBtn = button(I18N_IT.collectionSave, 'primary', () => {
+    collection = draft;
+    saveCollection();
+    close();
+    renderStartChoices();
+    showToast(I18N_IT.collectionSaved);
+  });
+  saveBtn.classList.add('ae-button--full');
+  footer.appendChild(saveBtn);
+  layer.append(head, body, footer);
+  layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
+  document.body.appendChild(layer);
+  startLayer.inert = true;
+  x.focus();
 }
 
 function showStartSkeleton() {
