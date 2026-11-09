@@ -206,8 +206,9 @@ const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
 // Retro della carta pescata, mostrato prima che si giri (630 x 880 WebP)
-// Dorso delle carte nemesi: l'immagine dell'utente (il retro del kit di design è Assets/ui/decor/card-back.svg)
-const CARD_BACK = 'Assets/ui/decor/card-back.webp';
+// Dorso delle carte nemesi: retro con il logo Aeon's End (immagine dell'utente). I dorsi precedenti restano nel repo:
+// Assets/ui/decor/card-back.webp e card-back.svg (kit di design)
+const CARD_BACK = 'Assets/ui/decor/card-back-logo.webp';
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
 let allCards = [];
@@ -508,7 +509,7 @@ function queueItem(entry, opts) {
   // Le carte grandi della VistaCoda usano la scansione intera, le altre la miniatura
   const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy });
   // (non sulla carta appena pescata: ha già NUOVA e il glow dorato)
-  if (opts.compact && opts.current && !opts.viewed && !entry.isNew) art.appendChild(el('span', 'ae-rail-flag', I18N_IT.activeFlag));
+  // (niente pill RISOLVI sulla carta da risolvere)
 
   button.append(statusBadge(entry), meta, art);
   if (entry.isNew) {
@@ -1472,8 +1473,8 @@ function setStartMode(mode, focus) {
 
 // In 'setup' il pulsante principale è "Inizia partita"; se c'è una partita salvata, sotto resta "Riprendi partita"
 function updateStartActions() {
-  const hasSave = !!readSave();
-  resumeBtn.hidden = !hasSave || startMode === 'choice';
+  // Dopo "Nuova partita" non si offre più "Riprendi partita" (si riprende dalla finestra Partita in corso)
+  resumeBtn.hidden = true;
   resumeBtn.className = 'ae-button ae-button--full ae-button--secondary start-resume-alt';
   startBtn.textContent = I18N_IT.startNew;
   startBtn.className = 'ae-button ae-button--full ae-button--primary';
@@ -1699,7 +1700,7 @@ function lockFor(ms, then) {
 
 // Scritta "Tier N" al centro, marcata: entra ingrandendosi con un bagliore dorato, resta, poi svanisce (2,2 s). App oscurata
 // e non si può toccare; dopo si continua normalmente.
-const TIER_BANNER_MS = 2200;
+const TIER_BANNER_MS = 1760;
 function showTierBanner(tier) {
   const banner = el('div', 'ae-tier-banner');
   banner.setAttribute('role', 'status');
@@ -1822,7 +1823,8 @@ function renderResolve() {
     }
   }
   // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
-  if (!isNewStep && canDraw()) railItems.push(nextCardItem({ current: drawStep, viewed: viewingDraw }));
+  // Il dorso compare nella fascia solo al passo Pesca (non dall'inizio del turno nemesi)
+  if (drawStep && canDraw()) railItems.push(nextCardItem({ current: drawStep, viewed: viewingDraw }));
   rail.replaceChildren(...railItems);
   rail.scrollLeft = railScroll;
   rail.scrollTop = railScrollTop;
@@ -2247,6 +2249,8 @@ function onResolveClick() {
   showActive(next);
   lockFor(duration(effect === 'discard' ? 'discard' : 'focus'));
   render();
+  // Risolta l'ultima carta: la carta da pescare arriva volando dal mazzo
+  if (isDrawStep()) animateDrawIn();
 }
 
 // Dopo un'azione si mostra la nuova carta da risolvere (o la carta appena pescata, che si gira)
@@ -2280,6 +2284,8 @@ function onNemesisClick() {
   }
   render();
   if (resolving) resolveBtn.focus();
+  // Coda vuota: si va subito alla carta da pescare, che arriva dal mazzo
+  if (isDrawStep()) animateDrawIn();
 }
 
 // Mostra un'altra carta senza risolvere nulla (anteprima): non cambia mazzo, vita, token, scarti, turno, undo
@@ -2373,6 +2379,7 @@ rail.addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
   const top = topLayer();
   if (e.key === 'Escape') {
+    if (undoFloat && !modals.length) { closeUndoFloat(); return; }
     if (modals.length) modals[modals.length - 1].onCancel();
     else if (top === discardLayer) closeDiscard();
     return;
@@ -2500,6 +2507,69 @@ function flyToDiscard(nodes) {
   });
 }
 
+// Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare
+// (che resta nascosta finché la copia non arriva). Poi tutto funziona come prima (tocco sul dorso o "Pesca").
+const DRAW_IN_MS = 650;
+function animateDrawIn() {
+  const stage = focusEl.querySelector('.ae-focus-slide--draw .ae-focus-stage');
+  const from = dockDeck.getBoundingClientRect();
+  if (!stage || !from.width || reducedMotion.matches || !document.body.animate) return;
+  const to = stage.getBoundingClientRect();
+  if (!to.width) return;
+  stage.style.visibility = 'hidden';
+  const ghost = el('div', 'ae-fly-ghost ae-draw-ghost');
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = CARD_BACK;
+  ghost.appendChild(img);
+  Object.assign(ghost.style, { left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', height: to.height + 'px' });
+  document.body.appendChild(ghost);
+  const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+  const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+  const s = from.width / to.width;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    ghost.remove();
+    stage.style.visibility = '';
+  };
+  const anim = ghost.animate([
+    { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})`, offset: 0 },
+    { transform: `translate(${dx * 0.45}px, ${dy * 0.55 - 40}px) rotate(10deg) scale(${(1 + s) / 2})`, offset: 0.45 },
+    { transform: 'translate(0, 0) rotate(0deg) scale(1)', offset: 1 }
+  ], { duration: DRAW_IN_MS, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'both' });
+  anim.onfinish = finish;
+  setTimeout(finish, DRAW_IN_MS + 200);
+  lockFor(DRAW_IN_MS);
+}
+
+// "Annulla ultima azione" dal Menu: il menu si chiude e resta un pulsante sospeso che si può toccare più volte;
+// un tocco fuori dal pulsante (o Esc) chiude e si torna all'app
+let undoFloat = null;
+function openUndoFloat() {
+  closeUndoFloat();
+  const layer = el('div', 'ae-undo-float');
+  const b = button(I18N_IT.undoAction, 'primary', e => {
+    e.stopPropagation();
+    undo();
+    sync();
+  });
+  b.classList.add('ae-undo-float-button');
+  const sync = () => { b.disabled = undoStack.length === 0 && ui.drafts.size === 0; };
+  layer.addEventListener('click', e => { if (e.target === layer) closeUndoFloat(); });
+  layer.appendChild(b);
+  document.body.appendChild(layer);
+  undoFloat = layer;
+  sync();
+  b.focus({ preventScroll: true });
+}
+function closeUndoFloat() {
+  if (!undoFloat) return;
+  undoFloat.remove();
+  undoFloat = null;
+}
+
 // Banner veloce "Turno Nemesi": entra da sinistra, si ferma un attimo al centro ed esce a destra
 const TURN_BANNER_MS = 1300;
 function showTurnBanner() {
@@ -2542,7 +2612,7 @@ function openSideMenu() {
   const exit = button(I18N_IT.exitGame, 'secondary', () => { close(); openStart(); });
   exit.classList.add('ae-button--full', 'ae-side-exit');
   // Undo: annulla l'ultima azione (prima le modifiche non salvate)
-  const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); });
+  const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
   panel.append(stats, undoItem, discardOpen, exit);
