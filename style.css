@@ -695,3 +695,10 @@ body { overflow: hidden; }
 /* Turno giocatori: barra di scorrimento delle carte grandi nascosta (come nel turno nemesi); si scorre col dito */
 .ae-queue-viewport { scrollbar-width: none; }
 .ae-queue-viewport::-webkit-scrollbar { display: none; }
+
+/* Testata: stesso spazio dal bordo in alto che c'è tra il pulsante principale e il bordo in basso (12px) */
+.ae-shell.clear-header > .ae-header { padding-top: calc(var(--ae-safe-top) + 10px); min-height: calc(58px + var(--ae-safe-top)); }
+/* Fascia piccola: il box della vita con due numeri lunghi (13/17) può essere più largo della carta, senza tagli */
+.ae-compact-rail .ae-queue-item > .ae-status-badge { max-width: none; overflow: visible; }
+.ae-compact-rail .ae-status-badge.is-long { gap: 1px; padding: 1px 3px; font-size: 10px; letter-spacing: -.02em; }
+.ae-compact-rail .ae-status-badge.is-long .ae-icon { width: 10px; height: 10px; }

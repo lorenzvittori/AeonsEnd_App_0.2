@@ -477,7 +477,10 @@ function statusBadge(entry) {
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
     // Vita + goccia; con una modifica non ancora salvata: vita / massimo
-    badge.append(icon('heart'), el('span', '', entry.isDraft ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp)));
+    const hpText = entry.isDraft ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp);
+    // Testo lungo (per esempio 13/17): nella fascia piccola il box si allarga e il testo si stringe
+    if (hpText.length > 3) badge.classList.add('is-long');
+    badge.append(icon('heart'), el('span', '', hpText));
   } else if (entry.data.type === 'Power') {
     badge.classList.add('ae-status-badge--tokens');
     badge.appendChild(tokenIcons(entry.tokens));
@@ -2564,6 +2567,9 @@ const BG_SLIDE_MS = 800;
 function toPlayersTurn(morphUid, fromNode) {
   const railScroll = rail.scrollLeft;
   const fromRect = fromNode && fromNode.getBoundingClientRect().width ? fromNode.getBoundingClientRect() : null;
+  // Riga vita/token sopra la carta grande del turno nemesi: anche lei si sposta nel box del turno giocatori
+  const fromStatusEl = fromNode && fromNode.closest('.ae-focus-slide') && fromNode.closest('.ae-focus-slide').querySelector('.ae-focus-status > *');
+  const fromStatus = fromStatusEl ? fromStatusEl.parentElement.getBoundingClientRect() : null;
   const motion = !reducedMotion.matches && !!document.body.animate;
   // (lo sfondo non sfuma più: è un'immagine sola che scorre da destra a sinistra, vedi style.css .ae-shell)
   queueView.classList.add('is-from-nemesis');
@@ -2581,10 +2587,19 @@ function toPlayersTurn(morphUid, fromNode) {
       { transform: 'none' }
     ], { duration: MORPH_MS, easing: 'cubic-bezier(.3, 0, .2, 1)' });
   }
+  // Box vita/token della stessa carta: scivola dalla posizione del turno nemesi a quella nuova (stessa misura)
+  const badge = art && art.parentElement.querySelector('.ae-status-badge:not(.ae-status-badge--empty)');
+  const badgeRect = badge && badge.getBoundingClientRect();
+  if (fromStatus && badgeRect && badgeRect.width) {
+    const bx = fromStatus.left + fromStatus.width / 2 - (badgeRect.left + badgeRect.width / 2);
+    const by = fromStatus.top + fromStatus.height / 2 - (badgeRect.top + badgeRect.height / 2);
+    badge.animate([{ transform: `translate(${bx}px, ${by}px)` }, { transform: 'none' }],
+      { duration: MORPH_MS, easing: 'cubic-bezier(.3, 0, .2, 1)' });
+  }
   // Tutto il resto del turno giocatori compare con una breve dissolvenza, a metà della trasformazione
   const others = [...queueList.querySelectorAll('.queue-slot')].flatMap(slot => {
     const isMorph = art && slot.contains(art);
-    return isMorph ? [...slot.querySelectorAll('.queue-controls, .ae-status-badge, .ae-new-tag')] : [slot];
+    return isMorph ? [...slot.querySelectorAll('.queue-controls, .ae-new-tag')].concat(badge && fromStatus ? [] : [...slot.querySelectorAll('.ae-status-badge')]) : [slot];
   });
   others.forEach(node => node.animate([{ opacity: 0 }, { opacity: 1 }],
     { duration: 220, delay: art ? MORPH_MS / 2 : 0, easing: 'ease-out', fill: 'backwards' }));
