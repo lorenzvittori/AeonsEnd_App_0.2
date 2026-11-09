@@ -100,6 +100,8 @@ const I18N_IT = {
   paidNote: 'Costo pagato',
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
+  victoryTitle: 'Vittoria!',
+  victoryText: 'Il mazzo nemesi è vuoto e non ci sono più poteri né minion della nemesi in gioco: i giocatori vincono.',
   drawCard: 'Pesca carta',
   putBack: 'Rimetti nel mazzo',
   discardDrawn: 'Scarta',
@@ -333,13 +335,15 @@ function newGame() {
   maxTierDrawn = 0;
 }
 
-// Pesca la carta in cima al mazzo; se il mazzo è finito si rimescolano gli scarti. Null se non c'è niente da pescare.
+// Pesca la carta in cima al mazzo. Regole di Aeon's End: il mazzo nemesi non si rimescola; se è vuoto la nemesi non
+// pesca (null). Con mazzo vuoto e nessun potere o minion in gioco i giocatori vincono (checkVictory).
 function drawFromDeck() {
-  if (deck.length === 0 && discard.length > 0) {
-    deck = shuffle(discard);
-    discard = [];
-  }
   return deck.pop() || null;
+}
+
+// Vittoria: mazzo nemesi vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi)
+function isVictory() {
+  return turn > 0 && deck.length === 0 && !queue.some(e => e.data.type === 'Power' || e.data.type === 'Minion');
 }
 
 // Carta in gioco (nella coda) con il suo stato
@@ -1775,6 +1779,7 @@ function render() {
     resolveHint.hidden = true;
     renderQueue();
   }
+  checkVictory();
 }
 
 function activeEntry() {
@@ -1788,7 +1793,7 @@ function isDrawStep() {
   return resolving && newIndex < 0 && currentIndex >= queue.length;
 }
 function canDraw() {
-  return deck.length > 0 || discard.length > 0;
+  return deck.length > 0;
 }
 
 // Testo del pulsante per la carta da risolvere (tabella §7.3). Anche sull'ultima carta si va solo avanti: la pesca è
@@ -2603,6 +2608,28 @@ function toPlayersTurn(morphUid, fromNode) {
   });
   others.forEach(node => node.animate([{ opacity: 0 }, { opacity: 1 }],
     { duration: 220, delay: art ? MORPH_MS / 2 : 0, easing: 'ease-out', fill: 'backwards' }));
+}
+
+// Finestra "Vittoria" quando la condizione si avvera nel turno giocatori. Chiusa una volta, non si ripropone finché lo
+// stato non cambia (per esempio con Undo si torna indietro e la condizione non vale più).
+let victoryKey = '';
+function checkVictory() {
+  if (resolving || !isVictory()) { victoryKey = ''; return; }
+  const key = turn + ':' + discard.length + ':' + queue.length;
+  if (victoryKey === key || modals.length || !startLayer.hidden) return;
+  victoryKey = key;
+  setTimeout(() => {
+    if (resolving || !isVictory() || modals.length) return;
+    let close = () => {};
+    const cancel = () => close();
+    const dialog = dialogShell(I18N_IT.victoryTitle, '', cancel);
+    dialog.classList.add('ae-victory');
+    dialog.appendChild(el('p', 'ae-victory-text', I18N_IT.victoryText));
+    const footer = el('div', 'ae-modal-footer');
+    footer.append(button(I18N_IT.close, 'secondary', cancel), button(I18N_IT.newGame, 'primary', () => { close(); openStart(); }));
+    dialog.appendChild(footer);
+    close = openModal(dialog, { onCancel: cancel });
+  }, reducedMotion.matches ? 0 : MORPH_MS + 100);
 }
 
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare

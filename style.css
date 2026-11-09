@@ -702,3 +702,7 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-queue-item > .ae-status-badge { max-width: none; overflow: visible; }
 .ae-compact-rail .ae-status-badge.is-long { gap: 1px; padding: 1px 3px; font-size: 10px; letter-spacing: -.02em; }
 .ae-compact-rail .ae-status-badge.is-long .ae-icon { width: 10px; height: 10px; }
+
+/* Finestra Vittoria */
+.ae-victory .ae-modal-title { color: var(--ae-gold); }
+.ae-victory-text { color: var(--ae-text-muted); font: 500 15px/22px var(--ae-font-ui); }
