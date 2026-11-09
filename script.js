@@ -2889,12 +2889,17 @@ function runDeckBuild() {
     nemesisBtn.focus({ preventScroll: true });
   };
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
-  // Ordine: Tier 3, 2, 1; in ogni Tier Base, Potenziate, Specifiche
+  // Ordine: Tier 3, poi 2, poi 1; dentro ogni Tier le carte partono in ordine casuale dai tre mazzi (Base,
+  // Potenziate, Specifiche), così si vede che vengono prese e mescolate a caso
   const launches = [];
-  [3, 2, 1].forEach(tier => ['basic', 'upgraded', 'specific'].forEach(kind => {
-    const pile = layer.querySelector(`.deck-build-pile[data-tier="${tier}"][data-kind="${kind}"]`);
-    for (let i = 0; i < Number(pile.dataset.left); i++) launches.push(pile);
-  }));
+  [3, 2, 1].forEach(tier => {
+    const ofTier = [];
+    ['basic', 'upgraded', 'specific'].forEach(kind => {
+      const pile = layer.querySelector(`.deck-build-pile[data-tier="${tier}"][data-kind="${kind}"]`);
+      for (let i = 0; i < Number(pile.dataset.left); i++) ofTier.push(pile);
+    });
+    launches.push(...shuffle(ofTier));
+  });
   const total = launches.length;
   const duration = total ? (total - 1) * DECK_FLY_STAGGER + DECK_FLY_MS : 0;
   lockFor(duration + 300, finish);
