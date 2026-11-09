@@ -730,3 +730,24 @@ body { overflow: hidden; }
 .collection-item.is-disabled { opacity: .4; }
 .collection-footer { padding: 8px 16px 0; }
 @media (min-width: 900px) { .collection-body, .collection-head, .collection-footer { width: min(100%, 560px); margin-inline: auto; } }
+
+/* --- Creazione del mazzo nemesi: 9 mazzi (Tier × Base / Potenziate / Specifiche) prima del turno giocatori --- */
+.ae-main.is-deck-building > .queue-view { visibility: hidden; }
+.deck-build {
+  position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 8px 12px;
+}
+.deck-build-title { font: 600 20px/26px var(--ae-font-display); color: var(--ae-gold); letter-spacing: .06em; text-shadow: 0 1px 4px rgba(0, 0, 0, .9); }
+.deck-build-grid { display: grid; grid-template-columns: 28px repeat(3, auto); align-items: center; justify-items: center; gap: 12px 18px; }
+.deck-build-head { font: 600 14px/18px var(--ae-font-display); color: var(--ae-text); text-align: center; text-shadow: 0 1px 3px rgba(0, 0, 0, .9); }
+.deck-build-tier { font: 600 18px/1 var(--ae-font-display); color: var(--ae-text-muted); }
+.deck-build-pile { position: relative; height: min(17vh, 128px); aspect-ratio: 63 / 88; }
+.deck-build-pile img {
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 5% / 3.58%;
+  box-shadow: 2px 2px 0 -1px #2a2c34, 4px 4px 0 -1px #1b1d24, 6px 6px 0 -1px #14151b, 0 4px 12px rgba(0, 0, 0, .7);
+}
+.deck-build-pile .ae-pile-count { min-width: 30px; height: 30px; font-size: 14px; }
+.deck-build-pile.is-empty img { opacity: .25; box-shadow: none; }
+.ae-deck-card { box-shadow: 0 8px 18px rgba(0, 0, 0, .6); }
+/* Il mazzo in alto riceve una carta: piccolo rimbalzo */
+.ae-pile--deck.is-bump { animation: ae-pile-bump .3s cubic-bezier(.2, 1.4, .4, 1); }

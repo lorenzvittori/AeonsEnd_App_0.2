@@ -100,6 +100,10 @@ const I18N_IT = {
   paidNote: 'Costo pagato',
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
+  buildDeck: 'Crea mazzo',
+  deckBuildTitle: 'Mazzo nemesi',
+  deckBuildKinds: { basic: 'Base', upgraded: 'Potenziate', specific: 'Specifiche' },
+  deckBuildPile: (n, kind, tier) => n + ' carte ' + kind + ' Tier ' + tier,
   baseBox: 'Scatola base',
   myCollection: 'La mia collezione',
   collectionHint: 'Spunta quello che possiedi: nemesi e carte nemesi usciranno solo da questi prodotti.',
@@ -375,7 +379,10 @@ function isPlayable(info) {
 // Tier: il numero di carte resta uguale.
 // Ogni Tier è mescolato a parte; si pesca dalla fine, quindi in cima c'è il Tier 1 e in fondo il Tier 3.
 // Restano fuori le carte senza Tier (World Devourer, Rending Claw) e la maledizione dei giocatori.
+// Ultimo mazzo creato: carte prese da ogni mazzo (Tier × Base / Potenziate / Specifiche)
+let deckPlan = [];
 function buildDeck() {
+  deckPlan = [];
   const battle = deckSetup.battles.find(b => b.battle === battleOf(settings.nemesis));
   const setup = battle.players[String(settings.players)];
   const result = [];
@@ -383,13 +390,14 @@ function buildDeck() {
     const ofTier = c => c.tier === tier && c.type !== 'Curse';
     const basicCount = setup.basic[tier] + (settings.includeUpgraded ? 0 : setup.upgradedBasic[tier]);
     const upgradedCount = settings.includeUpgraded ? setup.upgradedBasic[tier] : 0;
-    const group = [
-      // solo le carte dei prodotti della collezione
-      ...pickRandom(allCards.filter(c => c.category === 'Basic Nemesis' && ofTier(c) && cardAllowed(c)), basicCount),
-      ...pickRandom(allCards.filter(c => c.category === 'Upgraded Basic Nemesis' && ofTier(c) && cardAllowed(c)), upgradedCount),
-      ...allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && ofTier(c))
-    ];
-    result.push(...shuffle(group));
+    // solo le carte dei prodotti della collezione
+    const basic = pickRandom(allCards.filter(c => c.category === 'Basic Nemesis' && ofTier(c) && cardAllowed(c)), basicCount);
+    const upgraded = pickRandom(allCards.filter(c => c.category === 'Upgraded Basic Nemesis' && ofTier(c) && cardAllowed(c)), upgradedCount);
+    const specific = allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && ofTier(c));
+    // Quante carte vengono da ognuno dei 9 mazzi (per la schermata "Crea mazzo")
+    deckPlan.push({ tier, kind: 'basic', count: basic.length }, { tier, kind: 'upgraded', count: upgraded.length },
+      { tier, kind: 'specific', count: specific.length });
+    result.push(...shuffle([...basic, ...upgraded, ...specific]));
   });
   return result;
 }
@@ -1723,8 +1731,12 @@ function startGame() {
   ui.flyingDiscards = 0;
   undoStack = [];
   newGame();
+  // Prima del turno giocatori: i 9 mazzi da cui nasce il mazzo nemesi e il pulsante "Crea mazzo"
+  ui.deckBuilding = true;
+  ui.deckShown = 0;
   render();
   save();
+  showDeckBuild();
   slideToGame(() => nemesisBtn.focus());
 }
 
@@ -1790,6 +1802,10 @@ function restore(s) {
   clearTransition();
   ui.drafts.clear();
   ui.flyingDiscards = 0;
+  // Una creazione del mazzo interrotta (ripresa o undo): si va direttamente alla partita
+  ui.deckBuilding = false;
+  ui.deckShown = null;
+  closeDeckBuild();
   closeAllModals();
   closeDiscard();
   ui.reveal = null;
@@ -1936,7 +1952,7 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
+  nemesisBtn.textContent = ui.deckBuilding ? I18N_IT.buildDeck : saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
   nemesisBtn.classList.toggle('is-save', saving);
   updateInfo();
   renderDockPiles();
@@ -2487,6 +2503,10 @@ function showActive(entry) {
 function onNemesisClick() {
   if (resolving || ui.isTransitioning || !deckSetup) return;
   // Con modifiche non salvate il pulsante è "Salva modifiche"
+  if (ui.deckBuilding) {
+    runDeckBuild();
+    return;
+  }
   if (ui.drafts.size) {
     saveAllDrafts();
     return;
@@ -2678,7 +2698,9 @@ function pileContent(node, imgSrc, count) {
 
 // Le carte ancora in volo verso gli scarti non si contano finché non atterrano (ui.flyingDiscards)
 function renderDockPiles() {
-  pileContent(dockDeck, deck.length ? CARD_BACK : null, deck.length);
+  // Durante la creazione del mazzo il numero sale man mano che le carte arrivano (ui.deckShown)
+  const deckCount = ui.deckShown !== null && ui.deckShown !== undefined ? ui.deckShown : deck.length;
+  pileContent(dockDeck, deckCount ? CARD_BACK : null, deckCount);
   dockDeck.setAttribute('aria-label', I18N_IT.deckLabel(deck.length));
   dockDeck.setAttribute('aria-haspopup', 'true');
   const shown = Math.max(0, discard.length - ui.flyingDiscards);
@@ -2804,6 +2826,119 @@ function checkVictory() {
     dialog.appendChild(footer);
     close = openModal(dialog, { onCancel: cancel });
   }, reducedMotion.matches ? 0 : MORPH_MS + 100);
+}
+
+// --- Creazione del mazzo nemesi (dopo "Inizia partita") ---
+// Si vedono i 9 mazzi da cui nasce il mazzo nemesi: righe Tier 1-3, colonne Base / Potenziate / Specifiche, ognuno con
+// il numero di carte che ne verranno prese. "Crea mazzo" (il pulsante principale) le fa volare una alla volta nel mazzo
+// nemesi in alto a sinistra: prima il Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima); il numero del mazzo sale
+// a ogni carta. Alla fine la schermata sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame).
+const DECK_FLY_MS = 520;
+const DECK_FLY_STAGGER = 70;
+function showDeckBuild() {
+  closeDeckBuild();
+  const layer = el('div', 'deck-build');
+  layer.id = 'deck-build';
+  const grid = el('div', 'deck-build-grid');
+  grid.appendChild(el('span', 'deck-build-corner'));
+  ['basic', 'upgraded', 'specific'].forEach(kind => grid.appendChild(el('span', 'deck-build-head', I18N_IT.deckBuildKinds[kind])));
+  [1, 2, 3].forEach(tier => {
+    grid.appendChild(el('span', 'deck-build-tier', 'T' + tier));
+    ['basic', 'upgraded', 'specific'].forEach(kind => {
+      const plan = deckPlan.find(p => p.tier === tier && p.kind === kind) || { count: 0 };
+      const pile = el('div', 'deck-build-pile' + (plan.count ? '' : ' is-empty'));
+      pile.dataset.tier = tier;
+      pile.dataset.kind = kind;
+      pile.dataset.left = plan.count;
+      pile.setAttribute('role', 'img');
+      pile.setAttribute('aria-label', I18N_IT.deckBuildPile(plan.count, I18N_IT.deckBuildKinds[kind].toLowerCase(), tier));
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = CARD_BACK;
+      const count = el('span', 'ae-pile-count', String(plan.count));
+      count.setAttribute('aria-hidden', 'true');
+      pile.append(img, count);
+      grid.appendChild(pile);
+    });
+  });
+  layer.append(el('h2', 'deck-build-title', I18N_IT.deckBuildTitle), grid);
+  mainEl.appendChild(layer);
+  mainEl.classList.add('is-deck-building');
+}
+
+function closeDeckBuild() {
+  mainEl.classList.remove('is-deck-building');
+  const old = document.getElementById('deck-build');
+  if (old) old.remove();
+}
+
+function runDeckBuild() {
+  const layer = document.getElementById('deck-build');
+  const finish = () => {
+    ui.deckBuilding = false;
+    ui.deckShown = null;
+    mainEl.classList.remove('is-deck-building');
+    if (layer && layer.isConnected && layer.animate && !reducedMotion.matches) {
+      const fade = layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
+      fade.onfinish = () => layer.remove();
+      setTimeout(() => layer.remove(), 400);
+    } else {
+      closeDeckBuild();
+    }
+    render();
+    nemesisBtn.focus({ preventScroll: true });
+  };
+  if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
+  // Ordine: Tier 3, 2, 1; in ogni Tier Base, Potenziate, Specifiche
+  const launches = [];
+  [3, 2, 1].forEach(tier => ['basic', 'upgraded', 'specific'].forEach(kind => {
+    const pile = layer.querySelector(`.deck-build-pile[data-tier="${tier}"][data-kind="${kind}"]`);
+    for (let i = 0; i < Number(pile.dataset.left); i++) launches.push(pile);
+  }));
+  const total = launches.length;
+  const duration = total ? (total - 1) * DECK_FLY_STAGGER + DECK_FLY_MS : 0;
+  lockFor(duration + 300, finish);
+  ui.deckBuilding = false; // il pulsante non riparte durante l'animazione (resta bloccato da lockFor)
+  nemesisBtn.textContent = I18N_IT.buildDeck;
+  launches.forEach((pile, i) => {
+    setTimeout(() => {
+      // La carta parte: il mazzo d'origine scende di uno
+      const left = Number(pile.dataset.left) - 1;
+      pile.dataset.left = left;
+      pile.querySelector('.ae-pile-count').textContent = String(left);
+      if (left <= 0) pile.classList.add('is-empty');
+      const from = pile.querySelector('img').getBoundingClientRect();
+      const to = dockDeck.getBoundingClientRect();
+      const ghost = el('div', 'ae-fly-ghost ae-draw-ghost ae-deck-card');
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = CARD_BACK;
+      ghost.appendChild(img);
+      Object.assign(ghost.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
+      document.body.appendChild(ghost);
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      const s = to.width / from.width;
+      let landed = false;
+      const land = () => {
+        if (landed) return;
+        landed = true;
+        ghost.remove();
+        ui.deckShown = Math.min(deck.length, (ui.deckShown || 0) + 1);
+        renderDockPiles();
+        dockDeck.classList.remove('is-bump');
+        void dockDeck.offsetWidth;
+        dockDeck.classList.add('is-bump');
+      };
+      const anim = ghost.animate([
+        { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) rotate(${i % 2 ? 8 : -8}deg) scale(${(1 + s) / 2})`, offset: 0.5 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})` }
+      ], { duration: DECK_FLY_MS, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+      anim.onfinish = land;
+      setTimeout(land, DECK_FLY_MS + 150);
+    }, i * DECK_FLY_STAGGER);
+  });
 }
 
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare
