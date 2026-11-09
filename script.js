@@ -2839,7 +2839,9 @@ function checkVictory() {
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
 const DECK_FLY_MS = 520;
 const DECK_FLY_STAGGER = 70;
-const DECK_TIER_PAUSE = 500;
+const DECK_TIER_PAUSE = 250;
+// Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte
+const DECK_FAN_FLIP_MS = 450;
 
 // Carte Specifiche della nemesi della partita per un Tier (come in buildDeck)
 function specificCardsOf(tier) {
@@ -2872,11 +2874,19 @@ function showDeckBuild() {
         cards.forEach((data, i) => {
           const card = el('span', 'deck-build-fan-card');
           card.style.setProperty('--fan', String(i - mid));
+          // Due facce: fronte (la carta) e dorso; con "Crea mazzo" la carta si gira
+          const inner = el('span', 'deck-build-fan-inner');
           const img = document.createElement('img');
           img.alt = '';
+          img.className = 'deck-build-fan-front';
           img.src = data.thumb;
           img.addEventListener('error', () => { img.src = encodeURI(data.image); }, { once: true });
-          card.appendChild(img);
+          const back = document.createElement('img');
+          back.alt = '';
+          back.className = 'deck-build-fan-back';
+          back.src = CARD_BACK;
+          inner.append(img, back);
+          card.appendChild(inner);
           pile.appendChild(card);
         });
         pile.addEventListener('click', () => { if (!ui.isTransitioning) openSpecificViewer(tier); });
@@ -2949,8 +2959,10 @@ function runDeckBuild() {
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
   // Tempi di partenza: dentro un Tier una carta ogni DECK_FLY_STAGGER; il Tier dopo parte DECK_TIER_PAUSE dopo
   // l'arrivo dell'ultima carta del Tier prima
+  // Prima si girano le Specifiche, poi partono le carte
+  layer.classList.add('is-flipping');
   const launches = [];
-  let time = 0;
+  let time = DECK_FAN_FLIP_MS;
   [3, 2, 1].forEach(tier => {
     const ofTier = [];
     ['basic', 'upgraded', 'specific'].forEach(kind => {
@@ -2984,8 +2996,8 @@ function launchDeckCard(pile, i) {
     const remaining = [...pile.querySelectorAll('.deck-build-fan-card:not(.is-gone)')];
     const card = remaining[Math.floor(Math.random() * remaining.length)];
     if (card) {
+      // la carta è già girata: vola coperta
       source = card;
-      faceUp = card.querySelector('img').src;
       card.classList.add('is-gone');
     }
   }

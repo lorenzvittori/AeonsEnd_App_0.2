@@ -775,3 +775,25 @@ body { overflow: hidden; }
 .ae-spec-caption { color: var(--ae-text-muted); font: 600 13px/18px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; }
 .deck-build-fan-card { transform: translateX(calc(-50% + var(--fan) * 12px)) rotate(calc(var(--fan) * 8deg)); }
 .deck-build-pile.is-fan { width: calc(min(13vh, 100px) * 63 / 88 + 30px); }
+
+/* Creazione del mazzo: le Specifiche non mostrano il numero (sono sempre tutte); si girano con "Crea mazzo" */
+.deck-build-pile.is-fan .ae-pile-count { display: none; }
+.deck-build-fan-card { overflow: visible; perspective: 600px; box-shadow: none; }
+.deck-build-fan-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.3, 0, .2, 1); }
+.deck-build-fan-inner > img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 5% / 3.58%;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 3px 10px rgba(0, 0, 0, .7);
+}
+.deck-build-fan-back { transform: rotateY(180deg); }
+.deck-build.is-flipping .deck-build-fan-inner { transform: rotateY(180deg); }
+.deck-build.is-flipping .deck-build-pile.is-fan:nth-child(n) .deck-build-fan-card:nth-child(2) .deck-build-fan-inner { transition-delay: .06s; }
+.deck-build.is-flipping .deck-build-pile.is-fan .deck-build-fan-card:nth-child(3) .deck-build-fan-inner { transition-delay: .12s; }
+@media (prefers-reduced-motion: reduce) { .deck-build-fan-inner { transition: none; } }
+
+/* Bordo dei dorsi (mazzi in alto e nella creazione del mazzo): più chiaro e un po' più evidente */
+.ae-pile img, .deck-build-pile > img, .deck-build-fan-inner > img {
+  box-shadow: 0 0 0 1px rgba(236, 232, 222, .45), 2px 2px 0 -1px #555865, 4px 4px 0 -1px #3d404a, 0 2px 8px rgba(0, 0, 0, .7);
+}
+.deck-build-fan-inner > img { box-shadow: 0 0 0 1px rgba(236, 232, 222, .45), 0 3px 10px rgba(0, 0, 0, .7); }
+.ae-fly-ghost.ae-deck-card img { box-shadow: 0 0 0 1px rgba(236, 232, 222, .45); }
+.deck-build-fan-card { width: calc(min(13vh, 100px) * 63 / 88); }
