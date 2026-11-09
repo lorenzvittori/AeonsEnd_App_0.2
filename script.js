@@ -121,6 +121,7 @@ const I18N_IT = {
   cardPutBack: name => `${name}: rimessa in cima al mazzo`,
   cardDiscarded: name => `${name}: negli scarti`,
   saveChanges: 'Salva modifiche',
+  cancelChanges: 'Annulla modifiche',
   minionKilled: name => `${name}: ucciso, andrà negli scarti`,
   deckLabel: n => `Mazzo nemesi, ${n} ${n === 1 ? 'carta' : 'carte'}`,
   powerPaid: name => `${name}: costo pagato, andrà negli scarti`,
@@ -175,6 +176,7 @@ const discardBtn = document.getElementById('discard-btn');
 const menuBtn = document.getElementById('menu-btn');
 const resolveHint = document.getElementById('resolve-hint');
 const nemesisBtn = document.getElementById('nemesis-btn');
+let cancelDraftsBtn = null; // "Annulla modifiche", creato in fondo (vicino agli altri pulsanti)
 const resolveBtn = document.getElementById('resolve-btn');
 const backBtn = document.getElementById('back-btn');
 const startLayer = document.getElementById('start');
@@ -598,7 +600,9 @@ function queueItem(entry, opts) {
   meta.append(el('strong', '', data.name), el('small', '', typeName(data)));
 
   // Le carte grandi della VistaCoda usano la scansione intera, le altre la miniatura
-  const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy });
+  // Fascia piccola: miniatura disegnata subito (sync), così ridisegnando la fascia (per esempio con Turno Nemesi) le carte
+  // non spariscono per un attimo
+  const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy, sync: !!opts.compact });
   // (non sulla carta appena pescata: ha già NUOVA e il glow dorato)
   // (niente pill RISOLVI sulla carta da risolvere)
 
@@ -936,7 +940,18 @@ function renderQueue() {
   const previousTop = queueViewport.scrollTop;
   const railEl = ensureQueueRail();
   const railScroll = railEl.scrollLeft;
-  railEl.replaceChildren(...queue.map((entry, i) => queueItem(displayEntry(entry), { compact: true, index: i, total: queue.length })));
+  railEl.replaceChildren(...queue.map((entry, i) => {
+    const item = queueItem(displayEntry(entry), { compact: true, index: i, total: queue.length });
+    // Vita del minion in modifica: "HP: −x" anche sulla carta piccola, al centro
+    const d = draftOf(entry);
+    if (d && d.hp !== undefined) {
+      const change = d.hp - entry.hp;
+      const tag = el('span', 'queue-hp-tag rail-hp-tag ' + (change < 0 ? 'is-loss' : 'is-gain'), I18N_IT.hpTurnTag(change));
+      tag.setAttribute('aria-hidden', 'true');
+      item.querySelector('.ae-card-art').appendChild(tag);
+    }
+    return item;
+  }));
   railEl.scrollLeft = railScroll;
   railEl.hidden = queue.length === 0;
   queueList.replaceChildren(...queue.map((entry, i) => {
@@ -1964,6 +1979,10 @@ function render() {
   const saving = !resolving && ui.drafts.size > 0;
   nemesisBtn.textContent = ui.deckBuilding ? I18N_IT.buildDeck : saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
   nemesisBtn.classList.toggle('is-save', saving);
+  if (cancelDraftsBtn) {
+    cancelDraftsBtn.hidden = !saving || ui.deckBuilding;
+    cancelDraftsBtn.parentElement.hidden = resolving;
+  }
   updateInfo();
   renderDockPiles();
   updateUndoBtn();
@@ -2266,10 +2285,12 @@ focusEl.addEventListener('scroll', () => {
 // Larghezza della carta grande: UNA sola regola per turno giocatori e turno nemesi, così sono sempre uguali.
 // Sopra la carta il box vita/token (41px + 8 di spazio); i comandi del turno giocatori (52px) stanno sotto, quindi si
 // riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
+// Altezza della riga vita/token sopra la carta (era 41px, ora il 90%): style.css .ae-focus-status e .queue-slot
+const STATUS_H = 37;
 function sharedCardWidth(boxW, boxH, padY, peekRoom) {
   const byWidth = boxW - 16 - peekRoom; // 8px di margine per lato (erano 16)
-  const byHeight = (boxH - padY - 41 - 8) / CARD_RATIO;
-  const byControls = (boxH - 2 * 52 - 41 - 8) / CARD_RATIO;
+  const byHeight = (boxH - padY - STATUS_H - 8) / CARD_RATIO;
+  const byControls = (boxH - 2 * 52 - STATUS_H - 8) / CARD_RATIO;
   return Math.floor(Math.min(byWidth, byHeight, byControls));
 }
 
@@ -2286,21 +2307,12 @@ function sizeFocus(recentre = true) {
   focusEl.style.setProperty('--ae-focus-w', width + 'px');
   focusEl.style.setProperty('--cw', width + 'px');
   focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';
-  // Carta da pescare e carta pescata: più grandi (fino al 30%), carta e riga vita/token insieme (stessa misura per
-  // dorso e fronte). Si usa tutto lo spazio libero sopra e sotto il blocco: il punto fisso dell'ingrandimento
-  // (transform-origin) divide la crescita in proporzione allo spazio sopra e sotto. In larghezza resta nello schermo.
-  const cardH = width * CARD_RATIO;
-  const blockH = 41 + 8 + cardH;
-  const inner = focusEl.clientHeight - padY;
-  const blockTop = (inner - blockH) / 2;
-  const shift = 14; // .ae-focus-track è alzato di 14px (style.css)
-  const padTop = parseFloat(style.paddingTop);
-  const topRoom = Math.max(0, blockTop - (shift - padTop) - 4);
-  const bottomRoom = Math.max(0, (focusEl.clientHeight - padTop + shift) - (blockTop + blockH) - 4);
-  const big = Math.max(1, Math.min(1.3, 1 + (topRoom + bottomRoom) / blockH, (focusEl.clientWidth - 8) / width));
-  const origin = topRoom + bottomRoom > 0 ? blockTop + blockH * topRoom / (topRoom + bottomRoom) : blockTop + blockH / 2;
-  focusEl.style.setProperty('--ae-big-scale', big.toFixed(3));
-  focusEl.style.setProperty('--ae-big-origin', origin.toFixed(1) + 'px');
+  // Carta da pescare e carta pescata: più grandi (fino al 30%), stessa misura per dorso e fronte. Cresce solo la carta:
+  // la riga vita/token resta grande come nelle altre carte. Il blocco (riga + carta) è centrato in verticale tra la
+  // fascia piccola e il pulsante (style.css .ae-focus-slide.is-big), con 4px di margine sopra e sotto.
+  const byHeight = (focusEl.clientHeight - 8 - STATUS_H - 8) / CARD_RATIO;
+  const bigW = Math.floor(Math.max(width, Math.min(width * 1.3, byHeight, focusEl.clientWidth - 16)));
+  focusEl.style.setProperty('--ae-big-w', bigW + 'px');
   if (recentre && focusEl.dataset.uid) scrollFocusTo(focusEl.dataset.uid, false);
 }
 
@@ -2534,14 +2546,24 @@ function onNemesisClick() {
   // Lo sfondo scorre verso il lato della nemesi (0,8 s, style.css .ae-shell): il token della prima carta aspetta
   ui.bgSlideUntil = reducedMotion.matches ? 0 : performance.now() + BG_SLIDE_MS;
   ui.viewedUid = null;
+  // Le carte non spariscono e non ricompaiono: niente dissolvenza della vista, la fascia piccola resta dove era
+  // (stesso scorrimento); cambiano solo lo sfondo e i pulsanti
+  const railScroll = queueRail ? queueRail.scrollLeft : 0;
+  // Le carte grandi partono dalla carta che si stava guardando e scorrono fino alla prima da risolvere (renderFocus)
+  const shownUid = queue.length ? centredQueueUid() : null;
+  if (shownUid !== null && entryByUid(shownUid)) focusEl.dataset.uid = String(shownUid);
+  else delete focusEl.dataset.uid;
   if (resolving) {
     showActive(activeEntry());
     resolveView.classList.remove('is-entering');
-    void resolveView.offsetWidth;
-    resolveView.classList.add('is-entering');
     lockFor(duration('phase'));
   }
   render();
+  if (resolving) {
+    rail.scrollLeft = railScroll;
+    const current = rail.querySelector('[aria-current="true"]');
+    if (current) scrollItemInto(rail, current, 'nearest');
+  }
   if (resolving) resolveBtn.focus();
   // Coda vuota: si va subito alla carta da pescare, che arriva dal mazzo
   if (isDrawStep()) animateDrawIn();
@@ -2855,10 +2877,11 @@ function checkVictory() {
 // Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), senza pause tra un Tier e l'altro; dentro ogni Tier
 // le carte partono in ordine casuale dai tre mazzi. Il numero del mazzo sale a ogni carta. Alla fine la schermata
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
-const DECK_FLY_MS = 520;
-const DECK_FLY_STAGGER = 70;
+// Tempi accelerati del 25% (erano 520 / 70 / 450 ms)
+const DECK_FLY_MS = 390;
+const DECK_FLY_STAGGER = 53;
 // Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte
-const DECK_FAN_FLIP_MS = 450;
+const DECK_FAN_FLIP_MS = 340;
 
 // Carte Specifiche della nemesi della partita per un Tier (come in buildDeck)
 function specificCardsOf(tier) {
@@ -3251,6 +3274,22 @@ startBtn.addEventListener('click', onStartClick);
 resumeBtn.addEventListener('click', resumeGame);
 undoBtn.addEventListener('click', undo);
 nemesisBtn.addEventListener('click', onNemesisClick);
+// Turno giocatori con modifiche non salvate: "Annulla modifiche" accanto a "Salva modifiche" (stessa riga) toglie tutte
+// le bozze (vita dei minion, costi pagati); non è un passo di undo, perché le bozze non sono ancora nella partita
+cancelDraftsBtn = el('button', 'ae-button ae-button--secondary ae-cancel-drafts', I18N_IT.cancelChanges);
+cancelDraftsBtn.type = 'button';
+cancelDraftsBtn.hidden = true;
+{
+  const row = el('div', 'ae-main-row');
+  nemesisBtn.before(row);
+  row.append(cancelDraftsBtn, nemesisBtn);
+}
+cancelDraftsBtn.addEventListener('click', () => {
+  if (resolving || ui.isTransitioning || !ui.drafts.size) return;
+  ui.drafts.clear();
+  render();
+  nemesisBtn.focus({ preventScroll: true });
+});
 resolveBtn.addEventListener('click', onResolveClick);
 backBtn.addEventListener('click', backToActive);
 retryBtn.addEventListener('click', init);

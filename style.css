@@ -833,3 +833,41 @@ body { overflow: hidden; }
 }
 @keyframes ae-start-banner { 0% { transform: translateX(-100%); } 22% { transform: none; } 75% { transform: none; } 100% { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .ae-start-banner { animation: ae-fade 1.5s linear reverse forwards; } }
+
+/* --- 9 nov --- */
+/* Riga vita/token sopra le carte grandi al 90% (era 41px, 24px di testo, icona 20px, token 39px); lo spazio va alla carta
+   (script.js STATUS_H) */
+.ae-focus-status { min-height: 37px; gap: 7px; font-size: 21.6px; line-height: 27px; }
+.ae-focus-status .ae-icon { width: 18px; height: 18px; }
+.ae-focus-status .ae-token { width: 35px; height: 35px; }
+.queue-slot .ae-queue-item > .ae-status-badge { height: 37px; gap: 7px; font-size: 21.6px; line-height: 27px; }
+.queue-slot .ae-status-badge .ae-icon { width: 18px; height: 18px; }
+.queue-slot .ae-status-badge .ae-token { width: 35px; height: 35px; }
+.queue-slot .ae-new-tag { top: 43px; }
+
+/* Carta da pescare e carta pescata: cresce solo la carta (larghezza --ae-big-w da sizeFocus), la riga vita/token resta
+   come nelle altre carte. Il blocco è centrato in verticale (annulla lo spostamento in su di 14px del carosello) */
+.ae-focus-slide.is-big { scale: none; translate: 0 14px; flex-basis: var(--ae-big-w, var(--ae-focus-w, 280px)); --cw: var(--ae-big-w, 300px); }
+.ae-focus-slide.is-big .ae-focus-stage {
+  scale: none; width: var(--ae-big-w, var(--ae-focus-w, 280px)); height: calc(var(--ae-big-w, var(--ae-focus-w, 280px)) * 88 / 63);
+}
+
+/* Fascia piccola: "HP: −x" del minion in modifica, al centro della carta */
+.ae-compact-rail .ae-queue-item .ae-card-art { position: relative; }
+.ae-compact-rail .rail-hp-tag {
+  top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); z-index: 4; padding: 1px 4px; border-radius: 5px;
+  font-size: 11px; line-height: 14px; white-space: nowrap;
+}
+
+/* Turno giocatori con modifiche: "Annulla modifiche" e "Salva modifiche" sulla stessa riga */
+.ae-main-row { display: flex; gap: 8px; }
+.ae-main-row[hidden] { display: none; }
+.ae-main-row > .ae-button { flex: 1 1 0; min-width: 0; }
+.ae-main-row > .ae-cancel-drafts { flex: 0 0 auto; padding-left: 14px; padding-right: 14px; }
+
+/* Creazione del mazzo: animazioni più veloci del 25% */
+.deck-build-fan-inner { transition-duration: .34s; }
+.deck-build-fan-card { transition-duration: .26s; }
+.deck-build.is-flipping .deck-build-pile.is-fan:nth-child(n) .deck-build-fan-card:nth-child(2) .deck-build-fan-inner { transition-delay: .045s; }
+.deck-build.is-flipping .deck-build-pile.is-fan .deck-build-fan-card:nth-child(3) .deck-build-fan-inner { transition-delay: .09s; }
+.ae-pile--deck.is-bump { animation-duration: .225s; }
