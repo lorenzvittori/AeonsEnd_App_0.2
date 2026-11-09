@@ -2283,8 +2283,8 @@ function onResolveClick() {
   showActive(next);
   lockFor(duration(effect === 'discard' ? 'discard' : 'focus'));
   render();
-  // Risolta l'ultima carta: la carta da pescare arriva volando dal mazzo
-  if (isDrawStep()) animateDrawIn();
+  // Risolta l'ultima carta: la carta da pescare arriva volando dal mazzo, dopo che la carta scartata è atterrata
+  if (isDrawStep()) animateDrawIn(effect === 'discard' && ghostSource ? FLY_MS + 60 : 0);
 }
 
 // Dopo un'azione si mostra la nuova carta da risolvere (o la carta appena pescata, che si gira)
@@ -2590,7 +2590,8 @@ function toPlayersTurn(morphUid, fromNode) {
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare
 // (che resta nascosta finché la copia non arriva). Poi tutto funziona come prima (tocco sul dorso o "Pesca").
 const DRAW_IN_MS = 650;
-function animateDrawIn() {
+// delay: attesa (ms) prima della partenza, per esempio finché la carta appena scartata non è atterrata
+function animateDrawIn(delay = 0) {
   const stage = focusEl.querySelector('.ae-focus-slide--draw .ae-focus-stage');
   const from = dockDeck.getBoundingClientRect();
   if (!stage || !from.width || reducedMotion.matches || !document.body.animate) return;
@@ -2622,10 +2623,13 @@ function animateDrawIn() {
     { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})`, offset: 0 },
     { transform: `translate(${dx * 0.45}px, ${dy * 0.55 - 40}px) rotate(10deg) scale(${(1 + s) / 2})`, offset: 0.45 },
     { transform: 'translate(0, 0) rotate(0deg) scale(1)', offset: 1 }
-  ], { duration: DRAW_IN_MS, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'both' });
+  ], { duration: DRAW_IN_MS, delay, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'forwards' });
+  // Durante l'attesa la copia resta nascosta (il mazzo in alto è già lì)
+  ghost.style.visibility = 'hidden';
+  setTimeout(() => { if (!done) ghost.style.visibility = ''; }, delay);
   anim.onfinish = finish;
-  setTimeout(finish, DRAW_IN_MS + 200);
-  lockFor(DRAW_IN_MS);
+  setTimeout(finish, delay + DRAW_IN_MS + 200);
+  lockFor(delay + DRAW_IN_MS);
 }
 
 // "Annulla ultima azione" dal Menu: il menu si chiude e resta un pulsante sospeso che si può toccare più volte;
