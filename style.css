@@ -676,3 +676,11 @@ body { overflow: hidden; }
 
 /* Fascia piccola: NUOVA sulla carta da pescare (dorso) in alto a destra, dentro la carta */
 .ae-compact-rail .ae-next-card .ae-new-tag { top: 3px; right: 3px; }
+/* Carte grandi più grandi: meno spazio in alto e in basso (testata 48px, fascia più vicina, meno margini) */
+.ae-shell.clear-header > .ae-header { min-height: calc(48px + var(--ae-safe-top)); }
+.queue-view .queue-rail, .ae-rail-row { margin-top: 4px; }
+.ae-dock { padding-top: 4px; }
+.ae-focus { padding-top: 6px; padding-bottom: 6px; }
+.queue-view .ae-queue-viewport { padding-top: 6px; padding-bottom: 6px; }
+/* Carta da pescare e carta pescata: scala calcolata da sizeFocus (fino a 1,15) */
+.ae-focus-slide.is-big .ae-focus-stage { scale: var(--ae-big-scale, 1.08); }

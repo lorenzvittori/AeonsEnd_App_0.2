@@ -1880,7 +1880,7 @@ function focusStatus(entry) {
 // La carta mostrata è quella al centro; ai lati si vede un pezzo della precedente e della successiva. Lo slide è lo
 // scorrimento nativo del browser; quando si ferma su un'altra carta, quella diventa la carta mostrata.
 // Le carte si ridisegnano solo quando cambia qualcosa (coda, vita, token, pesca); altrimenti il carosello scorre e basta.
-const PEEK_VISIBLE = 22;   // px visibili di ogni carta vicina
+const PEEK_VISIBLE = 14;   // px visibili di ogni carta vicina (erano 22: carte più grandi)
 const PEEK_GAP = 12;       // spazio tra le carte
 let focusTrack = null;
 let focusSignature = '';
@@ -2043,7 +2043,7 @@ focusEl.addEventListener('scroll', () => {
 // Sopra la carta il box vita/token (41px + 8 di spazio); i comandi del turno giocatori (52px) stanno sotto, quindi si
 // riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
 function sharedCardWidth(boxW, boxH, padY, peekRoom) {
-  const byWidth = boxW - 32 - peekRoom;
+  const byWidth = boxW - 16 - peekRoom; // 8px di margine per lato (erano 16)
   const byHeight = (boxH - padY - 41 - 8) / CARD_RATIO;
   const byControls = (boxH - 2 * 52 - 41 - 8) / CARD_RATIO;
   return Math.floor(Math.min(byWidth, byHeight, byControls));
@@ -2062,6 +2062,12 @@ function sizeFocus(recentre = true) {
   focusEl.style.setProperty('--ae-focus-w', width + 'px');
   focusEl.style.setProperty('--cw', width + 'px');
   focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';
+  // Carta da pescare e carta pescata: più grandi (fino al 15%) quanto lo spazio sotto la carta permette, senza
+  // toccare il pulsante e senza uscire dallo schermo in larghezza (crescono verso il basso: transform-origin in alto)
+  const cardH = width * CARD_RATIO;
+  const freeBelow = (focusEl.clientHeight - padY - (41 + 8 + cardH)) / 2 + parseFloat(style.paddingBottom) - 4;
+  const big = Math.max(1, Math.min(1.15, 1 + freeBelow / cardH, (focusEl.clientWidth - 8) / width));
+  focusEl.style.setProperty('--ae-big-scale', big.toFixed(3));
   if (recentre && focusEl.dataset.uid) scrollFocusTo(focusEl.dataset.uid, false);
 }
 
