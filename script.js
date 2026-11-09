@@ -101,6 +101,7 @@ const I18N_IT = {
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
   buildDeck: 'Crea mazzo',
+  tierN: n => 'Tier ' + n,
   deckBuildTitle: 'Mazzo nemesi',
   deckBuildKinds: { basic: 'Base', upgraded: 'Potenziate', specific: 'Specifiche' },
   deckBuildPile: (n, kind, tier) => n + ' carte ' + kind + ' Tier ' + tier,
@@ -2829,12 +2830,22 @@ function checkVictory() {
 }
 
 // --- Creazione del mazzo nemesi (dopo "Inizia partita") ---
-// Si vedono i 9 mazzi da cui nasce il mazzo nemesi: righe Tier 1-3, colonne Base / Potenziate / Specifiche, ognuno con
-// il numero di carte che ne verranno prese. "Crea mazzo" (il pulsante principale) le fa volare una alla volta nel mazzo
-// nemesi in alto a sinistra: prima il Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima); il numero del mazzo sale
-// a ogni carta. Alla fine la schermata sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame).
+// Si vedono i 9 mazzi da cui nasce il mazzo nemesi: righe Tier 1-3, colonne Base / Potenziate / Specifiche. Base e
+// Potenziate sono mazzi coperti con il numero di carte che ne verranno prese; le Specifiche (sempre tutte) sono a faccia
+// in su, aperte a ventaglio; toccandole si vedono grandi, scorrendo a destra e sinistra.
+// "Crea mazzo" (il pulsante principale) fa volare le carte una alla volta nel mazzo nemesi in alto a sinistra: prima il
+// Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), con 0,5 s di pausa tra un Tier e l'altro; dentro ogni Tier
+// le carte partono in ordine casuale dai tre mazzi. Il numero del mazzo sale a ogni carta. Alla fine la schermata
+// sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
 const DECK_FLY_MS = 520;
 const DECK_FLY_STAGGER = 70;
+const DECK_TIER_PAUSE = 500;
+
+// Carte Specifiche della nemesi della partita per un Tier (come in buildDeck)
+function specificCardsOf(tier) {
+  return allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && c.tier === tier && c.type !== 'Curse');
+}
+
 function showDeckBuild() {
   closeDeckBuild();
   const layer = el('div', 'deck-build');
@@ -2843,27 +2854,74 @@ function showDeckBuild() {
   grid.appendChild(el('span', 'deck-build-corner'));
   ['basic', 'upgraded', 'specific'].forEach(kind => grid.appendChild(el('span', 'deck-build-head', I18N_IT.deckBuildKinds[kind])));
   [1, 2, 3].forEach(tier => {
-    grid.appendChild(el('span', 'deck-build-tier', 'T' + tier));
+    grid.appendChild(el('span', 'deck-build-tier', I18N_IT.tierN(tier)));
     ['basic', 'upgraded', 'specific'].forEach(kind => {
       const plan = deckPlan.find(p => p.tier === tier && p.kind === kind) || { count: 0 };
       const pile = el('div', 'deck-build-pile' + (plan.count ? '' : ' is-empty'));
       pile.dataset.tier = tier;
       pile.dataset.kind = kind;
       pile.dataset.left = plan.count;
-      pile.setAttribute('role', 'img');
       pile.setAttribute('aria-label', I18N_IT.deckBuildPile(plan.count, I18N_IT.deckBuildKinds[kind].toLowerCase(), tier));
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = CARD_BACK;
+      if (kind === 'specific') {
+        // A faccia in su, a ventaglio (come le carte in mano); si toccano per vederle grandi
+        pile.classList.add('is-fan');
+        pile.setAttribute('role', 'button');
+        pile.tabIndex = 0;
+        const cards = specificCardsOf(tier);
+        const mid = (cards.length - 1) / 2;
+        cards.forEach((data, i) => {
+          const card = el('span', 'deck-build-fan-card');
+          card.style.setProperty('--fan', String(i - mid));
+          const img = document.createElement('img');
+          img.alt = '';
+          img.src = data.thumb;
+          img.addEventListener('error', () => { img.src = encodeURI(data.image); }, { once: true });
+          card.appendChild(img);
+          pile.appendChild(card);
+        });
+        pile.addEventListener('click', () => { if (!ui.isTransitioning) openSpecificViewer(tier); });
+        pile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pile.click(); } });
+      } else {
+        pile.setAttribute('role', 'img');
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = CARD_BACK;
+        pile.appendChild(img);
+      }
       const count = el('span', 'ae-pile-count', String(plan.count));
       count.setAttribute('aria-hidden', 'true');
-      pile.append(img, count);
+      pile.appendChild(count);
       grid.appendChild(pile);
     });
   });
   layer.append(el('h2', 'deck-build-title', I18N_IT.deckBuildTitle), grid);
   mainEl.appendChild(layer);
   mainEl.classList.add('is-deck-building');
+}
+
+// Carte Specifiche in grande: tutte quelle della nemesi (Tier 1, 2, 3), si scorrono a destra e sinistra; si parte dalla
+// prima del Tier toccato
+function openSpecificViewer(tier) {
+  const cards = [1, 2, 3].flatMap(t => specificCardsOf(t).map(data => ({ data, t })));
+  if (!cards.length) return;
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.deckBuildKinds.specific, settings.nemesis, cancel, { displayTitle: false });
+  dialog.classList.add('ae-spec-viewer');
+  const track = el('div', 'ae-spec-track');
+  cards.forEach(({ data, t }, i) => {
+    const slide = el('div', 'ae-spec-slide');
+    slide.dataset.tier = t;
+    const art = cardArt(data);
+    slide.append(art, el('p', 'ae-spec-caption', I18N_IT.tierN(t) + ' · ' + (i + 1) + '/' + cards.length));
+    track.appendChild(slide);
+  });
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
+  dialog.append(track, footer);
+  close = openModal(dialog, { onCancel: cancel });
+  const first = track.querySelector(`.ae-spec-slide[data-tier="${tier}"]`);
+  if (first) track.scrollLeft = first.offsetLeft - track.offsetLeft;
 }
 
 function closeDeckBuild() {
@@ -2889,61 +2947,85 @@ function runDeckBuild() {
     nemesisBtn.focus({ preventScroll: true });
   };
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
-  // Ordine: Tier 3, poi 2, poi 1; dentro ogni Tier le carte partono in ordine casuale dai tre mazzi (Base,
-  // Potenziate, Specifiche), così si vede che vengono prese e mescolate a caso
+  // Tempi di partenza: dentro un Tier una carta ogni DECK_FLY_STAGGER; il Tier dopo parte DECK_TIER_PAUSE dopo
+  // l'arrivo dell'ultima carta del Tier prima
   const launches = [];
+  let time = 0;
   [3, 2, 1].forEach(tier => {
     const ofTier = [];
     ['basic', 'upgraded', 'specific'].forEach(kind => {
       const pile = layer.querySelector(`.deck-build-pile[data-tier="${tier}"][data-kind="${kind}"]`);
       for (let i = 0; i < Number(pile.dataset.left); i++) ofTier.push(pile);
     });
-    launches.push(...shuffle(ofTier));
+    if (!ofTier.length) return;
+    if (launches.length) time += DECK_FLY_MS + DECK_TIER_PAUSE;
+    shuffle(ofTier).forEach((pile, i) => {
+      launches.push({ pile, at: time });
+      if (i < ofTier.length - 1) time += DECK_FLY_STAGGER;
+    });
   });
-  const total = launches.length;
-  const duration = total ? (total - 1) * DECK_FLY_STAGGER + DECK_FLY_MS : 0;
+  const duration = launches.length ? time + DECK_FLY_MS : 0;
   lockFor(duration + 300, finish);
   ui.deckBuilding = false; // il pulsante non riparte durante l'animazione (resta bloccato da lockFor)
   nemesisBtn.textContent = I18N_IT.buildDeck;
-  launches.forEach((pile, i) => {
-    setTimeout(() => {
-      // La carta parte: il mazzo d'origine scende di uno
-      const left = Number(pile.dataset.left) - 1;
-      pile.dataset.left = left;
-      pile.querySelector('.ae-pile-count').textContent = String(left);
-      if (left <= 0) pile.classList.add('is-empty');
-      const from = pile.querySelector('img').getBoundingClientRect();
-      const to = dockDeck.getBoundingClientRect();
-      const ghost = el('div', 'ae-fly-ghost ae-draw-ghost ae-deck-card');
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = CARD_BACK;
-      ghost.appendChild(img);
-      Object.assign(ghost.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
-      document.body.appendChild(ghost);
-      const dx = to.left + to.width / 2 - (from.left + from.width / 2);
-      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
-      const s = to.width / from.width;
-      let landed = false;
-      const land = () => {
-        if (landed) return;
-        landed = true;
-        ghost.remove();
-        ui.deckShown = Math.min(deck.length, (ui.deckShown || 0) + 1);
-        renderDockPiles();
-        dockDeck.classList.remove('is-bump');
-        void dockDeck.offsetWidth;
-        dockDeck.classList.add('is-bump');
-      };
-      const anim = ghost.animate([
-        { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
-        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) rotate(${i % 2 ? 8 : -8}deg) scale(${(1 + s) / 2})`, offset: 0.5 },
-        { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})` }
-      ], { duration: DECK_FLY_MS, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
-      anim.onfinish = land;
-      setTimeout(land, DECK_FLY_MS + 150);
-    }, i * DECK_FLY_STAGGER);
-  });
+  launches.forEach(({ pile, at }, i) => setTimeout(() => launchDeckCard(pile, i), at));
+}
+
+// Una carta parte da un mazzo (coperta) o dal ventaglio delle Specifiche (a faccia in su, si gira a metà volo)
+function launchDeckCard(pile, i) {
+  const left = Number(pile.dataset.left) - 1;
+  pile.dataset.left = left;
+  pile.querySelector('.ae-pile-count').textContent = String(left);
+  if (left <= 0) pile.classList.add('is-empty');
+  let source = pile.querySelector(':scope > img');
+  let faceUp = null;
+  if (pile.classList.contains('is-fan')) {
+    // una carta a caso tra quelle rimaste nel ventaglio
+    const remaining = [...pile.querySelectorAll('.deck-build-fan-card:not(.is-gone)')];
+    const card = remaining[Math.floor(Math.random() * remaining.length)];
+    if (card) {
+      source = card;
+      faceUp = card.querySelector('img').src;
+      card.classList.add('is-gone');
+    }
+  }
+  if (!source) return;
+  const from = source.getBoundingClientRect();
+  const to = dockDeck.getBoundingClientRect();
+  const ghost = el('div', 'ae-fly-ghost ae-draw-ghost ae-deck-card');
+  const img = document.createElement('img');
+  img.alt = '';
+  img.src = faceUp || CARD_BACK;
+  ghost.appendChild(img);
+  // (rettangolo senza rotazione del ventaglio: la copia parte dritta dal centro della carta)
+  const w = pile.classList.contains('is-fan') ? source.offsetWidth : from.width;
+  const h = pile.classList.contains('is-fan') ? source.offsetHeight : from.height;
+  const cx = from.left + from.width / 2;
+  const cy = from.top + from.height / 2;
+  Object.assign(ghost.style, { left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px' });
+  document.body.appendChild(ghost);
+  if (faceUp) setTimeout(() => { img.src = CARD_BACK; }, DECK_FLY_MS / 2);
+  const dx = to.left + to.width / 2 - cx;
+  const dy = to.top + to.height / 2 - cy;
+  const s = to.width / w;
+  let landed = false;
+  const land = () => {
+    if (landed) return;
+    landed = true;
+    ghost.remove();
+    ui.deckShown = Math.min(deck.length, (ui.deckShown || 0) + 1);
+    renderDockPiles();
+    dockDeck.classList.remove('is-bump');
+    void dockDeck.offsetWidth;
+    dockDeck.classList.add('is-bump');
+  };
+  const anim = ghost.animate([
+    { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) rotate(${i % 2 ? 8 : -8}deg) scale(${(1 + s) / 2})`, offset: 0.5 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})` }
+  ], { duration: DECK_FLY_MS, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+  anim.onfinish = land;
+  setTimeout(land, DECK_FLY_MS + 150);
 }
 
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare

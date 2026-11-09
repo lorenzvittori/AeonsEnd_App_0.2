@@ -751,3 +751,27 @@ body { overflow: hidden; }
 .ae-deck-card { box-shadow: 0 8px 18px rgba(0, 0, 0, .6); }
 /* Il mazzo in alto riceve una carta: piccolo rimbalzo */
 .ae-pile--deck.is-bump { animation: ae-pile-bump .3s cubic-bezier(.2, 1.4, .4, 1); }
+
+/* Creazione del mazzo: mazzi più piccoli, etichette "Tier N", numero sotto il dorso, Specifiche a ventaglio */
+.deck-build-grid { grid-template-columns: auto repeat(3, auto); gap: 18px 14px; }
+.deck-build-tier { font-size: 14px; white-space: nowrap; }
+.deck-build-pile { height: min(13vh, 100px); }
+.deck-build-pile .ae-pile-count { top: 86%; min-width: 26px; height: 26px; font-size: 13px; z-index: 3; }
+.deck-build-pile.is-fan { width: calc(min(13vh, 100px) * 63 / 88 + 40px); aspect-ratio: auto; cursor: pointer; }
+.deck-build-fan-card {
+  position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 63 / 88; transform-origin: 50% 100%;
+  transform: translateX(calc(-50% + var(--fan) * 16px)) rotate(calc(var(--fan) * 9deg));
+  border-radius: 5% / 3.58%; overflow: hidden; box-shadow: 0 3px 10px rgba(0, 0, 0, .7);
+}
+.deck-build-fan-card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.deck-build-fan-card.is-gone { visibility: hidden; }
+.deck-build-pile.is-fan.is-empty img { opacity: 1; }
+/* Specifiche in grande: si scorrono a destra e sinistra */
+.ae-spec-viewer { width: min(92vw, 420px); }
+.ae-spec-track { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.ae-spec-track::-webkit-scrollbar { display: none; }
+.ae-spec-slide { flex: 0 0 100%; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ae-spec-slide .ae-card-art { width: min(100%, calc(62vh * 63 / 88)); border: 0; }
+.ae-spec-caption { color: var(--ae-text-muted); font: 600 13px/18px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; }
+.deck-build-fan-card { transform: translateX(calc(-50% + var(--fan) * 12px)) rotate(calc(var(--fan) * 8deg)); }
+.deck-build-pile.is-fan { width: calc(min(13vh, 100px) * 63 / 88 + 30px); }
