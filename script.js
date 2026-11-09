@@ -2852,12 +2852,11 @@ function checkVictory() {
 // Potenziate sono mazzi coperti con il numero di carte che ne verranno prese; le Specifiche (sempre tutte) sono a faccia
 // in su, aperte a ventaglio; toccandole si vedono grandi, scorrendo a destra e sinistra.
 // "Crea mazzo" (il pulsante principale) fa volare le carte una alla volta nel mazzo nemesi in alto a sinistra: prima il
-// Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), con 0,5 s di pausa tra un Tier e l'altro; dentro ogni Tier
+// Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), senza pause tra un Tier e l'altro; dentro ogni Tier
 // le carte partono in ordine casuale dai tre mazzi. Il numero del mazzo sale a ogni carta. Alla fine la schermata
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
 const DECK_FLY_MS = 520;
 const DECK_FLY_STAGGER = 70;
-const DECK_TIER_PAUSE = 100;
 // Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte
 const DECK_FAN_FLIP_MS = 450;
 
@@ -2986,8 +2985,8 @@ function runDeckBuild() {
     showStartBanner();
   };
   if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
-  // Tempi di partenza: dentro un Tier una carta ogni DECK_FLY_STAGGER; il Tier dopo parte DECK_TIER_PAUSE dopo
-  // l'arrivo dell'ultima carta del Tier prima
+  // Tempi di partenza: una carta ogni DECK_FLY_STAGGER, senza pause tra un Tier e l'altro (la prima del Tier dopo
+  // parte subito dopo l'ultima del Tier prima, senza aspettare che arrivi)
   // Prima si girano le Specifiche, poi partono le carte
   layer.classList.add('is-flipping');
   const launches = [];
@@ -2999,7 +2998,7 @@ function runDeckBuild() {
       for (let i = 0; i < Number(pile.dataset.left); i++) ofTier.push(pile);
     });
     if (!ofTier.length) return;
-    if (launches.length) time += DECK_FLY_MS + DECK_TIER_PAUSE;
+    if (launches.length) time += DECK_FLY_STAGGER;
     shuffle(ofTier).forEach((pile, i) => {
       launches.push({ pile, at: time });
       if (i < ofTier.length - 1) time += DECK_FLY_STAGGER;
