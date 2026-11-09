@@ -29,13 +29,10 @@ button:disabled { cursor: not-allowed; }
   background: url('../Assets/ui/icons/life-drop.webp') center / contain no-repeat;
   -webkit-mask-image: none; mask-image: none;
 }
-.ae-icon--hourglass { -webkit-mask-image: url('../Assets/ui/icons/hourglass.svg'); mask-image: url('../Assets/ui/icons/hourglass.svg'); }
 .ae-icon--undo { -webkit-mask-image: url('../Assets/ui/icons/undo.svg'); mask-image: url('../Assets/ui/icons/undo.svg'); width: 20px; height: 20px; }
 .ae-icon--eye { -webkit-mask-image: url('../Assets/ui/icons/eye.svg'); mask-image: url('../Assets/ui/icons/eye.svg'); }
 .ae-icon--close { -webkit-mask-image: url('../Assets/ui/icons/close.svg'); mask-image: url('../Assets/ui/icons/close.svg'); width: 20px; height: 20px; }
 .ae-icon--discard { -webkit-mask-image: url('../Assets/ui/icons/discard.svg'); mask-image: url('../Assets/ui/icons/discard.svg'); }
-.ae-icon--check { -webkit-mask-image: url('../Assets/ui/icons/check.svg'); mask-image: url('../Assets/ui/icons/check.svg'); }
-.ae-icon--arrow { -webkit-mask-image: url('../Assets/ui/icons/arrow-right.svg'); mask-image: url('../Assets/ui/icons/arrow-right.svg'); }
 
 /* --- Pulsanti: primary avorio, secondary scuro, destructive contorno rosso, testuale discreto --- */
 .ae-button {
@@ -99,7 +96,6 @@ button:disabled { cursor: not-allowed; }
 }
 .ae-status-badge .ae-icon { width: 14px; height: 14px; }
 .ae-status-badge--danger .ae-icon { color: var(--ae-danger); }
-.ae-status-badge--gold .ae-icon { color: var(--ae-gold); }
 .ae-status-badge--tokens { overflow: hidden; }
 
 /* Token del potere (immagine della versione 1), uno per token; se sono tanti si stringono per stare nel box */
@@ -183,12 +179,10 @@ button:disabled { cursor: not-allowed; }
   padding: 16px; box-shadow: 0 12px 36px rgba(0,0,0,.30);
   animation: ae-dialog-in var(--ae-duration-dialog) var(--ae-ease-decelerate);
 }
-.ae-modal--narrow { width: min(420px, 100%); }
 .ae-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ae-modal-title { font: 600 18px/24px var(--ae-font-display); }
 .ae-modal-title--ui { font: 600 16px/22px var(--ae-font-ui); }
 .ae-modal-kind { color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-.ae-modal-text { color: var(--ae-text-muted); font-size: 16px; line-height: 24px; }
 .ae-modal-art {
   align-self: center; width: auto; aspect-ratio: 63 / 88;
   height: min(47dvh, 420px, calc(64vw * 88 / 63), calc(300px * 88 / 63));
@@ -220,17 +214,6 @@ button:disabled { cursor: not-allowed; }
 .ae-hp-delta.is-gain { color: var(--ae-heal); }
 .ae-hp-controls { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .ae-hp-controls .ae-button { min-width: 56px; height: 48px; min-height: 48px; padding: 0 12px; font-variant-numeric: tabular-nums; }
-.ae-microtext { text-align: center; font: 500 13px/18px var(--ae-font-ui); color: var(--ae-text-muted); }
-.ae-microtext--danger { color: var(--ae-danger); }
-
-/* Gocce di vita (decorative, solo nel dialogo): rosse = vita, grigie = tolta, con glow verde = aggiunta */
-.ae-drops { display: flex; justify-content: center; align-items: flex-end; gap: 2px; min-height: 22px; flex-wrap: nowrap; overflow: hidden; }
-.ae-drops span { flex: 0 1 auto; min-width: 0; background: center / contain no-repeat; }
-.ae-drops .drop5 { width: 17px; height: 22px; background-image: url('../Assets/life-drop-5.webp'); }
-.ae-drops .drop { width: 13px; height: 17px; background-image: url('../Assets/life-drop-1.webp'); }
-.ae-drops .drop.gained { filter: drop-shadow(0 0 2px #4dff6a) drop-shadow(0 0 4px #4dff6a); }
-.ae-drops .drop.lost { background-image: url('../Assets/life-drop-lost-1.webp'); }
-.ae-drops .drop5.lost { background-image: url('../Assets/life-drop-lost-5.webp'); }
 
 /* --- Drawer degli scarti --- */
 .ae-drawer-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--ae-scrim); animation: ae-fade var(--ae-duration-focus) var(--ae-ease-standard); }

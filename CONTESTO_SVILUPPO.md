@@ -1,15 +1,13 @@
 # Aeon's End – Nemesis Companion: contesto per lo sviluppo
 
-Documento da dare come contesto a una nuova sessione di sviluppo. Per lo scopo dell'app in breve vedi anche
-`CONTESTO_APP.md`.
+Unico documento di riferimento del progetto: cosa fa l'app, come si usa, come è fatta e come ci si lavora. Va dato
+come contesto a una nuova sessione di sviluppo. (Fino alla v147 c'era anche `CONTESTO_APP.md`, ora unito qui.)
 
 ## 1. Cos'è
 
 Web app personale, pensata prima di tutto per il telefono, che gestisce il **mazzo della nemesi** nel gioco da tavolo
-cooperativo **Aeon's End** (soprattutto *The New Age*).
-
-Fa queste cose:
-- prepara il mazzo;
+cooperativo **Aeon's End** (soprattutto *The New Age*):
+- prepara il mazzo secondo la regola "Nemesis Deck Setup";
 - pesca le carte;
 - tiene in ordine le carte in gioco (poteri, minion, attacchi);
 - tiene il conto di token potere e vita dei minion;
@@ -53,108 +51,189 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Modifiche grandi:** prima di farle si crea un **tag git di ripristino**, così l'utente può tornare indietro.
 - **Messaggi di chiusura:** in italiano, chiari. Si dice cosa non è stato verificato (per esempio l'aspetto visivo o il
   telefono vero).
+- **Documentazione:** quando cambia un comportamento visibile, si aggiorna questo file (sezioni 4 e 5). La storia delle
+  modifiche sta nel git log, non nei commenti del codice.
 
-## 4. Terminologia (usata con l'utente)
+## 4. Come si usa
+
+**Pagina iniziale ("Aeon's End – Nemesis Companion")**
+- **La mia collezione:** schermata con un interruttore per ogni wave (la sua scatola base) e, sotto, le sue mini
+  espansioni. Nemesi e carte Basic / Upgraded Basic escono solo dai prodotti spuntati. Vale solo con "Salva collezione".
+- **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
+- **Nemesi:** si sceglie la wave (solo quelle della collezione), poi la nemesi.
+  - Ogni pulsante mostra parte dell'illustrazione, la battaglia e, se c'è, la mini espansione.
+  - Sulla nemesi scelta c'è una freccia (o un secondo tocco) che apre la sua carta intera; un tocco o uno slide la gira
+    e mostra il retro con il setup.
+  - Le nemesi non giocabili (senza battaglia, fuori collezione o senza carte nell'app) sono in piccoli box con un "!"
+    rosso, non cliccabili.
+- **Includi carte base potenziate:** senza, al posto delle Upgraded Basic si prendono altrettante Basic dello stesso Tier.
+- Se c'è una partita salvata compare la finestra **Partita in corso** (nemesi e giocatori) con *Riprendi partita* /
+  *Nuova partita*.
+
+**Inizio partita**
+- "Inizia partita": la pagina iniziale esce a sinistra e la partita entra da destra.
+- Schermata **Crea mazzo**: i 9 mazzi da cui nasce il mazzo nemesi (righe Tier 1-3, colonne Base / Potenziate /
+  Specifiche). Base e Potenziate sono dorsi con il numero di carte; le Specifiche sono a ventaglio, a faccia in su, e
+  toccandole si vedono grandi.
+- Il pulsante "Crea mazzo" gira le Specifiche e fa volare le carte una alla volta nel mazzo in alto (prima il Tier 3,
+  poi il 2, poi l'1). Poi compare il banner **Partita iniziata** e si è nel turno giocatori.
+
+**Testata (uguale nei due turni)**
+- A sinistra il **mazzo** (dorso con il numero di carte) e gli **scarti** (ultima carta con il numero).
+  - Tocco sugli scarti: si apre la pila degli scarti, dalla più recente, e ogni carta si ingrandisce.
+  - Tocco sul mazzo: compare "Pesca carta", che mostra la carta in cima con *Rimetti nel mazzo* (nessun cambiamento) o
+    *Scarta* (va negli scarti, un passo di undo). Serve per gli effetti che fanno pescare o guardare la carta in cima.
+- Al centro il nome della nemesi e sotto: fiamma con il numero della battaglia | icona dei giocatori | Turno N.
+- A destra il **Menu**.
+
+**Turno dei giocatori**
+- In alto la fascia piccola con tutte le carte in gioco; sotto le stesse carte, grandi, che si scorrono in orizzontale.
+- Sotto ogni carta grande i suoi comandi:
+  - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Sul box compare "vita/totale" e sulla
+    carta "HP: −n";
+  - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
+  - **altri poteri:** la nota "! Non rimovibile".
+- Le modifiche sono una bozza: il pulsante principale diventa **Salva modifiche**, con accanto **Annulla modifiche**.
+  Salvando (un solo passo di undo) i minion a 0 e i poteri pagati volano negli scarti.
+- Toccando una carta grande si apre la sua finestra (vita del minion, token del potere, rimozione del potere).
+- Il pulsante **Turno Nemesi**, con l'illustrazione della nemesi, avvia il turno della nemesi. Lo sfondo (maga a
+  sinistra, nemesi a destra) scorre verso il lato della nemesi.
+
+**Turno nemesi**
+- Le carte in gioco si risolvono dalla più vecchia, una alla volta, in un carosello che si scorre con il dito; la fascia
+  in alto indica la carta guardata. Guardando un'altra carta compare "Torna alla carta da risolvere".
+- Pulsante in basso:
+  - **potere:** un token lampeggia e diventa grigio da solo; il pulsante dice "Vai avanti" (token −1) o "Effetto risolto
+    e scarta" (ultimo token: negli scarti);
+  - **minion:** "Effetto risolto", resta in gioco. Toccando il minion si apre la finestra con −1 / +1 alla vita;
+  - **attacco:** "Effetto risolto", va negli scarti.
+- **Passo Pesca:** dopo l'ultima carta un dorso vola dal mazzo al centro, con il pulsante dorato **Pesca** (o tocco sul
+  dorso). La carta si gira e mostra NUOVA e un bagliore dorato; un attacco lampeggia di rosso.
+  - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "Metti in gioco". Poi si torna al turno giocatori.
+- Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
+- **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
+- **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi) → finestra "Vittoria!" con
+  *Nuova partita*.
+
+**Menu (pannello laterale al 70%)**
+- Turno nemesi N e carte nel mazzo.
+- **Annulla ultima azione:** chiude il menu e lascia un pulsante sospeso che si può toccare più volte. Il primo Annulla
+  toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.
+- Scarti; Esci dalla partita.
+
+**Salvataggio:** la partita si salva da sola nel browser, insieme alla cronologia dell'undo.
+
+## 5. Terminologia (usata con l'utente)
 
 | Termine | Significato |
 |---|---|
 | **Turno giocatori** (nel codice *VistaCoda*, `#queue-view`) | Vista delle carte in gioco tra un turno nemesi e l'altro. |
 | **Turno nemesi** (nel codice *VistaRisoluzione*, `#resolve-view`) | Risoluzione delle carte in gioco, poi pesca della nuova carta. |
 | **Coda** (`queue`) | Le carte nemesi in gioco, in ordine di arrivo. |
-| **Vista piccola / fascia** (`.ae-compact-rail`) | Striscia in alto con tutte le carte in piccolo. C'è in entrambi i turni: `#queue-rail` nel turno giocatori, `#rail` nel turno nemesi. |
-| **Vista grande / visualizzazione ingrandita** | Le carte grandi: lista scorrevole nel turno giocatori, carosello nel turno nemesi. |
+| **Vista piccola / fascia** (`.ae-compact-rail`) | Striscia in alto con tutte le carte in piccolo: `#queue-rail` nel turno giocatori, `#rail` (dentro `.ae-rail-row`) nel turno nemesi. |
+| **Vista grande** | Le carte grandi: lista scorrevole nel turno giocatori, carosello nel turno nemesi. |
 | **Carosello** (`#focus`, `.ae-focus-track`, `.ae-focus-slide`) | Turno nemesi: tutte le carte in fila, scroll-snap nativo, ai lati si vede un pezzo delle vicine. |
-| **Carta da risolvere** | La carta indicata da `currentIndex`. Nella fascia ha la pill rossa **RISOLVI** quando si guarda un'altra carta. |
+| **Carta da risolvere** | La carta indicata da `currentIndex`. |
 | **Carta mostrata / in anteprima** | La carta al centro (`ui.viewedUid`). Se non è quella da risolvere compare "Torna alla carta da risolvere". |
-| **Passo Pesca** (`isDrawStep()`, `DRAW_UID = -1`) | Dopo l'ultima carta risolta: si vede la carta **coperta** (dorso) nella fascia e nel carosello, con il pulsante dorato **"Pesca"**. Toccandolo la carta si gira. |
-| **Carta nuova** | Carta appena pescata: etichetta **NUOVA** e bagliore dorato. Se è un attacco lampeggia di rosso. |
+| **Passo Pesca** (`isDrawStep()`, `DRAW_UID = -1`) | Dopo l'ultima carta risolta: dorso al centro e pulsante dorato "Pesca". |
+| **Carta nuova** | Carta appena pescata: etichetta NUOVA e bagliore dorato; un attacco lampeggia di rosso. |
 | **Banner Tier** | Scritta "Tier 2" / "Tier 3" alla prima carta di quel Tier pescata. |
-| **Box mazzo / box scarti** (`.ae-pile`) | Ai lati della fascia del turno nemesi: a sinistra il dorso con il numero di carte nel mazzo, a destra l'ultima carta scartata con il numero di scarti (si tocca per aprire gli scarti). |
-| **BannerInfoNemesi** | Banner con mazzo, nome della nemesi, fase e scarti. **Tolto** in v105, recuperabile dal tag `v104-banner-info-nemesi`. |
-| **Lampeggio rosso** (`.is-imminent`) | Turno giocatori: tutta la carta lampeggia se si attiverà nel prossimo turno nemesi (minion e poteri con 1 token). |
-| **Comandi sotto le carte** (`.queue-controls`) | Turno giocatori. Minion: −5 −1 +1 e, a 0, "Elimina minion". Potere con TO DISCARD: "Rimuovi · costo pagato". Altri poteri: nota "! Non rimovibile". |
-| **HP del turno** (`turnHp`) | Vita del minion all'inizio del turno giocatori. Se cambia, il box mostra "x/tot" e la carta "HP: −n". |
-| **Token automatico** (`.is-auto-token`) | Turno nemesi: sul potere da risolvere un token sfuma da solo dopo 1 s. Pulsante "Vai avanti", oppure "Effetto risolto e scarta" se era l'ultimo. |
-| **Menu** (icona in alto a destra) | Pannello laterale al 70%: Esci dalla partita, turno nemesi, carte nel mazzo, Scarti. |
-| **Pagina iniziale** | Giocatori, wave, pulsanti delle nemesi con illustrazione (nemesi non disponibili con "!"), carta nemesi apribile (freccia o secondo tocco, slide per il retro), "Includi carte base potenziate", finestra "Partita in corso". |
+| **Box mazzo / box scarti** (`.ae-header-piles`, `.ae-pile`) | In testata, a sinistra, in entrambi i turni. |
+| **Bozza** (`ui.drafts`) | Turno giocatori: vita e costi pagati non ancora salvati. "Salva modifiche" / "Annulla modifiche". |
+| **Token automatico** (`.is-auto-token`) | Turno nemesi: sul potere da risolvere un token lampeggia e diventa grigio da solo. |
+| **Crea mazzo** (`#deck-build`, `ui.deckBuilding`) | Schermata dei 9 mazzi dopo "Inizia partita". |
+| **Collezione** | Prodotti posseduti (wave e mini espansioni), scelti in "La mia collezione". |
+| **Sfondo unico** (`battle-bg.webp`) | Un'immagine sola su tutta l'app: maga a sinistra (turno giocatori), nemesi a destra (turno nemesi). |
+| **BannerInfoNemesi** | Tolto in v105, recuperabile dal tag `v104-banner-info-nemesi`. |
 
-## 5. Architettura
+## 6. Architettura
 
 ### File
 
 - `index.html`: il loader legge `version.json` (no-store) e carica `css/design-tokens.css`, `css/components.css`,
   `style.css` e `script.js` con `?v=N`.
+  - GitHub Pages tiene in cache `index.html` per circa 10 minuti. Per questo molti elementi (pulsante Menu, box mazzo e
+    scarti, "Annulla modifiche", finestra "Partita in corso", pulsante Collezione, fascia del turno giocatori) sono
+    creati o spostati da `script.js` all'avvio: il DOM reale è diverso da quello scritto in `index.html`
+    (per esempio `#info-row` viene tolto e `#undo-btn` resta nascosto).
 - `script.js`: **un solo file**, voluto così per la cache-busting, diviso in 9 sezioni numerate (indice in cima):
-  1. testi e stato;
-  2. dati e mazzo;
+  1. testi (`I18N_IT`), elementi, costanti e stato;
+  2. dati e mazzo (collezione compresa);
   3. componenti;
   4. VistaCoda;
   5. scarti;
   6. pagina iniziale;
   7. salvataggio e undo;
   8. VistaRisoluzione;
-  9. eventi e avvio.
+  9. eventi, testata, animazioni di volo, passaggio tra i turni, vittoria, Crea mazzo, undo sospeso, "Pesca carta",
+     menu e avvio.
 - `css/design-tokens.css`: palette e font (Cinzel per i titoli, Inter per l'interfaccia, da Google Fonts). Colori:
   - `--ae-bg #101116`, `--ae-surface`, `--ae-surface-raised`, `--ae-border`;
   - `--ae-text` avorio, `--ae-text-muted`;
   - `--ae-gold #DFAE59`, `--ae-danger #D95E5C`, `--ae-heal`, `--ae-focus`.
-- `css/components.css`: componenti (pulsanti, badge, carta, finestre, ecc.).
-- `style.css`: layout e quasi tutte le aggiunte recenti, in fondo al file.
+- `css/components.css`: componenti (pulsanti, badge, carta, finestre, scarti, toast, interruttore).
+- `style.css`: layout e quasi tutte le aggiunte recenti, in fondo al file, spesso come ridefinizioni di regole
+  precedenti: in caso di dubbio vale l'ultima.
 
 ### Stato
 
-- `queue`: array di voci `{ uid, data, tokens, hp, turnHp, isNew }`.
-  - `data` è la carta di `cards.json`.
-  - Altre variabili: `deck` e `discard` (array di `data`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena
-    pescata), `resolving`, `turn`, `maxTierDrawn`, `settings = { players, nemesis, includeUpgraded }`.
-- `ui`: stato solo visivo. Campi principali:
-  - `viewedUid`, `holdUid`;
-  - `isTransitioning` (blocca i tocchi durante le animazioni, con `lockFor(ms)`);
-  - `reveal` (`{ uid, status: loading | ready | flipping | done | error }`, la rotazione della carta pescata);
-  - `queueAnchor`, `tierBanner`, `fromScroll`.
+- Partita (entra nel salvataggio e nell'undo): `queue` (voci `{ uid, data, tokens, hp, turnHp, isNew, paid }`, dove
+  `data` è la carta di `cards.json`), `deck` e `discard` (array di `data`; si pesca dalla fine di `deck`),
+  `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata), `resolving`, `turn`, `maxTierDrawn`.
+- Impostazioni: `settings = { players, nemesis, includeUpgraded }`; collezione in `collection` (Set di id prodotto
+  `"<wave>|base"` o `"<wave>|<mini espansione>"`).
+- `ui`: stato solo visivo, dichiarato tutto nell'oggetto `ui` in cima (viewedUid, holdUid, isTransitioning con
+  `lockFor(ms)`, reveal, queueAnchor, drafts, flyingDiscards, tierBanner, deckBuilding, …).
 - **Undo e salvataggio:** `act(fn)` fa `snapshot()` per l'undo, esegue l'azione e salva.
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
-  - Il salvataggio va in `localStorage` con la chiave `aeonsend-app-0.2-save`, diversa da quella della v1 perché il
-    dominio github.io è condiviso.
+  - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita) e `aeonsend-app-0.2-collection` (collezione), diverse
+    da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
 - **Rendering:** `render()` disegna tutto.
-  - Turno nemesi: `renderResolve()`, che chiama `renderResolveInfo` (box), la fascia e `renderFocus` (carosello).
-  - Il carosello si ricostruisce solo quando cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
+  - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
+    cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
   - Turno giocatori: `renderQueue()`, con la fascia, `.queue-slot` (carta + comandi) e `sizeQueue()`.
+  - La misura delle carte grandi è una sola regola per i due turni (`sharedCardWidth`); `STATUS_H` deve restare uguale
+    all'altezza della riga vita/token in `style.css`.
 
 ### Regole di gioco nel codice
 
-- **Mazzo:** per ogni Tier si prendono a caso carte Basic e Upgraded Basic, nel numero indicato da
-  `deck-setup.json[battaglia][giocatori]`, più le carte Specific della nemesi. Ogni Tier è mescolato a parte, con il
-  Tier 1 in cima. Le carte senza Tier non entrano nel mazzo.
-- **Risoluzione** (`resolveCurrent`):
-  - potere con più di 1 token: −1 token e avanti;
-  - minion: resta e avanti;
-  - attacco o potere all'ultimo token: negli scarti.
-- **Dopo l'ultima carta:** si entra nel passo Pesca. La pesca (`drawNewCard`) avviene solo con "Pesca"; se il mazzo è
-  vuoto si rimescolano gli scarti.
+- **Mazzo** (`buildDeck`): per ogni Tier si prendono a caso carte Basic e Upgraded Basic dei prodotti della collezione,
+  nel numero indicato da `deck-setup.json[battaglia][giocatori]`, più le carte Specific della nemesi. Ogni Tier è
+  mescolato a parte, con il Tier 1 in cima. Le carte senza Tier e le maledizioni (`Curse`) non entrano nel mazzo.
+- **Risoluzione** (`resolveCurrent`): potere con più di 1 token: −1 token e avanti; minion: resta e avanti; attacco o
+  potere all'ultimo token: negli scarti.
+- **Pesca** (`drawNewCard`): solo con "Pesca". Il mazzo **non** si rimescola: vuoto = niente pesca.
 - **Carta pescata:** un attacco va negli scarti; le altre carte "Metti in gioco". Poi si torna al turno giocatori.
+- **Inizio turno nemesi** (`nemesisTurn`): `turnHp` diventa la vita attuale, le bozze si perdono, le carte grigie
+  (`isGone`) vanno negli scarti.
+- **Vittoria** (`isVictory`): `turn > 0`, mazzo vuoto e nessun potere né minion in coda.
 
-## 6. Dati
+## 7. Dati
 
 - `cards.json` (stile PowerShell: 4 spazi e due spazi dopo i due punti). Campi di ogni carta:
   - `id`, `name`, `category` (`Basic Nemesis` / `Upgraded Basic Nemesis` / `Specific`), `nemesis`, `tier` (null = fuori
     dal mazzo), `subgroup`;
   - `type` (`Attack` / `Power` / `Minion`; altri tipi solo per le carte fuori dal mazzo), `hp`, `hpVariable`,
-    `tokens`, `qty`;
+    `tokens`, `qty` (>1 solo per carte senza Tier, quindi non conta per il mazzo);
   - `effect`, `toDiscard`, `immediately`, `persistent`, `powerEffect` (testi, **non usati dall'app**);
   - `removable` (solo i poteri: true se l'effetto contiene "TO DISCARD");
   - `image` (`Data/<Nemesi>/Tier_N/<Nome>.webp`).
-- `nemesis.json`: `name`, `wave`, `waveOrder`, `miniExpansion`, `battle`, `flagBattle5`, `owned`.
-  - Una nemesi è giocabile se è posseduta, ha la battaglia e ha carte Specific.
+  - Il prodotto delle carte Basic / Upgraded Basic si ricava dal prefisso dell'id (`CARD_PRODUCT_PREFIX` in `script.js`:
+    `NA-`, `TA-`, `SD-`, `ITW-`).
+- `nemesis.json`: `name`, `wave`, `waveOrder`, `miniExpansion`, `battle`, `flagBattle5`, `owned` (`owned` serve solo
+  come collezione iniziale).
+  - Una nemesi è giocabile se ha la battaglia, il suo prodotto è nella collezione e ha carte Specific.
 - `deck-setup.json`: la tabella del Nemesis Deck Setup.
 - **Immagini:**
   - `Data/...`: scansioni in WebP qualità 90. Gli originali JPG/PNG sono sul PC ma esclusi da git.
-  - `thumbs/<id>.webp`: miniature.
+  - `thumbs/<id>.webp`: miniature (264 x 369).
   - `Assets/nemesis/`: per ogni nemesi `<slug>.webp` (carta), `<slug>-back.webp` (retro con setup e storia),
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
-  - `Assets/ui/decor/`: `card-back.webp` (dorso), `nemesis-turn-bg-2.webp`, `players-turn-bg.webp`, `logo.webp` (non
-    usato).
-  - `Assets/power-token-2.webp`, `Assets/ui/icons/life-drop.webp` (goccia), `Assets/ui/icons/alert.webp` ("!").
+  - `Assets/ui/decor/`: `card-back-logo.webp` (dorso), `battle-bg.webp` (sfondo unico).
+  - `Assets/power-token-2.webp` (token), `Assets/ui/icons/`: `life-drop.webp` (goccia della vita), `alert.webp` ("!"),
+    `flame.png` (battaglia), `players-1..4.png`, icone SVG usate come maschera (undo, eye, close, discard, empty-deck).
+  - Immagini non più usate tolte in v148 (vecchi sfondi dei due turni, vecchi dorsi, gocce di vita, logo, icone del
+    kit): recuperabili dal tag `v147-prima-della-pulizia`.
 - **Nemesi complete:** le 7 di The New Age: Maggoth, Arachnos, Ageless Walker e Fenrix (scatola base); The Wailing,
   The Wanderer e Necroswarm (mini espansioni).
 
@@ -166,16 +245,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - `build-nemesis-art.py`: legge `Assets/nemesis/src/<Nome>.jpg` e `<Nome> - back.jpg` (esclusi da git) e crea carta,
   retro, ritaglio e manifest.
 
-## 7. Pubblicazione
+## 8. Pubblicazione
 
 - `.github/workflows/pages.yml` (Pages → Source = "GitHub Actions").
   - Pubblica solo i file del sito: niente `tools/`, `README`, `.md`.
   - Ogni tentativo di deploy ha 3 minuti e ce ne sono fino a 3.
   - Motivo: GitHub ogni tanto si blocca fino al limite di 10 minuti e manda una mail di errore.
-- GitHub Pages tiene in cache `index.html` per circa 10 minuti. Per questo gli elementi nuovi della pagina vengono creati
-  da `script.js` quando mancano (difesa contro un `index.html` vecchio con uno script nuovo).
 
-## 8. Test in locale
+## 9. Test in locale
 
 - **Server:** `python -m http.server 8124 --bind 127.0.0.1`, lanciato in background dalla cartella del repo. Poi si apre
   `http://127.0.0.1:8124/` nel browser interno.
@@ -183,28 +260,38 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Limiti del browser di prova:**
   - non esegue animazioni né transizioni (restano al tempo 0);
   - **requestAnimationFrame non scatta**;
-  - gli eventi `scroll` nativi non arrivano.
+  - gli eventi `scroll` nativi non arrivano;
+  - script JS lunghi (molte attese in fila) possono far chiudere la scheda: meglio più script brevi.
 
-  Si verifica quindi con lo stato e le misure, lanciando gli eventi a mano (`dispatchEvent(new Event('scroll'))`). Per
-  questo il carosello usa `setTimeout` invece di rAF.
-- **Funzioni utili da console:** sono globali, per esempio `queue`, `allCards`, `makeEntry`, `render()`, `undo()`,
-  `viewCard()`, `isDrawStep()`, `centredFocusUid()`.
+  Si verifica quindi con lo stato e le misure, lanciando gli eventi a mano (`dispatchEvent(new Event('scroll'))`) e
+  chiamando `clearTransition()` dopo le azioni animate. Per questo il carosello usa `setTimeout` invece di rAF.
+- **Funzioni utili da console:** sono globali, per esempio `queue`, `allCards`, `makeEntry`, `act()`, `render()`,
+  `undo()`, `startGame()`, `onNemesisClick()`, `onResolveClick()`, `viewCard()`, `isDrawStep()`, `centredFocusUid()`.
+- Dopo le prove si toglie la partita di test: `localStorage.removeItem('aeonsend-app-0.2-save')`.
 
-## 9. Punti di ripristino (tag git)
+## 10. Punti di ripristino (tag git)
 
 | Tag | Stato |
 |---|---|
 | `v86-prima-dei-comandi-sotto-le-carte` | Prima dei comandi sotto le carte nel turno giocatori. |
 | `v98-prima-del-carosello` | Turno nemesi con una carta sola e slide a mano, prima del carosello nativo. |
-| `v104-banner-info-nemesi` | Con il BannerInfoNemesi in basso, prima dei box mazzo e scarti ai lati della fascia. |
+| `v104-banner-info-nemesi` | Con il BannerInfoNemesi in basso, prima dei box mazzo e scarti. |
+| `v113-prima-test-banner` | Testata con Undo e Menu e BannerInfoNemesi in alto, prima della prova che li ha tolti. |
+| `v123-prima-sfondo-unico` | Due sfondi separati per i due turni, prima dello sfondo unico. |
+| `v147-prima-della-pulizia` | Prima della pulizia del codice morto e dell'unione dei documenti (v148). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 
-## 10. Idee e cose aperte
+## 11. Idee e cose aperte
 
-- Il nome della nemesi e l'etichetta di fase sono spariti insieme al BannerInfoNemesi. Si potrebbe scrivere il nome
-  nell'intestazione, per esempio "Turno nemesi 3 · Maggoth".
-- I box mazzo e scarti ci sono solo nel turno nemesi; non sono stati aggiunti al turno giocatori.
+- Semplificazione del codice, proposta dopo l'analisi del repo (la pulizia del codice morto è fatta in v148):
+  1. stato della partita in un solo oggetto `game` (lo snapshot diventa una copia);
+  2. `script.js` diviso in 5–6 file caricati dal loader con `?v=N`, con le regole di gioco separate dall'interfaccia;
+  3. un solo modo di creare il DOM (tutto in `index.html` o tutto da JS), senza le difese per l'`index.html` vecchio;
+  4. CSS riorganizzato per componente, unendo i selettori ridefiniti più volte in `style.css`;
+  5. qualche test sulle regole (mazzo, risoluzione, vittoria).
+- Doppioni da unire: i due editor della vita del minion (comandi sotto la carta e finestra), le tre animazioni di volo
+  (`flyToDiscard`, `launchDeckCard`, `animateDrawIn`).
 - Le immagini delle altre nemesi (wave diverse da The New Age) mancano: l'utente le fornisce come scansioni della carta
   nemesi, fronte e retro.
 - Il repo originale `AeonsEnd_APP` ha lo stesso problema di pubblicazione bloccata; lì non c'è ancora il workflow con i

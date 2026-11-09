@@ -1,11 +1,8 @@
-// Aeon's End App 0.2: nuovo design (REPORT_IMPLEMENTAZIONE.md del kit di design) sopra la logica della versione 48.
+// Aeon's End – Nemesis Companion (App 0.2). Documentazione completa: CONTESTO_SVILUPPO.md.
 // Repository autonomo: dati (cards.json, deck-setup.json, nemesis.json) e scansioni delle carte (Data/) sono in questa
-// cartella, letti con DATA_ROOT; le miniature della coda sono in thumbs/ (fatte da tools/build-thumbs.py).
+// cartella, letti con DATA_ROOT; le miniature sono in thumbs/ (fatte da tools/build-thumbs.py).
 // La partita si salva con una chiave propria (il sito condivide il dominio, e quindi il localStorage, con AeonsEnd_APP);
-// il formato del salvataggio è quello della v48.
-//
-// Regola: la logica del gioco (mazzo per tier, pesca, scarti e rimescolamento, poteri/minion/attacchi, turni, undo)
-// è quella della v48; qui cambia solo l'interfaccia.
+// il formato del salvataggio è nato con la v48 dell'app precedente ed è ancora compatibile.
 //
 // Sezioni del file, in ordine:
 //   1. Testi (dizionario italiano), elementi della pagina, costanti e stato
@@ -16,7 +13,8 @@
 //   6. Pagina iniziale e nuova partita / riprendi
 //   7. Stato della partita: fotografia, ripristino, salvataggio, undo
 //   8. VistaRisoluzione (turno nemesi): carta da risolvere e anteprima, pesca con retro, slide
-//   9. Eventi e avvio
+//   9. Eventi, testata (mazzo e scarti), animazioni di volo, passaggio tra i turni, vittoria, creazione del mazzo,
+//      undo sospeso, "Pesca carta", menu laterale e avvio
 // Non è diviso in più file JS perché i file importati non avrebbero il ?v=N di version.json e il browser
 // potrebbe tenerne in cache versioni vecchie mescolate a quelle nuove.
 
@@ -34,15 +32,8 @@ if (!Element.prototype.replaceChildren) {
 
 // Tutte le stringhe dell'interfaccia scritte da JS (per una futura traduzione)
 const I18N_IT = {
-  phasePlayers: 'Turno dei giocatori',
-  phaseNemesis: 'Turno nemesi',
   nemesisButton: 'Turno Nemesi',
-  phaseNemesisN: n => `Turno nemesi ${n}`,
   turnN: n => `Turno ${n}`,
-  stepResolve: 'Risoluzione',
-  stepDraw: 'Pesca',
-  infoDeck: n => `Mazzo ${n}`,
-  infoDiscard: n => `Scarti ${n}`,
   ctaPowerNext: 'Vai avanti',
   ctaPowerLast: 'Effetto risolto e scarta',
   turnInfo: (turn, deck) => `Turno ${turn} · Mazzo ${deck}`,
@@ -52,26 +43,12 @@ const I18N_IT = {
   types: { Minion: 'Minion', Power: 'Potere', Attack: 'Attacco' },
   hp: (hp, max) => `${hp}/${max}`,
   hpLong: (hp, max) => `${hp} punti vita su ${max}`,
-  railHp: hp => `HP ${hp}`,
   tokens: n => (n === 1 ? '1 token' : `${n} token`),
-  railTokens: n => `${n} T`,
   tokensLeft: n => (n === 1 ? '1 token rimasto' : `${n} token rimasti`),
   cardOf: (i, n) => `carta ${i} di ${n}`,
   newTag: 'Nuova',
-  activeFlag: 'Risolvi',
   nextCard: 'Prossima carta da pescare, coperta',
-  eyebrowActive: (i, n) => `Da risolvere · carta ${i} di ${n}`,
-  eyebrowPreview: (i, n) => `Anteprima · carta ${i} di ${n}`,
-  eyebrowDrawn: (i, n) => `Carta pescata · carta ${i} di ${n}`,
-  eyebrowDrawing: 'Pesca in corso',
-  previewHint: 'Non modifica il turno',
-  applyHint: "Applica prima l'effetto al tavolo",
-  ctaTokenNext: 'Rimuovi 1 token · Avanti',
-  ctaTokenDraw: 'Rimuovi 1 token · Pesca',
-  ctaDiscardNext: 'Effetto risolto',
-  ctaDiscardDraw: 'Effetto risolto',
-  ctaMinionNext: 'Effetto risolto',
-  ctaMinionDraw: 'Effetto risolto',
+  ctaResolved: 'Effetto risolto',
   ctaPutInPlay: 'Metti in gioco',
   ctaDraw: 'Pesca',
   backToDraw: 'Torna alla carta da pescare',
@@ -86,17 +63,12 @@ const I18N_IT = {
   confirmHp: 'Conferma modifiche',
   deleteMinion: 'Elimina minion',
   willBeDeleted: 'Il minion verrà eliminato',
-  movedToDiscard: 'Verrà spostato negli scarti',
   hpDelta: d => `${d > 0 ? '+' : '−'}${Math.abs(d)} HP`,
   hpLeftToast: (name, hp) => `${name}: ${hp} ${hp === 1 ? 'punto vita rimasto' : 'punti vita rimasti'}`,
   minionDeleted: name => `${name}: minion eliminato, negli scarti`,
   removePower: 'Rimuovi carta · costo pagato',
-  powerCostInfo: "L'app non paga il costo al posto dei giocatori",
-  powerRemoved: name => `${name}: carta rimossa, negli scarti`,
   removePowerShort: 'Rimuovi · costo pagato',
   notRemovable: 'Non rimovibile',
-  save: 'Salva',
-  saveLabel: name => `Salva le modifiche a ${name}`,
   paidNote: 'Costo pagato',
   killedNote: 'Ucciso',
   undoAction: 'Annulla ultima azione',
@@ -124,7 +96,6 @@ const I18N_IT = {
   cancelChanges: 'Annulla modifiche',
   minionKilled: name => `${name}: ucciso, andrà negli scarti`,
   deckLabel: n => `Mazzo nemesi, ${n} ${n === 1 ? 'carta' : 'carte'}`,
-  powerPaid: name => `${name}: costo pagato, andrà negli scarti`,
   cancelPay: 'Annulla',
   draftDiscarded: 'Modifiche non salvate annullate',
   hpTurnTag: d => `HP: ${d > 0 ? '+' : '−'}${Math.abs(d)}`,
@@ -202,9 +173,6 @@ const SWIPE_MIN_DISTANCE = 50;
 // Oltre questo spostamento (px) un tocco sulla coda è uno scorrimento, non un tocco sulla carta
 const DRAG_THRESHOLD = 8;
 
-// Valore in punti vita della goccia grande (la piccola vale 1)
-const DROP_BIG_VALUE = 5;
-
 // Durate (ms) delle animazioni dopo un'azione (come in design-tokens.css); con riduzione movimento al massimo 100ms.
 // Durante queste animazioni il pulsante principale non accetta altri tocchi.
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -214,7 +182,8 @@ function duration(name) {
   return reducedMotion.matches ? Math.min(100, DURATION[name]) : DURATION[name];
 }
 
-// Dove si allinea la carta appena pescata nella coda: centro della carta al 62% della larghezza visibile
+// Dove si allinea la carta appena pescata nella coda: centro della carta a questa frazione della larghezza visibile
+// (0.5 = al centro, come 'center')
 const ANCHOR_RATIO = 0.5;
 
 // Partita salvata nel browser (localStorage) e numero massimo di passi di undo conservati.
@@ -227,9 +196,7 @@ const UNDO_LIMIT = 300;
 const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
-// Retro della carta pescata, mostrato prima che si giri (630 x 880 WebP)
-// Dorso delle carte nemesi: retro con il logo Aeon's End (immagine dell'utente). I dorsi precedenti restano nel repo:
-// Assets/ui/decor/card-back.webp e card-back.svg (kit di design)
+// Dorso delle carte nemesi (retro con il logo Aeon's End): mazzo, carta da pescare, creazione del mazzo
 const CARD_BACK = 'Assets/ui/decor/card-back-logo.webp';
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
@@ -280,8 +247,13 @@ const ui = {
   drafts: new Map(),      // turno giocatori: modifiche non ancora salvate per carta { uid -> { hp?, paid? } }
   flyingDiscards: 0,      // carte in volo verso la pila degli scarti (non ancora contate)
   tierWaitUntil: 0,       // fino a quando il banner Tier copre l'app (token e vita compaiono dopo)
-  slide: 0,              // direzione dell'ultimo cambio di carta (per l'animazione)
-  slidePx: null           // distanza da cui entra la carta dopo uno slide col dito (px, con segno)
+  tierBanner: null,       // Tier da annunciare al prossimo render ("Tier 2" / "Tier 3")
+  fromScroll: false,      // render causato dallo scorrimento del carosello col dito (non va ricentrato)
+  bgSlideUntil: 0,        // fine dello scorrimento dello sfondo verso il lato della nemesi
+  autoTokenKey: null,     // potere da risolvere su cui è partita l'animazione del token ...
+  autoTokenAt: 0,         // ... e quando è partita (la fascia e la carta grande restano allineate)
+  deckBuilding: false,    // schermata "Crea mazzo" prima del primo turno giocatori
+  deckShown: null         // durante "Crea mazzo": carte già arrivate nel mazzo in alto (null = mazzo vero)
 };
 
 // --- 2. Dati e mazzo ------------------------------------------------------------------------------------------------
@@ -511,18 +483,6 @@ function tokenIcons(n) {
   return row;
 }
 
-function hpChanged(entry) {
-  return hasHp(entry) && entry.turnHp !== undefined && entry.turnHp !== null && entry.hp !== entry.turnHp;
-}
-
-// Badge fuori dalla scansione (box grigio scuro): goccia + vita attuale (minion), un token per ogni token (potere).
-// Uguale nella coda e nella fascia della VistaRisoluzione.
-// Carta che si attiverà nel prossimo turno nemesi: minion (ogni turno) e potere con 1 solo token rimasto
-function activatesNextTurn(entry) {
-  if (isGone(entry)) return false;
-  return hasHp(entry) || (entry.data.type === 'Power' && entry.tokens === 1);
-}
-
 // Carta che va negli scarti all'inizio del prossimo turno nemesi: potere con costo pagato o minion ucciso (vita 0 salvata).
 // Nel turno giocatori resta in coda, grigia.
 function isGone(entry) {
@@ -554,6 +514,8 @@ function displayEntry(entry) {
   return view;
 }
 
+// Box sopra la carta: goccia + vita attuale (minion), un token per ogni token (potere), vuoto per gli attacchi.
+// Uguale nella coda e nelle due fasce piccole.
 function statusBadge(entry) {
   const badge = el('span', 'ae-status-badge');
   badge.setAttribute('aria-hidden', 'true');
@@ -603,9 +565,6 @@ function queueItem(entry, opts) {
   // Fascia piccola: miniatura disegnata subito (sync), così ridisegnando la fascia (per esempio con Turno Nemesi) le carte
   // non spariscono per un attimo
   const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy, sync: !!opts.compact });
-  // (non sulla carta appena pescata: ha già NUOVA e il glow dorato)
-  // (niente pill RISOLVI sulla carta da risolvere)
-
   button.append(statusBadge(entry), meta, art);
   if (entry.isNew) {
     const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
@@ -639,24 +598,6 @@ function nextCardItem({ current = false, viewed = false } = {}) {
   tag.setAttribute('aria-hidden', 'true');
   item.append(badge, art, tag);
   return item;
-}
-
-// Gocce di vita decorative (solo nel dialogo del minion): quante più possibile da 5 e il resto da 1;
-// lost = punti vita tolti (grigie in fondo), gained = punti vita aggiunti (gocce da 1 con glow)
-function dropsRow(hp, lost, gained) {
-  const row = el('div', 'ae-drops');
-  row.setAttribute('aria-hidden', 'true');
-  const extra = Math.max(0, Math.min(gained, hp));
-  const base = Math.max(0, hp) - extra;
-  const classes = [
-    ...Array(Math.floor(base / DROP_BIG_VALUE)).fill('drop5'),
-    ...Array(base % DROP_BIG_VALUE).fill('drop'),
-    ...Array(extra).fill('drop gained'),
-    ...Array(Math.floor(Math.max(0, lost) / DROP_BIG_VALUE)).fill('drop5 lost'),
-    ...Array(Math.max(0, lost) % DROP_BIG_VALUE).fill('drop lost')
-  ];
-  row.append(...classes.map(cls => el('span', cls)));
-  return row;
 }
 
 // --- Dialoghi: un livello alla volta in primo piano, il resto è inerte; Tab resta nel dialogo, Esc annulla ---
@@ -992,7 +933,7 @@ function renderQueue() {
   markQueueRail(centredQueueUid());
 }
 
-// Allinea la coda su una carta: 'anchor' = centro della carta al 62% (si vede cosa la precede), 'center', 'nearest'
+// Allinea la coda su una carta: 'anchor' (ANCHOR_RATIO), 'center', 'nearest'
 function scrollToCard(uid, align = 'nearest') {
   const item = queueList.querySelector(`[data-uid="${uid}"]`);
   if (!item) return;
@@ -1061,12 +1002,6 @@ function removeWhileResolving(entry) {
   if (index < currentIndex) currentIndex--;
   if (newIndex > index) newIndex--;
   if (currentIndex >= queue.length && newIndex < 0 && !canDraw()) endResolution();
-}
-
-// Carta su cui allineare la coda quando una carta sparisce: la successiva, altrimenti la precedente
-function neighbourUid(index) {
-  const next = queue[index] || queue[index - 1];
-  return next ? next.uid : null;
 }
 
 // VistaCartaCoda: dialogo della carta toccata. Minion = punti vita in bozza; potere = rimozione esplicita.
@@ -1932,7 +1867,7 @@ const TIER_BANNER_MS = 1760;
 function showTierBanner(tier) {
   const banner = el('div', 'ae-tier-banner');
   banner.setAttribute('role', 'status');
-  banner.appendChild(el('span', 'ae-tier-banner-text', 'Tier ' + tier));
+  banner.appendChild(el('span', 'ae-tier-banner-text', I18N_IT.tierN(tier)));
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), TIER_BANNER_MS);
 }
@@ -2019,26 +1954,20 @@ function canDraw() {
 // un passo a parte, con il pulsante "Pesca".
 function actionText(entry, isNew) {
   const { data, tokens } = entry;
-  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaDiscardNext : I18N_IT.ctaPutInPlay;
-  // Potere: il token se ne va da solo (dopo 1 secondo); il pulsante dice solo cosa succede dopo
+  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved : I18N_IT.ctaPutInPlay;
+  // Potere: il token se ne va da solo; il pulsante dice solo cosa succede dopo
   if (data.type === 'Power') return tokens > 1 ? I18N_IT.ctaPowerNext : I18N_IT.ctaPowerLast;
-  if (data.type === 'Minion') return I18N_IT.ctaMinionNext;
-  return I18N_IT.ctaDiscardNext;
+  // Minion (resta in gioco) e attacco (va negli scarti)
+  return I18N_IT.ctaResolved;
 }
 
-// BannerInfoNemesi tolto (recuperabile dai tag v104-banner-info-nemesi e dal commit 38279cf).
+// Fascia del turno nemesi dentro .ae-rail-row (creata qui una volta sola) e classi della fase di pesca
 function renderResolveInfo(drawStep) {
-  const oldBar = document.getElementById('resolve-info');
-  if (oldBar) oldBar.remove();
-  // La fascia va in una riga con i due box ai lati (creata qui una volta sola)
-  let row = rail.parentElement;
-  if (!row.classList.contains('ae-rail-row')) {
-    row = el('div', 'ae-rail-row');
+  if (!rail.parentElement.classList.contains('ae-rail-row')) {
+    const row = el('div', 'ae-rail-row');
     rail.before(row);
     row.appendChild(rail);
   }
-  // Niente box mazzo e scarti in alto (restano nel Menu): si tolgono anche da una vecchia pagina
-  row.querySelectorAll(':scope > .ae-pile').forEach(p => p.remove());
   resolveView.classList.toggle('is-draw-phase', drawStep);
   // Lo sfondo della vista è sull'app intera (anche dietro al pulsante principale)
   app.classList.toggle('is-draw-phase', drawStep);
@@ -2123,7 +2052,7 @@ function focusStatus(entry) {
 // La carta mostrata è quella al centro; ai lati si vede un pezzo della precedente e della successiva. Lo slide è lo
 // scorrimento nativo del browser; quando si ferma su un'altra carta, quella diventa la carta mostrata.
 // Le carte si ridisegnano solo quando cambia qualcosa (coda, vita, token, pesca); altrimenti il carosello scorre e basta.
-const PEEK_VISIBLE = 14;   // px visibili di ogni carta vicina (erano 22: carte più grandi)
+const PEEK_VISIBLE = 14;   // px visibili di ogni carta vicina
 const PEEK_GAP = 12;       // spazio tra le carte
 let focusTrack = null;
 let focusSignature = '';
@@ -2283,12 +2212,12 @@ focusEl.addEventListener('scroll', () => {
 }, { passive: true });
 
 // Larghezza della carta grande: UNA sola regola per turno giocatori e turno nemesi, così sono sempre uguali.
-// Sopra la carta il box vita/token (41px + 8 di spazio); i comandi del turno giocatori (52px) stanno sotto, quindi si
-// riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
-// Altezza della riga vita/token sopra la carta (era 41px, ora il 90%): style.css .ae-focus-status e .queue-slot
+// Sopra la carta il box vita/token (STATUS_H + 8 di spazio); i comandi del turno giocatori (52px) stanno sotto, quindi
+// si riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
+// Altezza della riga vita/token sopra la carta: deve restare uguale a style.css .ae-focus-status e .queue-slot
 const STATUS_H = 37;
 function sharedCardWidth(boxW, boxH, padY, peekRoom) {
-  const byWidth = boxW - 16 - peekRoom; // 8px di margine per lato (erano 16)
+  const byWidth = boxW - 16 - peekRoom; // 8px di margine per lato
   const byHeight = (boxH - padY - STATUS_H - 8) / CARD_RATIO;
   const byControls = (boxH - 2 * 52 - STATUS_H - 8) / CARD_RATIO;
   return Math.floor(Math.min(byWidth, byHeight, byControls));
@@ -2392,7 +2321,7 @@ function startResolution() {
 // Pesca una carta in fondo alla coda e la mostra come nuova (NUOVA, entra girandosi dal retro)
 function drawNewCard() {
   const data = drawFromDeck();
-  // Niente da pescare (mazzo e scarti vuoti): si torna alla VistaCoda
+  // Mazzo vuoto (non si rimescola): si torna alla VistaCoda
   if (!data) {
     endResolution();
     return;
@@ -2523,7 +2452,6 @@ function onResolveClick() {
 function showActive(entry) {
   const current = activeEntry();
   ui.viewedUid = current ? current.uid : (isDrawStep() ? DRAW_UID : null);
-  ui.slide = 1;
   if (current && newIndex >= 0 && current.isNew && (!ui.reveal || ui.reveal.uid !== current.uid)) {
     startReveal(current);
     announce(I18N_IT.cardDrawn(current.data.name));
@@ -2570,10 +2498,9 @@ function onNemesisClick() {
 }
 
 // Mostra un'altra carta senza risolvere nulla (anteprima): non cambia mazzo, vita, token, scarti, turno, undo
-function viewCard(uid, slide = 0) {
+function viewCard(uid) {
   if (!resolving || ui.holdUid) return;
   if ((uid === DRAW_UID ? !isDrawStep() : !entryByUid(uid)) || ui.viewedUid === uid) return;
-  ui.slide = slide;
   ui.viewedUid = uid;
   renderResolve();
 }
@@ -2581,7 +2508,7 @@ function viewCard(uid, slide = 0) {
 function moveView(step) {
   const i = queue.findIndex(e => e.uid === ui.viewedUid);
   const next = queue[i + step];
-  if (next) viewCard(next.uid, step);
+  if (next) viewCard(next.uid);
 }
 
 function backToActive() {
@@ -2616,10 +2543,7 @@ queueList.addEventListener('click', e => {
 rail.addEventListener('click', e => {
   const item = e.target.closest('.ae-queue-item');
   if (!item || rail.dataset.dragged === '1') return;
-  const uid = Number(item.dataset.uid);
-  const from = queue.findIndex(x => x.uid === ui.viewedUid);
-  const to = queue.findIndex(x => x.uid === uid);
-  viewCard(uid, Math.sign(to - from));
+  viewCard(Number(item.dataset.uid));
 });
 
 // Carosello del turno nemesi: toccando il retro della carta da pescare si pesca; toccando un minion (quello al centro)
@@ -2877,7 +2801,6 @@ function checkVictory() {
 // Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), senza pause tra un Tier e l'altro; dentro ogni Tier
 // le carte partono in ordine casuale dai tre mazzi. Il numero del mazzo sale a ogni carta. Alla fine la schermata
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
-// Tempi accelerati del 25% (erano 520 / 70 / 450 ms)
 const DECK_FLY_MS = 390;
 const DECK_FLY_STAGGER = 53;
 // Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte

@@ -3,7 +3,7 @@
 html, body { height: 100%; }
 body { overflow: hidden; }
 
-/* Shell: testata, contenuto, dock (REPORT Â§2.5) */
+/* Shell: testata, contenuto, dock (REPORT §2.5) */
 .ae-shell {
   height: 100vh; height: 100dvh;
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
@@ -14,9 +14,7 @@ body { overflow: hidden; }
 /* --- VistaCoda --- */
 .queue-view {
   flex: 1; min-height: 0; display: flex; flex-direction: column; animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard);
-  /* Sfondo del turno giocatori al 50%, fermo: solo la parte sinistra dell'immagine, con la maga */
   position: relative;
-  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/players-turn-bg.webp') left center / cover no-repeat, var(--ae-bg);
 }
 .queue-view > .queue-col, .queue-view > .queue-side { position: relative; z-index: 1; }
 
@@ -35,7 +33,7 @@ body { overflow: hidden; }
 /* VistaCoda: carte grandi, alte quanto lo spazio (--ae-queue-card calcolata da sizeQueue in script.js) */
 .ae-queue-list > .queue-slot { width: var(--ae-queue-card, 132px); flex: 0 0 var(--ae-queue-card, 132px); display: flex; flex-direction: column; gap: 8px; scroll-snap-align: center; }
 .queue-slot > .ae-queue-item { width: 100%; flex-basis: auto; }
-/* Comandi sotto la carta grande: vita del minion (âˆ’5 âˆ’1 +1, Elimina a 0) o rimozione del potere */
+/* Comandi sotto la carta grande: vita del minion (−5 −1 +1, Elimina a 0) o rimozione del potere */
 .queue-controls { min-height: 44px; display: flex; gap: 6px; }
 /* Potere non rimovibile: nota piccola con il punto esclamativo rosso */
 .queue-note { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: var(--ae-text-muted); font: 600 12px/16px var(--ae-font-ui); }
@@ -58,15 +56,12 @@ body { overflow: hidden; }
 /* --- VistaRisoluzione --- */
 .ae-resolve-layout {
   flex: 1; display: flex; flex-direction: column; min-height: 0;
-  /* Sfondo del turno nemesi (immagine dell'utente), sempre a tutta area */
-  /* immagine al 50%: sopra c'Ã¨ lo sfondo dell'app (--ae-bg) a metÃ  trasparenza */
-  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg);
 }
 .ae-resolve-layout.is-entering { animation: ae-fade var(--ae-duration-phase) var(--ae-ease-standard); }
 
 .ae-compact-rail {
   flex: 0 0 104px; height: 104px; display: flex; align-items: center; gap: 10px;
-  /* carte a metÃ  tra la testata e la linea di separazione */
+  /* carte a metà tra la testata e la linea di separazione */
   overflow-x: auto; overflow-y: hidden; padding: 0 16px;
   border-bottom: 1px solid var(--ae-border); overscroll-behavior-x: contain; scroll-snap-type: x proximity;
 }
@@ -79,16 +74,10 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-status-badge .ae-icon { width: 12px; height: 12px; }
 .ae-compact-rail .ae-token { width: 11px; height: 11px; }
 .ae-compact-rail .ae-new-tag { display: none; }
-/* Fascia in alto: carte senza bordo nÃ© anello (restano opacitÃ , RISOLVI e il glow dorato della carta nuova) */
+/* Fascia in alto: carte senza bordo né anello (restano opacità, RISOLVI e il glow dorato della carta nuova) */
 .ae-compact-rail .ae-queue-item .ae-card-art { border: 0; --ae-ring: 0 0 0 transparent; }
 /* Prossima carta da pescare (retro) in fondo alla fascia: NUOVA in alto a destra */
 .ae-compact-rail .ae-next-card .ae-new-tag { display: block; top: 20px; right: -4px; padding: 1px 3px; font-size: 10px; line-height: 12px; border-radius: 4px; }
-/* Pill RISOLVI sulla carta da risolvere quando se ne guarda un'altra */
-.ae-rail-flag {
-  position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); z-index: 2;
-  padding: 1px 4px; border-radius: 5px; background: var(--ae-danger); color: var(--ae-on-primary);
-  font: 700 11px/14px var(--ae-font-ui); letter-spacing: .02em; text-transform: uppercase; pointer-events: none;
-}
 
 /* Carosello del turno nemesi: scorre in orizzontale e si ferma su ogni carta (scroll-snap); la barra non si vede */
 .ae-focus {
@@ -103,11 +92,6 @@ body { overflow: hidden; }
   scroll-snap-align: center; scroll-snap-stop: always; --ae-slide: 24px;
 }
 .ae-focus-slide .ae-focus-stage { width: var(--ae-focus-w, 280px); height: calc(var(--ae-focus-w, 280px) * 88 / 63); }
-.ae-focus-eyebrow { min-height: 20px; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .12em; text-transform: uppercase; text-align: center; font-variant-numeric: tabular-nums; }
-.ae-focus-eyebrow.is-active { color: var(--ae-danger); }
-.ae-focus-eyebrow.is-new { color: var(--ae-gold); }
-.ae-focus-name { font: 600 16px/22px var(--ae-font-ui); text-align: center; }
-.ae-focus-name small { display: block; color: var(--ae-text-quiet); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
 .ae-focus-stage { position: relative; flex: 0 0 auto; border-radius: 5% / 3.58%; }
 /* Carta appena pescata: glow dorato come nella versione 1 (10% / 2% della larghezza della carta, al massimo 28px) */
 .ae-focus-stage.is-new { box-shadow: 0 0 min(calc(var(--cw, 300px) * .1), 28px) min(calc(var(--cw, 300px) * .02), 6px) rgba(255, 196, 60, .85); }
@@ -127,15 +111,15 @@ body { overflow: hidden; }
 @keyframes ae-token-out { 0% { opacity: 1; transform: scale(1.25); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes ae-focus-in { from { opacity: .4; transform: translateX(var(--ae-slide, 0px)); } to { opacity: 1; transform: none; } }
 
-/* Carta pescata: retro (Assets/ui/decor/card-back.webp) e fronte, che si gira in 350ms */
+/* Carta pescata: retro (dorso, CARD_BACK in script.js) e fronte, che si gira in 350ms */
 .ae-flip { position: absolute; inset: 0; perspective: 1200px; }
 .ae-flip-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
 .ae-flip.is-flipped .ae-flip-inner { transform: rotateY(180deg); transition: transform var(--ae-duration-draw) var(--ae-ease-decelerate); }
-/* angoli arrotondati come la carta: il retro dell'immagine ha gli angoli neri, cosÃ¬ vengono tagliati */
+/* angoli arrotondati come la carta: il retro dell'immagine ha gli angoli neri, così vengono tagliati */
 .ae-flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 5% / 3.58%; overflow: hidden; }
 .ae-flip-face--front { transform: rotateY(180deg); }
 .ae-flip-face--back img { display: block; width: 100%; height: 100%; object-fit: contain; }
-/* "Caricamento cartaâ€¦" e "Riprova immagine" stanno dentro la carta, in basso: non tolgono spazio alla carta */
+/* "Caricamento carta…" e "Riprova immagine" stanno dentro la carta, in basso: non tolgono spazio alla carta */
 .ae-flip-loading {
   position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); z-index: 2; max-width: 90%;
   padding: 4px 10px; border-radius: var(--ae-radius-sm); background: rgba(16, 17, 22, .85); color: var(--ae-text); text-align: center;
@@ -160,10 +144,6 @@ body { overflow: hidden; }
 }
 @keyframes ae-tier-banner { 0% { opacity: 0; } 8%, 75% { opacity: 1; } 100% { opacity: 0; } }
 
-/* Copia della carta scartata che sfuma */
-.ae-discard-ghost { position: fixed; z-index: 20; margin: 0; pointer-events: none; animation: ae-ghost-out var(--ae-duration-discard) ease-in forwards; }
-@keyframes ae-ghost-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.96); } }
-
 /* Dock in risoluzione: una CTA principale, eventuale microtesto sopra */
 .ae-dock .ae-button { white-space: normal; }
 #resolve-btn { min-height: 52px; }
@@ -175,8 +155,6 @@ body { overflow: hidden; }
 }
 .start-box { width: min(100% - 32px, 480px); margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 .start-title { margin-top: 8px; text-align: center; font: 600 28px/34px var(--ae-font-display); }
-/* Logo del gioco al posto del titolo in Cinzel */
-.start-logo { display: block; width: min(100%, 320px); height: auto; margin: 0 auto; }
 .start-subtitle { display: block; margin-top: 6px; font: 600 16px/22px var(--ae-font-display); letter-spacing: .14em; color: var(--ae-text-muted); }
 .start-group { display: flex; flex-direction: column; }
 .start-label { margin-bottom: 10px; font: 600 14px/20px var(--ae-font-ui); color: var(--ae-text-muted); letter-spacing: .08em; text-transform: uppercase; }
@@ -206,7 +184,7 @@ body { overflow: hidden; }
   /* Ritaglio dell'illustrazione (480 x 212): larghezza fissa, uguale in tutti i pulsanti */
   position: absolute; top: 0; right: 0; bottom: 0; width: 176px; pointer-events: none;
   background: center / cover no-repeat;
-  /* sfumatura: da trasparente a pieno nella prima metÃ  */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+  /* sfumatura: da trasparente a pieno nella prima metà */ -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
 }
 .nemesis-option.has-art .nemesis-name, .nemesis-option.has-art .nemesis-tags { position: relative; z-index: 1; }
 /* Mini espansione: etichetta piccola in basso a destra, sopra l'illustrazione */
@@ -261,8 +239,8 @@ body { overflow: hidden; }
 .start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); white-space: pre-line; overflow-wrap: anywhere; }
 .start-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .start-resume-alt { order: 2; }
-/* Finestra "Partita in corso" sotto il titolo (c'Ã¨ una partita salvata): nemesi e giocatori, con a destra
-   l'illustrazione della nemesi se c'Ã¨; poi Riprendi partita / Nuova partita. Nel frattempo le scelte sono nascoste. */
+/* Finestra "Partita in corso" sotto il titolo (c'è una partita salvata): nemesi e giocatori, con a destra
+   l'illustrazione della nemesi se c'è; poi Riprendi partita / Nuova partita. Nel frattempo le scelte sono nascoste. */
 .start-box.is-choosing > .start-group, .start-box.is-choosing > .ae-switch-row, .start-box.is-choosing > .start-actions { display: none; }
 .start-choice {
   display: flex; flex-direction: column; gap: 10px; padding: 16px;
@@ -279,7 +257,7 @@ body { overflow: hidden; }
 .discard-empty-icon { width: 40px; height: 40px; color: var(--ae-text-muted); }
 .queue-side-icon { width: 40px; height: 40px; color: var(--ae-text-muted); }
 
-/* --- Breakpoint (REPORT Â§2.4) --- */
+/* --- Breakpoint (REPORT §2.4) --- */
 @media (max-width: 359px) {
   .ae-queue-item { width: 116px; flex-basis: 116px; }
   .ae-queue-list { gap: 10px; }
@@ -376,32 +354,14 @@ body { overflow: hidden; }
 
 
 /* Pulsante "Turno Nemesi" con l'illustrazione della nemesi scelta al posto del fondo avorio: velo scuro al 55% sopra
-   l'immagine e scritta avorio con un'ombra, cosÃ¬ si legge su qualsiasi illustrazione */
+   l'immagine e scritta avorio con un'ombra, così si legge su qualsiasi illustrazione */
 .ae-button.has-nemesis-art {
   background: linear-gradient(rgba(16, 17, 22, .55), rgba(16, 17, 22, .55)), var(--ae-nemesis-art) center 30% / cover no-repeat, var(--ae-surface-raised);
   color: var(--ae-text); border: 1px solid rgba(244, 241, 233, .55);
   text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 10px rgba(0, 0, 0, .6); letter-spacing: .04em;
 }
 .ae-button.has-nemesis-art:disabled { opacity: .55; }
-/* --- BannerInfoNemesi: mazzo, nome della nemesi e fase, pila degli scarti; dietro l'illustrazione che sfuma dal nero --- */
-.ae-banner-nemesi {
-  position: relative; flex: 0 0 auto; height: 84px; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
-  background: #000; overflow: hidden; border-bottom: 1px solid var(--ae-border);
-}
-.ae-banner-nemesi::before {
-  content: ''; position: absolute; top: 0; bottom: 0; left: 22%; right: 0; pointer-events: none;
-  background: var(--ae-banner-art) center 30% / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%);
-}
-/* velo a destra: la pila degli scarti resta leggibile sopra l'illustrazione */
-.ae-banner-nemesi::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to left, rgba(0, 0, 0, .55), transparent 35%); }
-.ae-banner-nemesi > * { position: relative; z-index: 1; }
-.ae-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-.ae-banner-name {
-  max-width: 100%; font: 600 18px/22px var(--ae-font-display); color: var(--ae-gold); letter-spacing: .04em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0, 0, 0, .95), 0 0 10px rgba(0, 0, 0, .8);
-}
-/* Pile di carte: dorso del mazzo e ultima carta scartata, con un'ombra a scalini che fa da "pila" e il numero sopra */
+/* Pile di carte (testata): dorso del mazzo e ultima carta scartata, con un'ombra a scalini che fa da "pila" e il numero sopra */
 .ae-pile { position: relative; flex: 0 0 auto; height: 68px; aspect-ratio: 63 / 88; padding: 0; border: 0; background: none; color: inherit; }
 .ae-pile img {
   display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 5% / 3.58%;
@@ -414,14 +374,7 @@ body { overflow: hidden; }
   color: var(--ae-text); font: 700 15px/1 var(--ae-font-ui); font-variant-numeric: tabular-nums;
 }
 .ae-pile--discard { cursor: pointer; }
-/* Fase di pesca: il mazzo brilla d'oro (Ã¨ da lÃ¬ che si pesca) */
-.ae-resolve-layout.is-draw-phase .ae-pile--deck img { box-shadow: 2px 2px 0 -1px #2a2c34, 4px 4px 0 -1px #1b1d24, 0 0 14px 3px rgba(223, 174, 89, .75); }.ae-phase-chip { padding: 2px 8px; border-radius: 999px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
-.ae-phase-chip.is-resolve { background: rgba(217, 94, 92, .18); color: #f0a09e; border: 1px solid rgba(217, 94, 92, .55); }
-.ae-phase-chip.is-draw { background: rgba(223, 174, 89, .18); color: var(--ae-gold); border: 1px solid rgba(223, 174, 89, .6); }
-/* Fase di pesca: sfondo piÃ¹ scuro e caldo, fascia con la linea dorata, pulsante "Pesca" dorato */
-.ae-resolve-layout.is-draw-phase {
-  background: linear-gradient(rgba(24, 18, 8, .8), rgba(24, 18, 8, .8)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg);
-}
+/* Fase di pesca: fascia con la linea dorata, pulsante "Pesca" dorato */
 .ae-resolve-layout.is-draw-phase .ae-compact-rail { border-bottom-color: rgba(223, 174, 89, .6); }
 .ae-button.is-draw { background: var(--ae-gold); color: #20160B; letter-spacing: .08em; text-transform: uppercase; }
 
@@ -429,14 +382,7 @@ body { overflow: hidden; }
 .ae-focus-status.is-auto-token .ae-token:last-child { animation: ae-token-leave .9s ease-in 1s forwards; }
 @keyframes ae-token-leave { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.6); } }
 
-/* Turno dei giocatori: tutta la carta lampeggia di rosso (minion e poteri con 1 token) */
-.ae-queue-item.is-imminent .ae-card-art { animation: ae-card-imminent 1.2s ease-in-out infinite; }
-@keyframes ae-card-imminent {
-  0%, 100% { border-color: rgba(236, 232, 222, .85); box-shadow: 0 0 0 0 rgba(217, 40, 40, 0); }
-  50% { border-color: #c0292b; box-shadow: 0 0 14px 4px rgba(217, 40, 40, .75); }
-}
-
-/* Attacco appena pescato: lampeggia di rosso (dopo che si Ã¨ girato) */
+/* Attacco appena pescato: lampeggia di rosso (dopo che si è girato) */
 .ae-focus-stage.is-attack-drawn { animation: ae-attack-pulse 1s ease-in-out infinite; }
 .ae-focus-slide.is-drawing .ae-focus-stage.is-attack-drawn { animation-delay: .4s; }
 @keyframes ae-attack-pulse {
@@ -444,7 +390,7 @@ body { overflow: hidden; }
   50% { box-shadow: 0 0 calc(var(--cw, 300px) * .12) calc(var(--cw, 300px) * .03) rgba(230, 40, 40, .95); }
 }
 
-/* Carta pescata: la riga sopra Ã¨ nascosta mentre carica; dopo la rotazione compaiono i token uno alla volta o la vita */
+/* Carta pescata: la riga sopra è nascosta mentre carica; dopo la rotazione compaiono i token uno alla volta o la vita */
 .ae-focus-slide.is-draw-loading .ae-focus-status { visibility: hidden; }
 .ae-focus-slide.is-drawing .ae-focus-status.is-hp > * { animation: ae-pop .4s cubic-bezier(.2, 1.4, .4, 1) .4s both; }
 .ae-focus-slide.is-drawing .ae-focus-status .ae-token { animation: ae-pop .35s cubic-bezier(.2, 1.4, .4, 1) .4s both; }
@@ -454,7 +400,7 @@ body { overflow: hidden; }
 .ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(n+5) { animation-delay: 1s; }
 @keyframes ae-pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
 
-/* Scritta "Tier N" piÃ¹ marcata */
+/* Scritta "Tier N" più marcata */
 .ae-tier-banner-text {
   font-size: 64px; letter-spacing: .12em; color: #f3cf86;
   text-shadow: 0 0 18px rgba(223, 174, 89, .9), 0 0 42px rgba(223, 120, 40, .6), 0 3px 10px rgba(0, 0, 0, .9);
@@ -464,16 +410,13 @@ body { overflow: hidden; }
 @keyframes ae-tier-text { 0% { transform: scale(1.6); letter-spacing: .4em; } 25% { transform: scale(1); letter-spacing: .12em; } 100% { transform: scale(1.04); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ae-queue-item.is-imminent .ae-card-art { animation: none; border-color: #c0292b; box-shadow: 0 0 10px 3px rgba(217, 40, 40, .6); }
   .ae-focus-stage.is-attack-drawn { animation: none; box-shadow: 0 0 16px 4px rgba(230, 40, 40, .85); }
   .ae-focus-status.is-auto-token .ae-token:last-child { animation-duration: .01s; }
   .ae-tier-banner-text { animation: none; }
 }
-/* Turno nemesi: mazzo (sinistra) e scarti (destra) ai lati della fascia piccola */
+/* Turno nemesi: riga che contiene la fascia piccola */
 .ae-rail-row { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--ae-border); }
 .ae-rail-row > .ae-compact-rail { flex: 1 1 auto; min-width: 0; border-bottom: 0; padding: 0 6px; }
-.ae-rail-row > .ae-pile { height: 64px; }
-.ae-rail-row > .ae-pile .ae-pile-count { min-width: 26px; height: 26px; font-size: 13px; }
 .ae-resolve-layout.is-draw-phase .ae-rail-row { border-bottom-color: rgba(223, 174, 89, .6); }
 /* --- Turno giocatori: modifiche del 8 nov --- */
 /* Nessun glow sulle carte (resta l'etichetta NUOVA) */
@@ -493,12 +436,7 @@ body { overflow: hidden; }
 /* Turno giocatori: più spazio tra le carte (+50%) */
 .queue-view .ae-queue-list { gap: 18px; }
 /* +1 oscurato e non cliccabile se non c'è vita tolta in questo turno */
-.ae-button.is-dimmed, .ae-button.is-dimmed:disabled { opacity: .35; cursor: not-allowed; }/* "Salva" sulla carta, in basso a destra (sopra la riga dei comandi: 44px + 8px di spazio) */
-.queue-save {
-  position: absolute; right: 8px; bottom: 60px; z-index: 5; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px;
-  background: var(--ae-gold); color: #20160B; font: 700 15px/1 var(--ae-font-ui); letter-spacing: .04em;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .65); animation: ae-pop .25s cubic-bezier(.2, 1.4, .4, 1) both;
-}
+.ae-button.is-dimmed, .ae-button.is-dimmed:disabled { opacity: .35; cursor: not-allowed; }
 
 /* Carta pescata: token e vita compaiono dopo il banner Tier (--ae-tier-wait lo imposta script.js) */
 .ae-focus-slide.is-drawing .ae-focus-status.is-hp > * { animation-delay: calc(var(--ae-tier-wait, 0ms) + .4s); }
@@ -508,16 +446,14 @@ body { overflow: hidden; }
 .ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(4) { animation-delay: calc(var(--ae-tier-wait, 0ms) + .85s); }
 .ae-focus-slide.is-drawing .ae-focus-status .ae-token:nth-child(n+5) { animation-delay: calc(var(--ae-tier-wait, 0ms) + 1s); }
 
-/* Carta da pescare: si tocca per pescare. Attacco risolto: sfuma restando nel turno nemesi */
+/* Carta da pescare: si tocca per pescare */
 .ae-focus-slide--draw .ae-focus-stage { cursor: pointer; }
-.ae-focus-stage.is-discarding, .ae-focus-stage.is-attack-drawn.is-discarding { animation: ae-ghost-out .45s ease-in forwards; }
 
 /* Turno giocatori: stessa posizione e dimensione della carta del turno nemesi. I comandi sono sotto la carta, fuori dal flusso */
 .queue-view .ae-queue-viewport { padding-top: 12px; padding-bottom: 12px; }
 .queue-slot { gap: 0; }
 .queue-slot > .ae-queue-item { gap: 8px; }
 .queue-slot > .queue-controls { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; }
-.queue-save { bottom: 8px; }
 
 /* Vita/token, carta e pulsanti alzati di 14px in entrambi i turni */
 .ae-focus-track, .queue-view .ae-queue-list { transform: translateY(-14px); }
@@ -534,10 +470,7 @@ body { overflow: hidden; }
 }
 .ae-shell.clear-header .ae-header .ae-icon-button { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .9)); }
 
-/* Sfondo della vista su tutta l'app (anche dietro a testata e pulsante principale); le due viste sono trasparenti */
-.ae-shell { background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/players-turn-bg.webp') left center / cover no-repeat, var(--ae-bg); }
-.ae-shell.is-nemesis-turn { background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
-.ae-shell.is-nemesis-turn.is-draw-phase { background: linear-gradient(rgba(24, 18, 8, .8), rgba(24, 18, 8, .8)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
+/* Lo sfondo è su tutta l'app (.ae-shell, più in basso: "Sfondo unico"); le due viste sono trasparenti */
 .queue-view, .ae-resolve-layout, .ae-resolve-layout.is-draw-phase { background: none; }
 /* Pulsante principale senza il box del dock */
 .ae-dock { background: none; border-top: 0; }
@@ -552,9 +485,6 @@ body { overflow: hidden; }
 .queue-view .queue-rail, .ae-rail-row { margin-top: 10px; border-top: 1px solid var(--ae-border); border-bottom: 1px solid var(--ae-border); }
 .ae-rail-row > .ae-compact-rail { border: 0; }
 .ae-resolve-layout.is-draw-phase .ae-rail-row { border-color: rgba(223, 174, 89, .6); }
-/* Turno nemesi: immagine di sfondo a metà dell'intensità di prima (velo da .5 a .75, in pesca da .8 a .9) */
-.ae-shell.is-nemesis-turn { background: linear-gradient(rgba(16, 17, 22, .75), rgba(16, 17, 22, .75)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
-.ae-shell.is-nemesis-turn.is-draw-phase { background: linear-gradient(rgba(24, 18, 8, .9), rgba(24, 18, 8, .9)), url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 .queue-view .queue-rail { flex-basis: 106px; height: 106px; }
 
 /* Turno giocatori: carte senza il bordo bianco */
@@ -595,7 +525,7 @@ body { overflow: hidden; }
   position: fixed; z-index: 70; margin: 0; pointer-events: none; border-radius: 5% / 3.58%; overflow: visible;
   box-shadow: 0 14px 30px rgba(0, 0, 0, .65), 0 0 18px 2px rgba(223, 174, 89, .45); will-change: transform, opacity;
 }
-.ae-fly-ghost .ae-new-tag, .ae-fly-ghost .ae-rail-flag, .ae-fly-ghost .queue-hp-tag { display: none; }
+.ae-fly-ghost .ae-new-tag, .ae-fly-ghost .queue-hp-tag { display: none; }
 
 /* Pulsante principale "Salva modifiche": dorato */
 .ae-button.is-save { background: var(--ae-gold); color: #20160B; border-color: var(--ae-gold); text-shadow: none; letter-spacing: .04em; }
@@ -605,8 +535,6 @@ body { overflow: hidden; }
 
 /* Fascia del turno nemesi: il token del potere da risolvere sfuma insieme a quello della carta grande */
 .ae-compact-rail .ae-status-badge.is-auto-token .ae-token:last-child { animation: ae-token-leave .9s ease-in var(--ae-token-delay, 1s) forwards; }
-/* Turno nemesi (anche nella fase di pesca): immagine di sfondo piena, senza velo */
-.ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase { background: url('Assets/ui/decor/nemesis-turn-bg-2.webp') center / cover no-repeat, var(--ae-bg); }
 /* Scritta Tier 2/3 più veloce del 20% (1,76 s invece di 2,2 s) */
 .ae-tier-banner { animation-duration: 1.76s; }
 .ae-tier-banner-text { animation-duration: 1.76s; }
@@ -624,9 +552,6 @@ body { overflow: hidden; }
   padding: 0 16px calc(96px + var(--ae-safe-bottom)); background: rgba(0, 0, 0, .3); animation: ae-fade .2s ease-out;
 }
 .ae-undo-float-button { min-width: 260px; box-shadow: 0 6px 24px rgba(0, 0, 0, .7); }
-
-/* Sfondo del turno nemesi: illustrazione del demone su Gravehold (immagine piena) */
-.ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase { background: url('Assets/ui/decor/nemesis-turn-bg-3.webp') center top / cover no-repeat, var(--ae-bg); }
 
 /* Potere da risolvere: il token da togliere lampeggia subito con un bagliore dorato (due impulsi), poi diventa grigio
    in fretta. Nessuna attesa iniziale; uguale nella carta grande e nella fascia */
@@ -653,20 +578,13 @@ body { overflow: hidden; }
   animation: ae-pop .2s cubic-bezier(.2, 1.4, .4, 1) both;
 }
 
-/* Sfondo del turno nemesi (anche in pesca): Gravehold sotto il cielo rosso, immagine al 50% (velo scuro al 50%) */
-.ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
-  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/nemesis-turn-bg-4.webp') center / cover no-repeat, var(--ae-bg);
-}
-
 /* Dal turno nemesi al turno giocatori: niente dissolvenza della vista intera (vedi toPlayersTurn in script.js) */
 .queue-view.is-from-nemesis { animation: none; }
-/* Sfondo del turno nemesi che sfuma sopra quello del turno giocatori, sotto il contenuto */
-.ae-bg-fade { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .ae-shell > .ae-main { position: relative; z-index: 1; }
 
 /* --- Sfondo unico (Assets/ui/decor/battle-bg.webp): la maga a sinistra, la nemesi a destra ---
    Turno giocatori: si vede il lato sinistro; turno nemesi (anche in pesca): lo sfondo scorre e si vede il lato destro.
-   Velo scuro al 50% come prima. Stato precedente (due sfondi): tag git v123-prima-sfondo-unico */
+   Velo scuro al 50%. Stato precedente (due sfondi): tag git v123-prima-sfondo-unico */
 .ae-shell, .ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
   background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/battle-bg.webp') 0% center / cover no-repeat, var(--ae-bg);
   transition: background-position .8s cubic-bezier(.45, 0, .2, 1);
