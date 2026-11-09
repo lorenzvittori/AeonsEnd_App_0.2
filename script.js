@@ -2525,7 +2525,7 @@ function flyToDiscard(nodes) {
 // Dal turno nemesi al turno giocatori senza "sparisci e ricompari":
 //   - la vista del turno giocatori non fa la dissolvenza (classe is-from-nemesis);
 //   - la fascia piccola resta ferma (stesso scorrimento della fascia del turno nemesi);
-//   - lo sfondo del turno nemesi sfuma sopra quello nuovo;
+//   - lo sfondo scorre di nuovo verso il lato sinistro (maga);
 //   - la carta appena messa in gioco passa dalla sua misura grande a quella del turno giocatori (FLIP); il resto
 //     (carte ai lati, box vita/token, comandi) compare con una breve dissolvenza.
 // Va chiamata al posto di render(): misura prima e dopo il disegno.
@@ -2534,15 +2534,7 @@ function toPlayersTurn(morphUid, fromNode) {
   const railScroll = rail.scrollLeft;
   const fromRect = fromNode && fromNode.getBoundingClientRect().width ? fromNode.getBoundingClientRect() : null;
   const motion = !reducedMotion.matches && !!document.body.animate;
-  if (motion) {
-    const cs = getComputedStyle(app);
-    const fade = el('div', 'ae-bg-fade');
-    ['backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundRepeat', 'backgroundColor'].forEach(k => { fade.style[k] = cs[k]; });
-    app.prepend(fade);
-    const anim = fade.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'forwards' });
-    anim.onfinish = () => fade.remove();
-    setTimeout(() => fade.remove(), MORPH_MS + 200);
-  }
+  // (lo sfondo non sfuma più: è un'immagine sola che scorre da destra a sinistra, vedi style.css .ae-shell)
   queueView.classList.add('is-from-nemesis');
   render();
   if (queueRail) queueRail.scrollLeft = railScroll;

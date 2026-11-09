@@ -680,3 +680,13 @@ body { overflow: hidden; }
 /* Sfondo del turno nemesi che sfuma sopra quello del turno giocatori, sotto il contenuto */
 .ae-bg-fade { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .ae-shell > .ae-main { position: relative; z-index: 1; }
+
+/* --- Sfondo unico (Assets/ui/decor/battle-bg.webp): la maga a sinistra, la nemesi a destra ---
+   Turno giocatori: si vede il lato sinistro; turno nemesi (anche in pesca): lo sfondo scorre e si vede il lato destro.
+   Velo scuro al 50% come prima. Stato precedente (due sfondi): tag git v123-prima-sfondo-unico */
+.ae-shell, .ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase {
+  background: linear-gradient(rgba(16, 17, 22, .5), rgba(16, 17, 22, .5)), url('Assets/ui/decor/battle-bg.webp') 0% center / cover no-repeat, var(--ae-bg);
+  transition: background-position .8s cubic-bezier(.45, 0, .2, 1);
+}
+.ae-shell.is-nemesis-turn, .ae-shell.is-nemesis-turn.is-draw-phase { background-position: 0 0, 100% center, 0 0; }
+@media (prefers-reduced-motion: reduce) { .ae-shell { transition: none; } }
