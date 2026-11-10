@@ -794,5 +794,30 @@ body { overflow: hidden; }
     animation: ae-rotate-hint 1.6s ease-in-out infinite;
   }
 }
+/* --- v156 --- */
+/* Scritte Tier / Partita iniziata: ferme e invisibili finché non sono pronte (showBanner); poi l'animazione muove solo
+   trasformazione e opacità (niente letter-spacing animato, che ridisegnava il testo con le ombre a ogni fotogramma) */
+.ae-tier-banner.is-preparing, .ae-tier-banner.is-preparing .ae-tier-banner-text { animation-play-state: paused; }
+.ae-tier-banner { will-change: opacity; }
+.ae-tier-banner-text { will-change: transform; }
+@keyframes ae-tier-text { 0% { transform: scale(1.6); } 25% { transform: scale(1); } 100% { transform: scale(1.04); } }
+/* Nemesi non nella collezione: senza "!", con la scritta "Non in collezione" a destra */
+.nemesis-locked.is-not-owned::before { display: none; }
+.nemesis-locked.is-not-owned { justify-content: space-between; }
+.nemesis-locked-note {
+  flex: 0 0 auto; color: var(--ae-text-muted); font: 700 10px/14px var(--ae-font-ui); letter-spacing: .06em; text-transform: uppercase;
+}
+/* "Crea mazzo" da tenere premuto: il pulsante si riempie d'oro da sinistra in 800ms (HOLD_BUILD_MS in script.js) */
+.ae-button.is-hold-action {
+  position: relative; overflow: hidden; isolation: isolate; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.ae-button.is-hold-action::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; background: var(--ae-gold);
+  transform: scaleX(0); transform-origin: left center; transition: transform .15s ease-out;
+}
+.ae-button.is-hold-action.is-holding::after { transform: scaleX(1); transition: transform .8s linear; }
+.ae-button.is-hold-action.is-holding { color: #20160B; text-shadow: none; }
+
 @keyframes ae-rotate-hint { 0%, 30% { transform: rotate(-90deg); } 60%, 100% { transform: rotate(0deg); } }
 @media (prefers-reduced-motion: reduce) { .ae-rotate::before { animation: none; } }

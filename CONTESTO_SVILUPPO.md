@@ -64,9 +64,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Ogni pulsante mostra parte dell'illustrazione, la battaglia e, se c'è, la mini espansione.
   - Sulla nemesi scelta c'è una freccia (o un secondo tocco) che apre la sua carta intera; un tocco o uno slide la gira
     e mostra il retro con il setup.
-  - Le nemesi non giocabili (senza battaglia, fuori collezione o senza carte nell'app) sono in piccoli box con un "!"
-    rosso, non cliccabili.
-- **Includi carte base potenziate:** senza, al posto delle Upgraded Basic si prendono altrettante Basic dello stesso Tier.
+  - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
+    collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso.
+- L'interruttore **Includi carte base potenziate** è stato tolto in v156 (per ora non serve): le Upgraded Basic sono
+  sempre incluse (`settings.includeUpgraded` resta `true`; la logica in `buildDeck` c'è ancora).
 - Se c'è una partita salvata compare la finestra **Partita in corso** (nemesi e giocatori) con *Riprendi partita* /
   *Nuova partita*.
 
@@ -75,7 +76,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Schermata **Crea mazzo**: i 9 mazzi da cui nasce il mazzo nemesi (righe Tier 1-3, colonne Base / Potenziate /
   Specifiche). Base e Potenziate sono dorsi con il numero di carte; le Specifiche sono a ventaglio, a faccia in su, e
   toccandole si vedono grandi.
-- Il pulsante "Crea mazzo" gira le Specifiche e fa volare le carte una alla volta nel mazzo in alto (prima il Tier 3,
+- Il pulsante "Tieni premuto: Crea mazzo" va **tenuto premuto** per 0,8 s (`HOLD_BUILD_MS`): si riempie d'oro da
+  sinistra; lasciando prima non succede niente. Da tastiera (Invio) parte subito. Poi gira le Specifiche e fa volare le carte una alla volta nel mazzo in alto (prima il Tier 3,
   poi il 2, poi l'1). Poi compare il banner **Partita iniziata**, con la stessa animazione del banner Tier, e si è nel
   turno giocatori.
 
@@ -112,7 +114,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **minion:** "Effetto risolto", resta in gioco. Toccando il minion si apre la finestra con −1 / +1 alla vita;
   - **attacco:** "Effetto risolto", va negli scarti.
 - **Passo Pesca:** dopo l'ultima carta un dorso vola dal mazzo al centro, con il pulsante dorato **Pesca** (o tocco sul
-  dorso). La carta si gira e mostra NUOVA e un bagliore dorato; un attacco lampeggia di rosso.
+  dorso). La carta si gira e mostra NUOVA e un bagliore dorato; un attacco lampeggia di rosso. Dorso e carta pescata
+  sono più grandi delle altre carte: il 90% (`BIG_CARD_SCALE`) della misura massima calcolata da `sizeFocus`.
   - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "Metti in gioco". Poi si torna al turno
     giocatori: la carta messa in gioco si rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
@@ -185,7 +188,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 | **Carta mostrata / in anteprima** | La carta al centro (`ui.viewedUid`). Se non è quella da risolvere compare "Torna alla carta da risolvere". |
 | **Passo Pesca** (`isDrawStep()`, `DRAW_UID = -1`) | Dopo l'ultima carta risolta: dorso al centro e pulsante dorato "Pesca". |
 | **Carta nuova** | Carta appena pescata: etichetta NUOVA e bagliore dorato; un attacco lampeggia di rosso. |
-| **Banner Tier** (`showBanner`) | Scritta "Tier 2" / "Tier 3" alla prima carta di quel Tier pescata; la stessa animazione serve per "Partita iniziata". |
+| **Banner Tier** (`showBanner`) | Scritta "Tier 2" / "Tier 3" alla prima carta di quel Tier pescata; la stessa animazione serve per "Partita iniziata". Il carattere Cinzel si carica all'avvio (`preloadBannerFont`); la scritta entra ferma (`is-preparing`) e parte quando il carattere è pronto (max 300 ms) e dopo due fotogrammi. L'animazione muove solo trasformazione e opacità. |
 | **Lampeggio rosso** (`.is-to-resolve`, `.is-attack-drawn`) | Turno nemesi: carta da risolvere (non i poteri con più di un token) e attacco appena pescato. |
 | **Box mazzo / box scarti** (`.ae-header-piles`, `.ae-pile`) | In testata, a sinistra, in entrambi i turni. |
 | **Bozza** (`ui.drafts`) | Turno giocatori: vita e costi pagati non ancora salvati. "Salva modifiche" / "Annulla modifiche". |

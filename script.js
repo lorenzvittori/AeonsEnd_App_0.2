@@ -137,6 +137,9 @@ const I18N_IT = {
   nemesisCardBack: name => `Retro della carta della nemesi ${name} (setup)`,
   unavailableNemeses: 'Nemesi non disponibili',
   unavailableNemesis: name => `${name}, non disponibile`,
+  notInCollection: 'Non in collezione',
+  notInCollectionNemesis: name => `${name}, non presente nella collezione`,
+  holdToBuild: 'Tieni premuto: Crea mazzo',
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
   undone: 'Azione annullata',
   menu: 'Menu',
@@ -1501,9 +1504,14 @@ function renderBosses(wave) {
   }
   unavailable.hidden = others.length === 0;
   unavailable.replaceChildren(...others.map(info => {
-    const li = el('li', 'nemesis-locked');
-    li.setAttribute('aria-label', I18N_IT.unavailableNemesis(info.name));
+    // Nemesi che l'app ha (battaglia e carte) ma il cui prodotto non è nella collezione: niente "!", la scritta
+    // "Non in collezione" a destra. Le altre (senza battaglia o senza carte) restano con il "!" rosso.
+    const notOwned = info.battle !== null && !ownsProduct(productOfNemesis(info))
+      && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
+    const li = el('li', 'nemesis-locked' + (notOwned ? ' is-not-owned' : ''));
+    li.setAttribute('aria-label', notOwned ? I18N_IT.notInCollectionNemesis(info.name) : I18N_IT.unavailableNemesis(info.name));
     li.appendChild(el('span', '', info.name));
+    if (notOwned) li.appendChild(el('span', 'nemesis-locked-note', I18N_IT.notInCollection));
     return li;
   }));
   updateStartActions();
@@ -1523,7 +1531,8 @@ function renderStartChoices() {
   }));
   waveSelect.value = current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0];
   renderBosses(waveSelect.value);
-  document.getElementById('upgraded-switch').checked = settings.includeUpgraded !== false;
+  // "Includi carte base potenziate" tolto (per ora non serve): le carte potenziate sono sempre incluse
+  settings.includeUpgraded = true;
 }
 
 // Pagina iniziale in due modi:
@@ -1928,13 +1937,34 @@ function lockFor(ms, then) {
 // resta, poi svanisce (1,76 s). App oscurata e non si può toccare; dopo si continua normalmente.
 // Un testo lungo ha un carattere più piccolo (is-long), così sta nello schermo del telefono.
 const TIER_BANNER_MS = 1760;
+// Perché a volte andava a scatti: l'animazione partiva nello stesso fotogramma in cui la scritta veniva creata (e il
+// carattere Cinzel a 64px poteva non essere ancora pronto), insieme al ridisegno dell'app. Ora: il carattere si carica
+// all'avvio (preloadBannerFont); la scritta entra ferma e invisibile (is-preparing), si aspetta che il carattere sia
+// pronto (al massimo 300 ms) e due fotogrammi, poi parte l'animazione.
 function showBanner(text) {
-  const banner = el('div', 'ae-tier-banner');
+  const banner = el('div', 'ae-tier-banner is-preparing');
   banner.setAttribute('role', 'status');
   banner.appendChild(el('span', 'ae-tier-banner-text' + (text.length > 8 ? ' is-long' : ''), text));
   document.body.appendChild(banner);
-  buzz([40, 60, 120]);
-  setTimeout(() => banner.remove(), TIER_BANNER_MS);
+  let started = false;
+  const go = () => {
+    if (started) return;
+    started = true;
+    void banner.offsetWidth;
+    banner.classList.remove('is-preparing');
+    buzz([40, 60, 120]);
+    setTimeout(() => banner.remove(), TIER_BANNER_MS);
+  };
+  const fontReady = document.fonts && document.fonts.load ? document.fonts.load(BANNER_FONT, text).catch(() => {}) : Promise.resolve();
+  Promise.race([fontReady, new Promise(r => setTimeout(r, 300))]).then(() => {
+    if (window.requestAnimationFrame) requestAnimationFrame(() => requestAnimationFrame(go));
+    // il browser di prova non esegue requestAnimationFrame
+    setTimeout(go, 60);
+  });
+}
+const BANNER_FONT = '600 64px Cinzel';
+function preloadBannerFont() {
+  if (document.fonts && document.fonts.load) document.fonts.load(BANNER_FONT, 'Tier 123 Partita iniziata Vittoria!').catch(() => {});
 }
 
 // Vibrazione breve (solo dove il telefono la supporta: Android; iOS la ignora)
@@ -1982,8 +2012,9 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = ui.deckBuilding ? I18N_IT.buildDeck : saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
+  nemesisBtn.textContent = ui.deckBuilding ? I18N_IT.holdToBuild : saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
   nemesisBtn.classList.toggle('is-save', saving);
+  nemesisBtn.classList.toggle('is-hold-action', ui.deckBuilding);
   if (cancelDraftsBtn) {
     cancelDraftsBtn.hidden = !saving || ui.deckBuilding;
     cancelDraftsBtn.parentElement.hidden = resolving;
@@ -2319,6 +2350,7 @@ function sizeColumn(box) {
 
 // Dimensiona le carte del carosello: alte quanto lo spazio, ma più strette dell'area quanto basta per vedere un pezzo
 // delle vicine. Il margine ai lati permette di centrare anche la prima e l'ultima carta.
+const BIG_CARD_SCALE = 0.9;
 function sizeFocus(recentre = true) {
   if (resolveView.hidden || !focusTrack) return;
   const slide = focusTrack.querySelector('.ae-focus-slide');
@@ -2335,7 +2367,8 @@ function sizeFocus(recentre = true) {
   // la riga vita/token resta grande come nelle altre carte. Il blocco (riga + carta) è centrato in verticale tra la
   // fascia piccola e il pulsante (style.css .ae-focus-slide.is-big), con 4px di margine sopra e sotto.
   const byHeight = (focusEl.clientHeight - 8 - STATUS_H - 8) / CARD_RATIO;
-  const bigW = Math.floor(Math.max(width, Math.min(width * 1.3, byHeight, focusEl.clientWidth - 16)));
+  // ... ridotta al 90% (BIG_CARD_SCALE) della misura massima: a tutta grandezza era troppo grande
+  const bigW = Math.floor(Math.max(width, Math.min(width * 1.3, byHeight, focusEl.clientWidth - 16)) * BIG_CARD_SCALE);
   focusEl.style.setProperty('--ae-big-w', bigW + 'px');
   if (recentre && focusEl.dataset.uid) scrollFocusTo(focusEl.dataset.uid, false);
 }
@@ -2564,13 +2597,15 @@ function showActive(entry) {
   preloadNext();
 }
 
-function onNemesisClick() {
+function onNemesisClick(e) {
   if (resolving || ui.isTransitioning || !deckSetup) return;
-  // Con modifiche non salvate il pulsante è "Salva modifiche"
+  // "Crea mazzo" si tiene premuto (holdToBuild); un tocco breve non fa niente. Da tastiera (Invio / spazio,
+  // detail 0) o chiamato dal codice parte subito.
   if (ui.deckBuilding) {
-    runDeckBuild();
+    if (!e || e.detail === 0) runDeckBuild();
     return;
   }
+  // Con modifiche non salvate il pulsante è "Salva modifiche"
   if (ui.drafts.size) {
     saveAllDrafts();
     return;
@@ -3437,6 +3472,30 @@ startBtn.addEventListener('click', onStartClick);
 resumeBtn.addEventListener('click', resumeGame);
 undoBtn.addEventListener('click', undo);
 nemesisBtn.addEventListener('click', onNemesisClick);
+// "Crea mazzo": si tiene premuto per HOLD_BUILD_MS; il pulsante si riempie d'oro da sinistra (CSS .is-holding).
+// Lasciando prima, o uscendo dal pulsante col dito, si annulla.
+const HOLD_BUILD_MS = 800;
+let holdTimer = null;
+function cancelHold() {
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  nemesisBtn.classList.remove('is-holding');
+}
+nemesisBtn.addEventListener('pointerdown', e => {
+  if (!ui.deckBuilding || ui.isTransitioning || resolving || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  cancelHold();
+  void nemesisBtn.offsetWidth;
+  nemesisBtn.classList.add('is-holding');
+  holdTimer = setTimeout(() => {
+    cancelHold();
+    if (!ui.deckBuilding || ui.isTransitioning) return;
+    buzz(30);
+    runDeckBuild();
+  }, HOLD_BUILD_MS);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(t => nemesisBtn.addEventListener(t, () => { if (holdTimer) cancelHold(); }));
+// Pressione lunga sul telefono: niente menu contestuale né selezione del testo
+nemesisBtn.addEventListener('contextmenu', e => { if (ui.deckBuilding) e.preventDefault(); });
 // Turno giocatori con modifiche non salvate: "Annulla modifiche" accanto a "Salva modifiche" (stessa riga) toglie tutte
 // le bozze (vita dei minion, costi pagati); non è un passo di undo, perché le bozze non sono ancora nella partita
 cancelDraftsBtn = el('button', 'ae-button ae-button--secondary ae-cancel-drafts', I18N_IT.cancelChanges);
@@ -3457,7 +3516,11 @@ resolveBtn.addEventListener('click', onResolveClick);
 backBtn.addEventListener('click', backToActive);
 retryBtn.addEventListener('click', init);
 document.getElementById('wave-select').addEventListener('change', e => renderBosses(e.target.value));
-document.getElementById('upgraded-switch').addEventListener('change', e => { settings.includeUpgraded = e.target.checked; });
+// Interruttore "Includi carte base potenziate" tolto: si toglie anche da un index.html vecchio in cache
+{
+  const upgradedRow = document.getElementById('upgraded-switch');
+  if (upgradedRow && upgradedRow.closest('.ae-switch-row')) upgradedRow.closest('.ae-switch-row').remove();
+}
 window.addEventListener('resize', () => { sizeFocus(); sizeQueue(); });
 // Desktop: la rotella del mouse (verticale) scorre le carte grandi e le fasce piccole, che vanno in orizzontale
 [focusEl, queueViewport, rail].forEach(c => c.addEventListener('wheel', e => {
@@ -3561,6 +3624,7 @@ async function init() {
     newGame();
     // Il retro si scarica subito, così alla prima pesca è già pronto
     loadImage(CARD_BACK);
+    preloadBannerFont();
     render();
     setStartMode(readSave() ? 'choice' : 'setup', true);
   } catch (err) {
