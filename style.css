@@ -265,10 +265,6 @@ body { overflow: hidden; }
   .ae-phase { font-size: 13px; }
   .ae-dock-row { flex-wrap: wrap; }
 }
-@media (min-width: 600px) and (max-width: 899px) {
-  .ae-queue-viewport .ae-queue-item { width: 158px; flex-basis: 158px; }
-  .ae-dock { padding-left: 24px; padding-right: 24px; }
-}
 @media (max-height: 480px) and (orientation: landscape) {
   .ae-header { min-height: 48px; }
   .ae-compact-rail { flex-basis: 72px; height: 72px; }
@@ -280,57 +276,15 @@ body { overflow: hidden; }
   .ae-dock .ae-button { min-height: 44px; }
 }
 
-/* Tablet orizzontale e desktop: due colonne (coda a sinistra, carta/contesto a destra) */
-@media (min-width: 900px) {
-  .ae-header { min-height: calc(64px + var(--ae-safe-top)); padding-inline: 32px; }
+/* Tablet e desktop: la partita resta la stessa del telefono (fascia piccola, carte grandi, pulsante), in una colonna al
+   centro larga quanto serve alla carta più un pezzo delle vicine (--ae-col, calcolata da sizeColumn in script.js);
+   lo sfondo riempie tutto lo schermo. La pagina iniziale ha la sua colonna (560px). La vecchia vista a due colonne
+   (coda a sinistra, carta a destra), mai aggiornata al design attuale, è stata tolta: tag v152-prima-layout-tablet-desktop */
+@media (min-width: 768px) {
+  .ae-shell { grid-template-columns: minmax(0, var(--ae-col, 560px)); justify-content: center; }
   .start-title { font-size: 32px; line-height: 39px; }
   .start-box { width: min(100% - 64px, 560px); }
-
-  .queue-view {
-    width: min(100%, 1440px); margin: 0 auto; padding: 32px;
-    display: grid; grid-template-columns: minmax(260px, 360px) minmax(400px, 1fr); gap: 32px;
-  }
-  .queue-col { border: 1px solid var(--ae-border); border-radius: var(--ae-radius-lg); overflow: hidden; }
-  .queue-title { display: block; padding: 16px 16px 0; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .12em; text-transform: uppercase; }
-  .ae-queue-viewport { display: block; overflow-x: hidden; overflow-y: auto; scroll-snap-type: none; padding: 16px; }
-  .ae-queue-list { flex-direction: column; align-items: stretch; min-width: 0; margin: 0; }
-  .ae-queue-viewport .ae-queue-item { width: 100%; flex-basis: auto; flex-direction: row; align-items: center; gap: 12px; text-align: left; }
-  .ae-queue-viewport .ae-queue-item .ae-card-art { width: 100px; flex: 0 0 100px; }
-  .ae-queue-viewport .ae-queue-item .ae-status-badge { order: 2; }
-  .ae-queue-viewport .ae-new-tag { top: -4px; left: 80px; right: auto; }
-  .ae-queue-meta { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; order: 1; min-width: 0; }
-  .ae-queue-meta strong { font: 600 16px/22px var(--ae-font-ui); }
-  .ae-queue-meta small { color: var(--ae-text-quiet); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-  .ae-queue-viewport .ae-queue-item { display: grid; grid-template-columns: 100px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; row-gap: 6px; align-content: center; }
-  .ae-queue-viewport .ae-queue-item .ae-card-art { grid-row: 1 / span 2; grid-column: 1; }
-  .ae-queue-viewport .ae-queue-item .ae-queue-meta { grid-column: 2; grid-row: 1; align-self: end; }
-  .ae-queue-viewport .ae-queue-item .ae-status-badge { grid-column: 2; grid-row: 2; justify-self: start; align-self: start; }
-  .ae-queue-viewport .ae-queue-item .ae-status-badge--empty { display: none; }
-  .ae-queue-viewport .ae-empty { margin: 48px auto; }
-  .queue-side { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--ae-border); border-radius: var(--ae-radius-lg); }
-
-  .ae-resolve-layout { flex-direction: row; width: min(100%, 1440px); margin: 0 auto; gap: 32px; padding: 24px 32px; }
-  .ae-compact-rail {
-    width: 320px; flex: 0 0 320px; height: auto; flex-direction: column; align-items: stretch; gap: 12px;
-    overflow-x: hidden; overflow-y: auto; padding: 16px; border: 1px solid var(--ae-border); border-radius: var(--ae-radius-lg); scroll-snap-type: none;
-  }
-  .ae-compact-rail .ae-queue-item { width: 100%; flex: 0 0 auto; display: grid; grid-template-columns: 92px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 12px; row-gap: 6px; align-content: center; text-align: left; }
-  .ae-compact-rail .ae-queue-item .ae-card-art { width: 92px; grid-row: 1 / span 2; grid-column: 1; }
-  .ae-compact-rail .ae-queue-item .ae-queue-meta { display: flex; flex-direction: column; gap: 2px; grid-column: 2; grid-row: 1; align-self: end; }
-  .ae-compact-rail .ae-queue-meta strong { font: 600 15px/20px var(--ae-font-ui); }
-  .ae-compact-rail .ae-queue-meta small { color: var(--ae-text-quiet); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-  .ae-compact-rail .ae-status-badge { grid-column: 2; grid-row: 2; justify-self: start; align-self: start; height: 26px; padding: 4px 8px; gap: 5px; font-size: 12px; line-height: 16px; }
-  .ae-compact-rail .ae-status-badge .ae-icon { display: inline-block; }
-  .ae-compact-rail .ae-status-badge--empty { display: none; }
-  .ae-focus { padding: 0; }
-
-  .ae-dock { align-items: center; padding-left: 32px; padding-right: 32px; }
-  .ae-dock > * { width: 100%; max-width: 360px; }
-  .ae-dock .ae-dock-row { max-width: 900px; }
   .ae-toast { bottom: calc(140px + var(--ae-safe-bottom)); }
-}
-@media (min-width: 1440px) {
-  .ae-dock .ae-dock-row { max-width: 1376px; }
 }
 
 /* Pulsante Menu in alto a destra (tre linee) e pannello laterale: 70% della larghezza a destra, il resto oscurato */
@@ -795,3 +749,15 @@ body { overflow: hidden; }
 .deck-build.is-flipping .deck-build-pile.is-fan:nth-child(n) .deck-build-fan-card:nth-child(2) .deck-build-fan-inner { transition-delay: .045s; }
 .deck-build.is-flipping .deck-build-pile.is-fan .deck-build-fan-card:nth-child(3) .deck-build-fan-inner { transition-delay: .09s; }
 .ae-pile--deck.is-bump { animation-duration: .225s; }
+
+/* Creazione del mazzo: altezza dei mazzi in una variabile (--ae-pile-h), più grandi su tablet e desktop */
+.deck-build { --ae-pile-h: min(13vh, 100px); }
+.deck-build-pile { height: var(--ae-pile-h); }
+.deck-build-pile.is-fan { width: calc(var(--ae-pile-h) * 63 / 88 + 30px); }
+.deck-build-fan-card { width: calc(var(--ae-pile-h) * 63 / 88); }
+@media (min-width: 768px) {
+  .deck-build { --ae-pile-h: min(16vh, 150px); gap: 20px; }
+  .deck-build-grid { gap: 24px 22px; }
+  .deck-build-title { font-size: 24px; line-height: 30px; }
+  .deck-build-head, .deck-build-tier { font-size: 16px; }
+}

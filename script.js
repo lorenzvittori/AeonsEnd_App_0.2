@@ -908,6 +908,7 @@ function cardControls(entry) {
 // Carte grandi: alte quanto lo spazio disponibile, ma mai così larghe da nascondere del tutto la carta successiva
 function sizeQueue() {
   if (queueView.hidden) return;
+  sizeColumn(queueViewport);
   const style = getComputedStyle(queueViewport);
   const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const gap = parseFloat(getComputedStyle(queueList).columnGap) || 18;
@@ -918,8 +919,8 @@ function sizeQueue() {
   // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
   const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight, padY, peekRoom));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
-  // Margini ai lati: la prima e l'ultima carta si centrano come le altre (non sulla vista a colonna del desktop)
-  const side = window.innerWidth >= 900 ? '' : Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
+  // Margini ai lati: la prima e l'ultima carta si centrano come le altre
+  const side = Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
   queueViewport.style.paddingLeft = side;
   queueViewport.style.paddingRight = side;
   queueViewport.style.scrollPaddingInline = side;
@@ -2289,12 +2290,29 @@ function sharedCardWidth(boxW, boxH, padY, peekRoom) {
   return Math.floor(Math.min(byWidth, byHeight, byControls));
 }
 
+// Tablet e desktop (da 768px): la partita sta in una colonna al centro (--ae-col su .ae-shell, style.css). La colonna
+// è larga quanto la carta grande (misurata solo dall'altezza: in larghezza c'è spazio) più un pezzo delle vicine
+// (COLUMN_PEEK per lato), mai meno di COLUMN_MIN né più dello schermo. Sotto i 768px la colonna è lo schermo intero.
+const COLUMN_MIN = 440;
+const COLUMN_PEEK = 42;
+function sizeColumn(box) {
+  if (window.innerWidth < 768) { app.style.removeProperty('--ae-col'); return; }
+  const style = getComputedStyle(box);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const card = sharedCardWidth(Infinity, box.clientHeight, padY, 0);
+  if (!isFinite(card) || card <= 0) return;
+  const col = Math.min(window.innerWidth, Math.max(COLUMN_MIN, card + 2 * (COLUMN_PEEK + PEEK_GAP) + 16));
+  const current = parseFloat(app.style.getPropertyValue('--ae-col')) || 0;
+  if (Math.abs(current - col) >= 1) app.style.setProperty('--ae-col', col + 'px');
+}
+
 // Dimensiona le carte del carosello: alte quanto lo spazio, ma più strette dell'area quanto basta per vedere un pezzo
 // delle vicine. Il margine ai lati permette di centrare anche la prima e l'ultima carta.
 function sizeFocus(recentre = true) {
   if (resolveView.hidden || !focusTrack) return;
   const slide = focusTrack.querySelector('.ae-focus-slide');
   if (!slide) return;
+  sizeColumn(focusEl);
   const style = getComputedStyle(focusEl);
   const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
@@ -3380,6 +3398,12 @@ retryBtn.addEventListener('click', init);
 document.getElementById('wave-select').addEventListener('change', e => renderBosses(e.target.value));
 document.getElementById('upgraded-switch').addEventListener('change', e => { settings.includeUpgraded = e.target.checked; });
 window.addEventListener('resize', () => { sizeFocus(); sizeQueue(); });
+// Desktop: la rotella del mouse (verticale) scorre le carte grandi e le fasce piccole, che vanno in orizzontale
+[focusEl, queueViewport, rail].forEach(c => c.addEventListener('wheel', e => {
+  if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || c.scrollWidth <= c.clientWidth + 1) return;
+  e.preventDefault();
+  c.scrollBy({ left: e.deltaY, behavior: 'auto' });
+}, { passive: false }));
 // Se lo spazio della carta grande cambia per altri motivi (font caricato, pulsanti del dock), si ridimensiona subito
 if (window.ResizeObserver) {
   new ResizeObserver(() => sizeFocus()).observe(focusEl);

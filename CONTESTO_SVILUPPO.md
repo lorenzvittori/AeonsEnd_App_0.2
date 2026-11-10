@@ -137,6 +137,17 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 
 **Salvataggio:** la partita si salva da sola nel browser, insieme alla cronologia dell'undo.
 
+**Tablet e desktop (da 768px di larghezza)**
+- La partita è la stessa del telefono (testata, fascia piccola, carte grandi, pulsante), in una **colonna al centro**
+  larga quanto la carta grande più un pezzo delle vicine (`--ae-col`, calcolata da `sizeColumn` in `script.js`: carta
+  misurata dall'altezza + 2 × 54px, mai meno di 440px). Lo sfondo riempie tutto lo schermo. La pagina iniziale e la
+  collezione hanno la loro colonna da 560px.
+- Il tablet in verticale ha carte grandi (circa 460px a 768×1024); il desktop e il tablet in orizzontale sono limitati
+  dall'altezza (carte da 270–300px).
+- La rotella del mouse scorre le carte grandi e le fasce piccole (orizzontali).
+- "Crea mazzo" ha mazzi più grandi (fino a 150px).
+- La vecchia vista a due colonne (coda a sinistra, carta a destra, da 900px) è stata tolta in v153.
+
 ## 5. Terminologia (usata con l'utente)
 
 | Termine | Significato |
@@ -301,6 +312,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 | `v113-prima-test-banner` | Testata con Undo e Menu e BannerInfoNemesi in alto, prima della prova che li ha tolti. |
 | `v123-prima-sfondo-unico` | Due sfondi separati per i due turni, prima dello sfondo unico. |
 | `v147-prima-della-pulizia` | Prima della pulizia del codice morto e dell'unione dei documenti (v148). |
+| `v152-prima-layout-tablet-desktop` | Con la vecchia vista a due colonne da 900px, prima della colonna centrale per tablet e desktop (v153). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 
