@@ -137,6 +137,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 
 **Salvataggio:** la partita si salva da sola nel browser, insieme alla cronologia dell'undo.
 
+**Telefono**
+- **Schermo sempre acceso** finché l'app è aperta e visibile (Screen Wake Lock, `keepScreenOn` in `script.js`): si
+  richiede all'avvio, al ritorno in primo piano e al primo tocco. Dove il browser non lo permette, non succede niente.
+- **Tasto / gesto Indietro** (Android, swipe di iOS): chiude il livello in primo piano (finestre, Menu, Vittoria,
+  "Annulla ultima azione" sospeso, "Pesca carta", La mia collezione, scarti) invece di uscire. Se non c'è niente da
+  chiudere compare "Premi di nuovo Indietro per uscire" e un secondo Indietro (entro 2,5 s) esce. Funziona con una voce
+  in più nella cronologia (`armBackGuard`, `closeTopForBack`), stesso indirizzo.
+
 **Tablet e desktop (da 768px di larghezza)**
 - La partita è la stessa del telefono (testata, fascia piccola, carte grandi, pulsante), in una **colonna al centro**
   larga quanto la carta grande più un pezzo delle vicine (`--ae-col`, calcolata da `sizeColumn` in `script.js`: carta

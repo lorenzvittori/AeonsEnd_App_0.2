@@ -107,6 +107,7 @@ const I18N_IT = {
   deckCardTitle: 'Carta pescata dal mazzo',
   cardPutBack: name => `${name}: rimessa in cima al mazzo`,
   cardDiscarded: name => `${name}: negli scarti`,
+  backAgainToExit: 'Premi di nuovo Indietro per uscire',
   saveChanges: 'Salva modifiche',
   cancelChanges: 'Annulla modifiche',
   minionKilled: name => `${name}: ucciso, andrà negli scarti`,
@@ -3409,6 +3410,43 @@ if (window.ResizeObserver) {
   new ResizeObserver(() => sizeFocus()).observe(focusEl);
   new ResizeObserver(() => sizeQueue()).observe(queueViewport);
 }
+
+// Schermo sempre acceso finché l'app è aperta e visibile (Screen Wake Lock). Il browser lo toglie da solo quando la
+// pagina va in secondo piano: si richiede di nuovo al ritorno e, se il browser lo vuole dopo un tocco, al primo tocco.
+let wakeLock = null;
+async function keepScreenOn() {
+  if (!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (err) { wakeLock = null; }
+}
+document.addEventListener('visibilitychange', keepScreenOn);
+document.addEventListener('pointerdown', keepScreenOn, { passive: true });
+keepScreenOn();
+
+// Tasto / gesto Indietro (Android, swipe di iOS): chiude il livello in primo piano invece di uscire dall'app.
+// Nella cronologia c'è sempre una voce in più (stesso indirizzo): Indietro la consuma e qui la si rimette.
+// Se non c'è niente da chiudere, il primo Indietro mostra "Premi di nuovo Indietro per uscire" e il secondo esce.
+function closeTopForBack() {
+  if (modals.length) { modals[modals.length - 1].onCancel(); return true; }
+  if (undoFloat) { closeUndoFloat(); return true; }
+  if (deckPopover) { closeDeckPopover(); return true; }
+  const collectionX = document.querySelector('.collection-screen .collection-head .ae-icon-button');
+  if (collectionX) { collectionX.click(); return true; }
+  if (!discardLayer.hidden) { closeDiscard(); return true; }
+  return false;
+}
+function armBackGuard() { history.pushState({ aeBackGuard: true }, ''); }
+window.addEventListener('popstate', () => {
+  if (closeTopForBack()) armBackGuard();
+  else {
+    showToast(I18N_IT.backAgainToExit);
+    // Passato il messaggio, Indietro torna a chiudere i livelli (e il prossimo "uscire" chiede di nuovo conferma)
+    setTimeout(() => { if (!(history.state && history.state.aeBackGuard)) armBackGuard(); }, 2500);
+  }
+});
+if (!(history.state && history.state.aeBackGuard)) armBackGuard();
 
 // Avvio: legge cards.json, deck-setup.json e nemesis.json, mostra la pagina iniziale (con "Riprendi partita" se ce n'è una salvata)
 let initRunning = false;
