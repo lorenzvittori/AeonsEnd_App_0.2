@@ -34,7 +34,7 @@ jobs:
       - name: Prepara i file del sito
         run: |
           mkdir _site
-          cp index.html script.js style.css version.json cards.json deck-setup.json nemesis.json _site/
+          cp index.html script.js style.css version.json cards.json deck-setup.json nemesis.json sw.js manifest.webmanifest _site/
           cp -r css Assets Data thumbs _site/
           du -sh _site
 

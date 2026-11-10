@@ -761,3 +761,38 @@ body { overflow: hidden; }
   .deck-build-title { font-size: 24px; line-height: 30px; }
   .deck-build-head, .deck-build-tier { font-size: 16px; }
 }
+
+/* --- Telefono (v155) --- */
+/* Mazzo e scarti in testata: il disegno resta 32×44, l'area che si tocca è 44×44 (6px invisibili per lato); più spazio
+   tra i due così le aree non si sovrappongono */
+.ae-header-piles { gap: 12px; margin-left: 6px; }
+.ae-header-piles .ae-pile::before { content: ''; position: absolute; inset: 0 -6px; }
+/* Comandi vita del minion più distanti (−5 ha il contorno rosso, da script.js) */
+.queue-controls { gap: 10px; }
+/* Freccia della carta nemesi: il disegno resta 44×26, l'area che si tocca è alta 44px */
+.nemesis-toggle { position: relative; }
+.nemesis-toggle::before { content: ''; position: absolute; inset: -9px 0; }
+/* Pagina iniziale: "Inizia partita" resta sempre visibile in fondo, sopra una sfumatura dello sfondo */
+.start-actions {
+  position: sticky; bottom: 0; z-index: 4; margin-bottom: 0; padding-top: 20px;
+  background: linear-gradient(to bottom, transparent, var(--ae-bg) 20px);
+}
+.start-screen { padding-bottom: var(--ae-safe-bottom); }
+.start-actions { padding-bottom: 16px; }
+/* Menu laterale: si trascina verso destra per chiuderlo (script.js, swipeToClose) */
+.ae-modal.ae-side-menu { touch-action: pan-y; }
+/* Telefono in orizzontale: le carte non ci stanno, si chiede di girarlo */
+.ae-rotate { display: none; }
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .ae-rotate {
+    position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 24px; background: var(--ae-bg); color: var(--ae-gold); text-align: center;
+    font: 600 20px/26px var(--ae-font-display); letter-spacing: .04em;
+  }
+  .ae-rotate::before {
+    content: ''; width: 40px; height: 64px; border: 3px solid var(--ae-text-muted); border-radius: 8px;
+    animation: ae-rotate-hint 1.6s ease-in-out infinite;
+  }
+}
+@keyframes ae-rotate-hint { 0%, 30% { transform: rotate(-90deg); } 60%, 100% { transform: rotate(0deg); } }
+@media (prefers-reduced-motion: reduce) { .ae-rotate::before { animation: none; } }

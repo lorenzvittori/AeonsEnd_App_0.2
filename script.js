@@ -108,6 +108,7 @@ const I18N_IT = {
   cardPutBack: name => `${name}: rimessa in cima al mazzo`,
   cardDiscarded: name => `${name}: negli scarti`,
   backAgainToExit: 'Premi di nuovo Indietro per uscire',
+  rotatePhone: 'Gira il telefono in verticale',
   saveChanges: 'Salva modifiche',
   cancelChanges: 'Annulla modifiche',
   minionKilled: name => `${name}: ucciso, andrà negli scarti`,
@@ -878,7 +879,8 @@ function cardControls(entry) {
     const cap = Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
     [-5, -1, 1].forEach(step => {
       const key = String(step);
-      const b = ctl(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', key,
+      // −5 con il contorno rosso, diverso da −1 e +1: è il tocco sbagliato più costoso
+      const b = ctl(step > 0 ? '+' + step : '−' + Math.abs(step), step === -5 ? 'danger' : 'secondary', key,
         (step > 0 ? 'Rimetti ' : 'Togli ') + Math.abs(step) + ' punti vita a ' + entry.data.name, () => {
           const value = Math.min(cap, Math.max(0, draftHp(entry) + step));
           if (value === draftHp(entry)) return;
@@ -1742,6 +1744,7 @@ function startGame() {
   save();
   showDeckBuild();
   slideToGame(() => nemesisBtn.focus());
+  prefetchDeckImages();
 }
 
 // Riprendi partita: si ricarica lo stato salvato nel browser, compreso l'undo
@@ -1761,6 +1764,7 @@ function resumeGame() {
     startError.hidden = true;
     closeStart();
     render();
+    prefetchDeckImages();
     (resolving ? resolveBtn : nemesisBtn).focus();
   } catch (err) {
     console.error(err);
@@ -1929,7 +1933,13 @@ function showBanner(text) {
   banner.setAttribute('role', 'status');
   banner.appendChild(el('span', 'ae-tier-banner-text' + (text.length > 8 ? ' is-long' : ''), text));
   document.body.appendChild(banner);
+  buzz([40, 60, 120]);
   setTimeout(() => banner.remove(), TIER_BANNER_MS);
+}
+
+// Vibrazione breve (solo dove il telefono la supporta: Android; iOS la ignora)
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (err) { /* niente vibrazione */ }
 }
 
 // Disegna tutto in base allo stato
@@ -2417,6 +2427,8 @@ function drawNewCard() {
   newIndex = queue.length - 1;
   currentIndex = newIndex;
   ui.lastDrawnUid = entry.uid;
+  // Carta pescata: vibrazione breve, doppia e più forte per un attacco (la scritta Tier, se c'è, ha la sua)
+  buzz(data.type === 'Attack' ? [80, 60, 80] : 30);
   // Prima carta del Tier 2 o del Tier 3: scritta "Tier N" al centro (mostrata da render)
   if (data.tier >= 2 && data.tier > maxTierDrawn) ui.tierBanner = data.tier;
   if (data.tier > maxTierDrawn) maxTierDrawn = data.tier;
@@ -3372,6 +3384,54 @@ function openSideMenu() {
   panel.append(statsList, undoItem, discardOpen, killed, bgRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
+  swipeToClose(panel, cancel);
+}
+
+// Menu laterale: trascinandolo verso destra segue il dito; oltre un terzo della larghezza (o con uno scatto) si chiude
+function swipeToClose(panel, close) {
+  let start = null;
+  const reset = () => {
+    panel.style.transition = 'transform .18s ease-out';
+    panel.style.transform = '';
+    start = null;
+  };
+  panel.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || e.target.closest('select')) return;
+    start = { x: e.clientX, y: e.clientY, t: Date.now(), dragging: false };
+  });
+  panel.addEventListener('pointermove', e => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (!start.dragging) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { start = null; return; }
+      if (dx < 10) return;
+      start.dragging = true;
+      panel.style.transition = 'none';
+      try { panel.setPointerCapture(e.pointerId); } catch (err) { /* niente cattura */ }
+    }
+    panel.style.transform = `translateX(${Math.max(0, dx)}px)`;
+  });
+  let dragged = false;
+  const end = e => {
+    if (!start) return;
+    if (!start.dragging) { start = null; return; }
+    dragged = true;
+    setTimeout(() => { dragged = false; }, 0);
+    const dx = e.clientX - start.x;
+    const fast = dx > 40 && Date.now() - start.t < 250;
+    if (dx > panel.offsetWidth / 3 || fast) {
+      start = null;
+      // Il pannello esce a destra, poi si chiude
+      panel.style.transition = 'transform .15s ease-in';
+      panel.style.transform = 'translateX(100%)';
+      setTimeout(close, 150);
+    } else reset();
+  };
+  panel.addEventListener('pointerup', end);
+  panel.addEventListener('pointercancel', () => { if (start) reset(); });
+  // Un trascinamento non deve diventare un tocco sui pulsanti del menu
+  panel.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 }
 startBtn.addEventListener('click', onStartClick);
 resumeBtn.addEventListener('click', resumeGame);
@@ -3424,6 +3484,30 @@ async function keepScreenOn() {
 document.addEventListener('visibilitychange', keepScreenOn);
 document.addEventListener('pointerdown', keepScreenOn, { passive: true });
 keepScreenOn();
+
+// Senza rete: il service worker (sw.js) salva codice, dati e immagini già viste. All'inizio della partita si scaricano
+// anche le immagini di tutte le carte del mazzo, così le carte pescate più avanti si vedono anche se la rete cade
+// (una volta sola: poi sono già salvate). Niente download in anticipo con "Risparmio dati" attivo.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn(err));
+}
+async function prefetchDeckImages() {
+  if (!('caches' in window) || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+  if (navigator.connection && navigator.connection.saveData) return;
+  const urls = [...new Set(deck.concat(queue.map(e => e.data), discard).flatMap(d => [d.image, d.thumb]).filter(Boolean))];
+  const todo = [];
+  for (const u of urls) if (!(await caches.match(u))) todo.push(u);
+  // Tre alla volta, per non rallentare le immagini che servono subito
+  const next = async () => {
+    while (todo.length) {
+      try { await fetch(todo.shift()); } catch (err) { /* senza rete: si riprova alla prossima partita */ }
+    }
+  };
+  await Promise.all([next(), next(), next()]);
+}
+
+// Telefono in orizzontale: lo spazio in altezza non basta per le carte; si chiede di girarlo (CSS: .ae-rotate)
+document.body.appendChild(el('div', 'ae-rotate', I18N_IT.rotatePhone));
 
 // Tasto / gesto Indietro (Android, swipe di iOS): chiude il livello in primo piano invece di uscire dall'app.
 // Nella cronologia c'è sempre una voce in più (stesso indirizzo): Indietro la consuma e qui la si rimette.

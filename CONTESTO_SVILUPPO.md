@@ -144,6 +144,21 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   "Annulla ultima azione" sospeso, "Pesca carta", La mia collezione, scarti) invece di uscire. Se non c'è niente da
   chiudere compare "Premi di nuovo Indietro per uscire" e un secondo Indietro (entro 2,5 s) esce. Funziona con una voce
   in più nella cronologia (`armBackGuard`, `closeTopForBack`), stesso indirizzo.
+- **Solo verticale:** con il telefono in orizzontale (altezza ≤ 500px e schermo touch) l'app è coperta da "Gira il
+  telefono in verticale" (`.ae-rotate`). Tablet e desktop non cambiano.
+- **Aree di tocco:** mazzo e scarti in testata si toccano su 44×44 (il disegno resta 32×44); la freccia della carta
+  nemesi su 44 di altezza; i comandi −5 / −1 / +1 sono a 10px e −5 ha il contorno rosso.
+- **"Inizia partita"** resta sempre visibile in fondo alla pagina iniziale.
+- **Menu:** si chiude anche trascinandolo verso destra (`swipeToClose`).
+- **Vibrazione** (solo Android): carta pescata (doppia per un attacco) e scritte Tier / Partita iniziata (`buzz`).
+- **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
+  (rifatte da `tools/build-app-icons.py` a partire dal dorso).
+- **Senza rete:** `sw.js` (service worker). Codice e dati: prima la rete, senza rete l'ultima copia salvata (una per
+  file, senza `?v=N`). Immagini e font: prima la copia salvata. All'inizio o alla ripresa della partita si scaricano le
+  immagini di tutte le carte in gioco nel mazzo (`prefetchDeckImages`), non con "Risparmio dati". Se un'immagine già
+  pubblicata viene **sostituita** con lo stesso nome, i telefoni tengono la vecchia: in quel caso si cambia
+  `MEDIA_CACHE` in `sw.js` (per esempio `ae-media-v2`). Il workflow di Pages copia anche `sw.js` e
+  `manifest.webmanifest`.
 
 **Tablet e desktop (da 768px di larghezza)**
 - La partita è la stessa del telefono (testata, fascia piccola, carte grandi, pulsante), in una **colonna al centro**
@@ -321,6 +336,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 | `v123-prima-sfondo-unico` | Due sfondi separati per i due turni, prima dello sfondo unico. |
 | `v147-prima-della-pulizia` | Prima della pulizia del codice morto e dell'unione dei documenti (v148). |
 | `v152-prima-layout-tablet-desktop` | Con la vecchia vista a due colonne da 900px, prima della colonna centrale per tablet e desktop (v153). |
+| `v154-prima-mobile` | Prima delle modifiche per il telefono della v155 (orizzontale, aree di tocco, app installabile, service worker). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 
