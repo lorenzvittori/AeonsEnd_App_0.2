@@ -84,7 +84,7 @@ const I18N_IT = {
   collectionSave: 'Salva collezione',
   collectionSaved: 'Collezione salvata',
   collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
-  victoryTitle: 'Vittoria!',
+  victoryTitle: 'Vittoria',
   nemesisKilled: 'Nemesi uccisa',
   statsTitle: 'Statistiche',
   statsRows: {
@@ -95,6 +95,14 @@ const I18N_IT = {
     powersPaid: 'Poteri scartati pagando il costo',
     powersResolved: 'Poteri risolti',
     aetherSpent: 'Æ spesi per i poteri',
+    attacksResolved: 'Attacchi risolti'
+  },
+  statsLists: {
+    played: 'Carte giocate',
+    left: 'Carte rimanenti',
+    minionsKilled: 'Minion uccisi',
+    powersPaid: 'Poteri scartati',
+    powersResolved: 'Poteri risolti',
     attacksResolved: 'Attacchi risolti'
   },
   statsMinionsTitle: 'Turni in gioco dei minion',
@@ -139,7 +147,19 @@ const I18N_IT = {
   unavailableNemesis: name => `${name}, non disponibile`,
   notInCollection: 'Non in collezione',
   notInCollectionNemesis: name => `${name}, non presente nella collezione`,
-  holdToBuild: 'Tieni premuto: Crea mazzo',
+  slideToBuild: 'Scorri per creare il mazzo',
+  slideToBuildLabel: 'Crea mazzo: trascina a destra',
+  specificTitle: 'Carte Nemesi Specifiche',
+  restartGame: 'Ricomincia la partita',
+  gameSetupTitle: 'Impostazioni della partita',
+  options: 'Opzioni',
+  mainMenu: 'Menu iniziale',
+  exit: 'Esci',
+  wave: 'Wave',
+  holdToExit: 'Tieni premuto per uscire',
+  exitGameLabel: 'Esci dalla partita: tieni premuto',
+  statsListEmpty: 'Nessuna carta',
+  statsHp: hp => `HP ${hp}`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
   undone: 'Azione annullata',
   menu: 'Menu',
@@ -257,7 +277,15 @@ let maxTierDrawn = 0;
 // nell'undo. minions: minion usciti dal gioco uccisi, con i turni nemesi passati da quando erano stati pescati.
 let stats = emptyStats(0);
 function emptyStats(deckSize) {
-  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [] };
+  // cards: id delle carte di ogni gruppo (elenchi delle Statistiche); i salvataggi vecchi non li hanno (elenchi vuoti)
+  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [],
+    cards: { minionsKilled: [], powersPaid: [], powersResolved: [], attacksResolved: [] } };
+}
+// Aggiunge una carta all'elenco di un gruppo delle statistiche
+function statCard(group, data) {
+  if (!stats.cards) stats.cards = emptyStats(0).cards;
+  if (!Array.isArray(stats.cards[group])) stats.cards[group] = [];
+  stats.cards[group].push(data.id);
 }
 
 // Undo: uno stato della partita salvato prima di ogni azione
@@ -281,7 +309,9 @@ const ui = {
   autoTokenKey: null,     // potere da risolvere su cui è partita l'animazione del token ...
   autoTokenAt: 0,         // ... e quando è partita (la fascia e la carta grande restano allineate)
   deckBuilding: false,    // schermata "Crea mazzo" prima del primo turno giocatori
-  deckShown: null         // durante "Crea mazzo": carte già arrivate nel mazzo in alto (null = mazzo vero)
+  deckShown: null,        // durante "Crea mazzo": carte già arrivate nel mazzo in alto (null = mazzo vero)
+  gameSaved: false,       // la partita in corso è già stata scritta nel browser (save)
+  deckDark: false         // sfondo nero da "Crea mazzo" fino alla fine del banner "Partita iniziata"
 };
 
 // --- 2. Dati e mazzo ------------------------------------------------------------------------------------------------
@@ -425,11 +455,13 @@ function aetherCost(data) {
 // Minion ucciso (vita a 0, negli scarti)
 function countMinionKilled(entry) {
   stats.minionsKilled++;
+  statCard('minionsKilled', entry.data);
   stats.minions.push({ name: entry.data.name, turns: Math.max(0, turn - (entry.bornTurn || 0)) });
 }
 // Potere scartato pagando il costo
 function countPowerPaid(entry) {
   stats.powersPaid++;
+  statCard('powersPaid', entry.data);
   stats.aetherSpent += aetherCost(entry.data);
 }
 // Carte grigie che escono dal gioco (minion a 0, poteri pagati): contate e messe negli scarti
@@ -1530,17 +1562,21 @@ function renderStartChoices() {
     return option;
   }));
   waveSelect.value = current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0];
+  ensureWaveGroup();
+  renderWavePills();
   renderBosses(waveSelect.value);
   // "Includi carte base potenziate" tolto (per ora non serve): le carte potenziate sono sempre incluse
   settings.includeUpgraded = true;
 }
 
 // Pagina iniziale in due modi:
-//   'choice': c'è una partita salvata, sotto il titolo c'è solo la finestra Riprendi partita / Nuova partita
-//   'setup':  scelte della nuova partita (giocatori, nemesi, carte potenziate) e "Inizia partita"
-let startMode = 'setup';
+//   'home':  menu iniziale. Se c'è una partita salvata, la finestra "Partita in corso" (nemesi, giocatori, Riprendi
+//            partita); sotto, sempre, "Nuova partita" e "Opzioni" (La mia collezione).
+//   'setup': scelte della nuova partita (giocatori, wave, nemesi) e "Inizia partita"; in alto a destra il Menu
+//            (Esci → menu iniziale, La mia collezione).
+let startMode = 'home';
 
-// Finestra sotto il titolo con la partita salvata (nemesi e giocatori) e le due scelte. Creata qui, così funziona
+// Finestra "Partita in corso" sotto il titolo e, sotto, i pulsanti del menu iniziale. Creati qui, così funzionano
 // anche con un index.html vecchio ancora in cache.
 function startChoicePanel() {
   let panel = document.getElementById('start-choice');
@@ -1553,21 +1589,56 @@ function startChoicePanel() {
   title.id = 'start-choice-title';
   head.append(title, el('p', 'start-choice-info'));
   const resume = button(I18N_IT.resumeGame, 'primary', resumeGame);
-  const fresh = button(I18N_IT.newGame, 'secondary', () => setStartMode('setup', true));
   resume.classList.add('ae-button--full', 'start-choice-resume');
-  fresh.classList.add('ae-button--full');
-  panel.append(head, resume, fresh);
+  panel.append(head, resume);
   document.querySelector('.start-title').after(panel);
   return panel;
 }
 
+function startHomeActions() {
+  let box = document.getElementById('start-home');
+  if (box) return box;
+  box = el('div', 'start-home');
+  box.id = 'start-home';
+  const fresh = button(I18N_IT.newGame, 'primary', () => setStartMode('setup', true));
+  fresh.classList.add('ae-button--full', 'start-home-new');
+  const options = button(I18N_IT.options, 'secondary', () => openOptions(options));
+  options.classList.add('ae-button--full', 'start-home-options');
+  box.append(fresh, options);
+  startChoicePanel().after(box);
+  return box;
+}
+
+// Menu (tre linee) in alto a destra della pagina "Nuova partita"
+function startMenuButton() {
+  let b = document.getElementById('start-menu-btn');
+  if (b) return b;
+  b = el('button', 'ae-icon-button ae-menu-button start-menu-button');
+  b.id = 'start-menu-btn';
+  b.type = 'button';
+  b.setAttribute('aria-label', I18N_IT.menu);
+  b.setAttribute('aria-haspopup', 'dialog');
+  b.appendChild(el('span', 'ae-menu-lines'));
+  b.addEventListener('click', () => openStartMenu(b));
+  startLayer.appendChild(b);
+  return b;
+}
+
 function setStartMode(mode, focus) {
   const saved = readSave();
-  if (!saved) mode = 'setup';
-  startMode = mode;
+  startMode = mode === 'setup' ? 'setup' : 'home';
   const panel = startChoicePanel();
-  panel.hidden = mode !== 'choice';
-  panel.parentElement.classList.toggle('is-choosing', mode === 'choice');
+  const home = startHomeActions();
+  const isHome = startMode === 'home';
+  panel.hidden = !isHome || !saved;
+  home.hidden = !isHome;
+  startMenuButton().hidden = isHome;
+  startLayer.classList.toggle('is-setup', !isHome);
+  panel.parentElement.classList.toggle('is-choosing', isHome);
+  // Con una partita in corso "Nuova partita" è secondario (il principale è Riprendi partita)
+  const fresh = home.querySelector('.start-home-new');
+  fresh.classList.toggle('ae-button--primary', !saved);
+  fresh.classList.toggle('ae-button--secondary', !!saved);
   if (saved) {
     const head = panel.querySelector('.start-choice-head');
     head.querySelector('.start-choice-info').textContent =
@@ -1583,16 +1654,16 @@ function setStartMode(mode, focus) {
       head.prepend(portrait);
     }
   }
+  startLayer.scrollTop = 0;
   updateStartActions();
   if (focus) {
-    const target = mode === 'choice' ? panel.querySelector('.start-choice-resume') : document.querySelector('#choices-players button');
-    if (target) target.focus();
+    const target = isHome ? (saved ? panel.querySelector('.start-choice-resume') : fresh) : document.querySelector('#choices-players button');
+    if (target) target.focus({ preventScroll: true });
   }
 }
 
-// In 'setup' il pulsante principale è "Inizia partita"; se c'è una partita salvata, sotto resta "Riprendi partita"
+// In 'setup' il pulsante principale è "Inizia partita"
 function updateStartActions() {
-  // Dopo "Nuova partita" non si offre più "Riprendi partita" (si riprende dalla finestra Partita in corso)
   resumeBtn.hidden = true;
   resumeBtn.className = 'ae-button ae-button--full ae-button--secondary start-resume-alt';
   startBtn.textContent = I18N_IT.startNew;
@@ -1616,33 +1687,131 @@ function buildStartPage() {
   renderStartChoices();
 }
 
-// Pulsante "La mia collezione" nella pagina iniziale (creato qui, così vale anche con un index.html vecchio)
-function ensureCollectionButton() {
-  let row = document.getElementById('collection-row');
-  if (!row) {
-    row = el('section', 'start-group start-collection');
-    row.id = 'collection-row';
-    const b = button(I18N_IT.myCollection, 'secondary', openCollection);
-    b.classList.add('ae-button--full', 'collection-open');
-    row.append(b, el('p', 'start-note collection-summary'));
-    const players = document.getElementById('choices-players').closest('.start-group');
-    players.before(row);
+// Wave: gruppo a sé ("Wave"), sopra la Nemesi, con pillole tonde una accanto all'altra (diverse dai riquadri delle
+// nemesi). Il vecchio menu a tendina resta nascosto e tiene il valore. Creato qui, così vale anche con un index.html vecchio.
+function ensureWaveGroup() {
+  let group = document.getElementById('wave-group');
+  if (group) return group;
+  const select = document.getElementById('wave-select');
+  group = el('section', 'start-group start-wave');
+  group.id = 'wave-group';
+  group.setAttribute('aria-labelledby', 'wave-label');
+  const label = el('h2', 'start-label', I18N_IT.wave);
+  label.id = 'wave-label';
+  const pills = el('div', 'wave-pills');
+  pills.id = 'wave-pills';
+  pills.setAttribute('role', 'group');
+  pills.setAttribute('aria-labelledby', 'wave-label');
+  group.append(label, pills);
+  const nemesisGroup = document.getElementById('nemesis-list').closest('.start-group');
+  nemesisGroup.before(group);
+  nemesisGroup.classList.add('start-nemesis');
+  if (select) {
+    select.hidden = true;
+    group.appendChild(select);
+    const oldLabel = document.querySelector('label[for="wave-select"]');
+    if (oldLabel) oldLabel.remove();
   }
+  return group;
+}
+
+function renderWavePills() {
+  const select = document.getElementById('wave-select');
+  const pills = document.getElementById('wave-pills');
+  pills.replaceChildren(...startOptions.waves.map(wave => {
+    const b = el('button', 'wave-pill', wave);
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(wave === select.value));
+    b.addEventListener('click', () => {
+      if (select.value === wave) return;
+      select.value = wave;
+      renderWavePills();
+      renderBosses(wave);
+      pills.querySelector('[aria-pressed="true"]').focus({ preventScroll: true });
+    });
+    return b;
+  }));
+}
+
+// Il pulsante "La mia collezione" non è più nella pagina "Nuova partita" (sta in Opzioni e nel Menu): si toglie anche
+// da una versione vecchia
+function ensureCollectionButton() {
+  const row = document.getElementById('collection-row');
+  if (row) row.remove();
+}
+
+function collectionSummaryText() {
   const waves = new Set([...collection].map(id => id.split('|')[0]));
-  row.querySelector('.collection-summary').textContent = I18N_IT.collectionSummary(waves.size, collection.size);
+  return I18N_IT.collectionSummary(waves.size, collection.size);
+}
+
+// Opzioni (dal menu iniziale): per ora solo "La mia collezione", con il riepilogo
+function openOptions(trigger) {
+  const layer = el('div', 'collection-screen options-screen');
+  layer.setAttribute('role', 'dialog');
+  layer.setAttribute('aria-modal', 'true');
+  layer.setAttribute('aria-label', I18N_IT.options);
+  const head = el('div', 'collection-head');
+  const close = () => {
+    layer.remove();
+    startLayer.inert = false;
+    updateInert();
+    if (trigger && trigger.isConnected) trigger.focus({ preventScroll: true });
+  };
+  const x = el('button', 'ae-icon-button');
+  x.type = 'button';
+  x.setAttribute('aria-label', I18N_IT.close);
+  x.appendChild(icon('close'));
+  x.addEventListener('click', close);
+  head.append(el('h2', 'collection-title', I18N_IT.options), x);
+  const body = el('div', 'collection-body');
+  const item = el('button', 'options-item');
+  item.type = 'button';
+  const summary = el('span', 'options-item-note', collectionSummaryText());
+  item.append(el('span', 'options-item-label', I18N_IT.myCollection), summary);
+  item.addEventListener('click', () => openCollection(item, () => { summary.textContent = collectionSummaryText(); }));
+  body.appendChild(item);
+  layer.append(head, body);
+  layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
+  document.body.appendChild(layer);
+  startLayer.inert = true;
+  item.focus();
+}
+
+// Menu della pagina "Nuova partita": Esci (torna al menu iniziale) e La mia collezione
+function openStartMenu(trigger) {
+  let close = () => {};
+  const cancel = () => close();
+  const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
+  panel.classList.add('ae-side-menu');
+  const collectionItem = button(I18N_IT.myCollection, 'secondary', () => { close(); openCollection(trigger); });
+  collectionItem.classList.add('ae-button--full');
+  const exit = button(I18N_IT.exit, 'secondary', () => { close(); setStartMode('home', true); });
+  exit.classList.add('ae-button--full', 'ae-side-exit');
+  panel.append(collectionItem, exit);
+  close = openModal(panel, { onCancel: cancel, initialFocus: collectionItem });
+  panel.parentElement.classList.add('ae-modal-backdrop--side');
+  swipeToClose(panel, cancel);
+  menuCloseToggle(trigger, panel.parentElement, cancel);
 }
 
 // Schermata "La mia collezione": per ogni wave un interruttore (la wave, cioè la sua scatola base) e sotto le sue
 // mini espansioni. Togliendo una wave si tolgono anche le sue mini espansioni. Le scelte valgono solo con
 // "Salva collezione"; la X torna indietro senza salvare.
-function openCollection() {
+function openCollection(trigger, onSaved) {
   const draft = new Set(collection);
   const layer = el('div', 'collection-screen');
   layer.setAttribute('role', 'dialog');
   layer.setAttribute('aria-modal', 'true');
   layer.setAttribute('aria-label', I18N_IT.myCollection);
   const head = el('div', 'collection-head');
-  const close = () => { layer.remove(); updateInert(); document.querySelector('.collection-open').focus(); };
+  const close = () => {
+    layer.remove();
+    updateInert();
+    // Aperta da Opzioni: la pagina iniziale resta coperta dalle Opzioni
+    if (document.querySelector('.options-screen')) startLayer.inert = true;
+    if (trigger && trigger.isConnected) trigger.focus({ preventScroll: true });
+  };
   const x = el('button', 'ae-icon-button');
   x.type = 'button';
   x.setAttribute('aria-label', I18N_IT.close);
@@ -1695,6 +1864,7 @@ function openCollection() {
     saveCollection();
     close();
     renderStartChoices();
+    if (onSaved) onSaved();
     showToast(I18N_IT.collectionSaved);
   });
   saveBtn.classList.add('ae-button--full');
@@ -1716,7 +1886,7 @@ function openStart() {
   renderStartChoices();
   startLayer.hidden = false;
   updateInert();
-  setStartMode(readSave() ? 'choice' : 'setup', true);
+  setStartMode('home', true);
 }
 
 function closeStart() {
@@ -1745,13 +1915,14 @@ function startGame() {
   ui.drafts.clear();
   ui.flyingDiscards = 0;
   undoStack = [];
+  ui.gameSaved = false;
   newGame();
   // Prima del turno giocatori: i 9 mazzi da cui nasce il mazzo nemesi e il pulsante "Crea mazzo"
   ui.deckBuilding = true;
   ui.deckShown = 0;
-  render();
-  save();
+  ui.deckDark = true;
   showDeckBuild();
+  render();
   slideToGame(() => nemesisBtn.focus());
   prefetchDeckImages();
 }
@@ -1770,6 +1941,8 @@ function resumeGame() {
       throw err;
     }
     undoStack = Array.isArray(saved.undo) ? saved.undo : [];
+    ui.gameSaved = true;
+    ui.deckDark = false;
     startError.hidden = true;
     closeStart();
     render();
@@ -1801,7 +1974,7 @@ function snapshot() {
     newIndex,
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
-    stats: Object.assign({}, stats, { minions: stats.minions.map(m => Object.assign({}, m)) })
+    stats: JSON.parse(JSON.stringify(stats))
   };
 }
 
@@ -1826,6 +1999,7 @@ function restore(s) {
   // Una creazione del mazzo interrotta (ripresa o undo): si va direttamente alla partita
   ui.deckBuilding = false;
   ui.deckShown = null;
+  ui.deckDark = false;
   closeDeckBuild();
   closeAllModals();
   closeDiscard();
@@ -1838,8 +2012,9 @@ function restore(s) {
   maxTierDrawn = typeof s.maxTierDrawn === 'number' ? s.maxTierDrawn
     : Math.max(0, ...queue.map(e => e.data.tier || 0), ...discard.map(c => c.tier || 0));
   // Salvataggi senza statistiche: si parte da zero (mazzo iniziale = tutte le carte della partita)
-  stats = Object.assign(emptyStats(deck.length + queue.length + discard.length), s.stats || {});
-  stats.minions = Array.isArray(stats.minions) ? stats.minions.map(m => Object.assign({}, m)) : [];
+  stats = Object.assign(emptyStats(deck.length + queue.length + discard.length), s.stats ? JSON.parse(JSON.stringify(s.stats)) : {});
+  stats.minions = Array.isArray(stats.minions) ? stats.minions : [];
+  stats.cards = Object.assign(emptyStats(0).cards, stats.cards || {});
 
   if (s.resolving && queue.length > 0) {
     resolving = true;
@@ -1858,7 +2033,11 @@ function restore(s) {
   }
 }
 
+// La partita si salva solo dal primo turno nemesi (prima, anche durante "Crea mazzo", non si scrive niente e resta
+// l'eventuale partita salvata prima). Una partita già salvata (ripresa, o tornata al turno 0 con l'undo) si salva sempre.
 function save() {
+  if (turn < 1 && !ui.gameSaved) return;
+  ui.gameSaved = true;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ settings, state: snapshot(), undo: undoStack }));
   } catch (err) {
@@ -2012,9 +2191,22 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = ui.deckBuilding ? I18N_IT.holdToBuild : saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
+  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
   nemesisBtn.classList.toggle('is-save', saving);
-  nemesisBtn.classList.toggle('is-hold-action', ui.deckBuilding);
+  // "Crea mazzo": al posto del pulsante lo slider; sfondo nero fino alla fine del banner "Partita iniziata"
+  if (ui.deckBuilding) nemesisBtn.hidden = true;
+  if (deckSlider) deckSlider.box.hidden = !ui.deckBuilding;
+  app.classList.toggle('is-deck-dark', ui.deckDark);
+  app.classList.toggle('is-deck-building', ui.deckBuilding);
+  // Nome della nemesi: durante "Crea mazzo" si tocca e apre la finestra con nemesi e giocatori
+  const phaseName = phaseLabel.querySelector('.ae-phase-name');
+  if (ui.deckBuilding && phaseName) {
+    const nameBtn = el('button', 'ae-phase-name ae-phase-name--button', settings.nemesis || '');
+    nameBtn.type = 'button';
+    nameBtn.setAttribute('aria-haspopup', 'dialog');
+    nameBtn.addEventListener('click', openGameSetup);
+    phaseName.replaceWith(nameBtn);
+  }
   if (cancelDraftsBtn) {
     cancelDraftsBtn.hidden = !saving || ui.deckBuilding;
     cancelDraftsBtn.parentElement.hidden = resolving;
@@ -2496,6 +2688,7 @@ function resolveCurrent() {
     let effect;
     if (data.type === 'Attack') {
       stats.attacksResolved++;
+      statCard('attacksResolved', data);
       discardEntry(entry);
       effect = 'discard';
     } else {
@@ -2518,8 +2711,8 @@ function resolveCurrent() {
     effect = 'next';
   } else {
     // Potere all'ultimo token o attacco: risolto, va negli scarti (la carta dopo prende il suo posto)
-    if (data.type === 'Power') stats.powersResolved++;
-    else if (data.type === 'Attack') stats.attacksResolved++;
+    if (data.type === 'Power') { stats.powersResolved++; statCard('powersResolved', data); }
+    else if (data.type === 'Attack') { stats.attacksResolved++; statCard('attacksResolved', data); }
     discardEntry(entry);
     effect = 'discard';
   }
@@ -2599,18 +2792,16 @@ function showActive(entry) {
 
 function onNemesisClick(e) {
   if (resolving || ui.isTransitioning || !deckSetup) return;
-  // "Crea mazzo" si tiene premuto (holdToBuild); un tocco breve non fa niente. Da tastiera (Invio / spazio,
-  // detail 0) o chiamato dal codice parte subito.
-  if (ui.deckBuilding) {
-    if (!e || e.detail === 0) runDeckBuild();
-    return;
-  }
+  // Durante "Crea mazzo" al posto del pulsante c'è lo slider (deckSlider)
+  if (ui.deckBuilding) return;
   // Con modifiche non salvate il pulsante è "Salva modifiche"
   if (ui.drafts.size) {
     saveAllDrafts();
     return;
   }
   act(nemesisTurn);
+  // Urgenza: una breve scossa dello schermo e una vibrazione
+  shakeApp();
   // Lo sfondo scorre verso il lato della nemesi (0,8 s, style.css .ae-shell): il token della prima carta aspetta
   ui.bgSlideUntil = reducedMotion.matches ? 0 : performance.now() + BG_SLIDE_MS;
   ui.viewedUid = null;
@@ -2635,6 +2826,16 @@ function onNemesisClick(e) {
   if (resolving) resolveBtn.focus();
   // Coda vuota: si va subito alla carta da pescare, che arriva dal mazzo
   if (isDrawStep()) animateDrawIn();
+}
+
+// Scossa breve dell'app all'inizio del turno nemesi (niente con riduzione del movimento)
+function shakeApp() {
+  buzz([60, 40, 60]);
+  if (reducedMotion.matches) return;
+  app.classList.remove('is-shaking');
+  void app.offsetWidth;
+  app.classList.add('is-shaking');
+  setTimeout(() => app.classList.remove('is-shaking'), 520);
 }
 
 // Mostra un'altra carta senza risolvere nulla (anteprima): non cambia mazzo, vita, token, scarti, turno, undo
@@ -2771,11 +2972,11 @@ const headerPiles = el('div', 'ae-header-piles');
 const dockDeck = el('div', 'ae-pile ae-pile--deck');
 const dockDiscard = el('button', 'ae-pile ae-pile--discard');
 dockDiscard.type = 'button';
-dockDiscard.addEventListener('click', () => { if (!ui.isTransitioning) openDiscard(); });
+dockDiscard.addEventListener('click', () => { if (!ui.isTransitioning && !ui.deckBuilding) openDiscard(); });
 // Tocco sul mazzo: compare il pulsante "Pesca carta" (per gli effetti che fanno pescare o guardare la carta in cima)
 dockDeck.setAttribute('role', 'button');
 dockDeck.tabIndex = 0;
-dockDeck.addEventListener('click', () => { if (!ui.isTransitioning && !modals.length) openDeckPopover(); });
+dockDeck.addEventListener('click', () => { if (!ui.isTransitioning && !modals.length && !ui.deckBuilding) openDeckPopover(); });
 dockDeck.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dockDeck.click(); } });
 headerPiles.append(dockDeck, dockDiscard);
 undoBtn.before(headerPiles);
@@ -2934,8 +3135,8 @@ function checkVictory() {
   }, reducedMotion.matches ? 0 : MORPH_MS + 100);
 }
 
-// Schermata Vittoria: scritta "Vittoria!" come il banner dei Tier, ma resta ferma sullo schermo; sotto Statistiche,
-// Nuova partita e Chiudi (si torna alla partita com'era). Si apre da sola (checkVictory) o dal Menu ("Nemesi uccisa").
+// Schermata Vittoria: scritta "Vittoria" come il banner dei Tier, ma resta ferma sullo schermo; sotto Statistiche e
+// Menu iniziale; un tocco su una parte vuota torna alla partita com'era. Si apre da sola (checkVictory) o dal Menu ("Nemesi uccisa").
 function showVictory() {
   let close = () => {};
   const cancel = () => close();
@@ -2948,33 +3149,48 @@ function showVictory() {
   screen.setAttribute('aria-labelledby', title.id);
   const actions = el('div', 'ae-victory-actions');
   const statsBtn = button(I18N_IT.statsTitle, 'primary', openStats);
-  const fresh = button(I18N_IT.newGame, 'secondary', () => { close(); openStart(); });
-  const back = button(I18N_IT.close, 'secondary', cancel);
-  [statsBtn, fresh, back].forEach(b => b.classList.add('ae-button--full'));
-  actions.append(statsBtn, fresh, back);
+  const home = button(I18N_IT.mainMenu, 'secondary', () => { close(); openStart(); });
+  [statsBtn, home].forEach(b => b.classList.add('ae-button--full'));
+  actions.append(statsBtn, home);
   screen.append(title, actions);
-  close = openModal(screen, { onCancel: cancel, initialFocus: statsBtn, closeOnScrim: false });
+  // Niente "Chiudi": un tocco in una parte vuota dello schermo torna alla partita
+  close = openModal(screen, { onCancel: cancel, initialFocus: statsBtn });
+  screen.addEventListener('click', e => { if (e.target === screen) cancel(); });
   screen.parentElement.classList.add('ae-victory-backdrop');
 }
 
-// Statistiche della partita, in sola lettura
+// Statistiche della partita, in sola lettura. Sotto alcune righe (carte giocate, carte rimanenti, minion uccisi, poteri
+// scartati, poteri risolti, attacchi risolti) un box con le carte, in fila da scorrere; i minion hanno la loro vita.
+// Toccando una carta la si vede grande.
 function openStats() {
   let close = () => {};
   const cancel = () => close();
   const dialog = dialogShell(I18N_IT.statsTitle, settings.nemesis || '', cancel, { displayTitle: false });
   dialog.classList.add('ae-stats');
   const rows = I18N_IT.statsRows;
-  const list = el('dl', 'ae-side-stats');
+  const lists = I18N_IT.statsLists;
+  const ids = (stats && stats.cards) || {};
+  const byId = list => (Array.isArray(list) ? list : []).map(id => cardsById.get(id)).filter(Boolean);
+  // Carte giocate: tutte quelle uscite dal mazzo (scarti, dalla più vecchia, e carte ancora in gioco)
+  const played = discard.concat(queue.map(e => e.data));
+  // Carte rimanenti: per Tier e nome (l'ordine del mazzo non si mostra)
+  const left = deck.slice().sort((x, y) => (x.tier || 0) - (y.tier || 0) || x.name.localeCompare(y.name));
+  const list = el('div', 'ae-stats-list');
   [
     [rows.turns, turn],
-    [rows.played, Math.max(0, stats.deckSize - deck.length)],
-    [rows.left, deck.length],
-    [rows.minionsKilled, stats.minionsKilled],
-    [rows.powersPaid, stats.powersPaid],
-    [rows.powersResolved, stats.powersResolved],
+    [rows.played, Math.max(0, stats.deckSize - deck.length), played, lists.played],
+    [rows.left, deck.length, left, lists.left],
+    [rows.minionsKilled, stats.minionsKilled, byId(ids.minionsKilled), lists.minionsKilled],
+    [rows.powersPaid, stats.powersPaid, byId(ids.powersPaid), lists.powersPaid],
+    [rows.powersResolved, stats.powersResolved, byId(ids.powersResolved), lists.powersResolved],
     [rows.aetherSpent, stats.aetherSpent],
-    [rows.attacksResolved, stats.attacksResolved]
-  ].forEach(([label, value]) => list.append(el('dt', '', label), el('dd', '', String(value))));
+    [rows.attacksResolved, stats.attacksResolved, byId(ids.attacksResolved), lists.attacksResolved]
+  ].forEach(([label, value, cards, listLabel]) => {
+    const row = el('dl', 'ae-side-stats ae-stats-row');
+    row.append(el('dt', '', label), el('dd', '', String(value)));
+    list.appendChild(row);
+    if (cards) list.appendChild(statsCardStrip(cards, listLabel));
+  });
   // Turni in gioco di ogni minion: prima quelli uccisi, poi quelli ancora in gioco
   const minions = [
     ...stats.minions.map(m => ({ name: m.name, turns: m.turns, alive: false })),
@@ -2996,6 +3212,36 @@ function openStats() {
   close = openModal(dialog, { onCancel: cancel });
 }
 
+// Box delle statistiche: miniature in fila (scorrono in orizzontale); i minion con la vita stampata sulla carta
+function statsCardStrip(cards, label) {
+  const box = el('div', 'ae-stats-cards');
+  box.setAttribute('role', 'list');
+  box.setAttribute('aria-label', label);
+  if (!cards.length) {
+    box.classList.add('is-empty');
+    box.appendChild(el('p', 'ae-stats-empty', I18N_IT.statsListEmpty));
+    return box;
+  }
+  cards.forEach(data => {
+    const item = el('button', 'ae-stats-card');
+    item.type = 'button';
+    item.setAttribute('role', 'listitem');
+    const hp = data.type === 'Minion' && typeof data.hp === 'number' ? data.hp : null;
+    item.setAttribute('aria-label', [data.name, typeName(data), hp !== null ? I18N_IT.statsHp(hp) : ''].filter(Boolean).join(', '));
+    item.appendChild(cardArt(data, { thumb: true, lazy: true }));
+    if (hp !== null) {
+      const badge = el('span', 'ae-stats-hp');
+      badge.append(icon('heart'), el('span', '', String(hp)));
+      item.appendChild(badge);
+    }
+    item.addEventListener('click', () => openDiscardZoom(data));
+    box.appendChild(item);
+  });
+  trackDrag(box);
+  box.addEventListener('click', e => { if (box.dataset.dragged === '1') { e.stopPropagation(); e.preventDefault(); } }, true);
+  return box;
+}
+
 // --- Creazione del mazzo nemesi (dopo "Inizia partita") ---
 // Si vedono i 9 mazzi da cui nasce il mazzo nemesi: righe Tier 1-3, colonne Base / Potenziate / Specifiche. Base e
 // Potenziate sono mazzi coperti con il numero di carte che ne verranno prese; le Specifiche (sempre tutte) sono a faccia
@@ -3004,10 +3250,6 @@ function openStats() {
 // Tier 3 (in fondo al mazzo), poi il 2, poi l'1 (in cima), senza pause tra un Tier e l'altro; dentro ogni Tier
 // le carte partono in ordine casuale dai tre mazzi. Il numero del mazzo sale a ogni carta. Alla fine la schermata
 // sparisce e si è nel turno giocatori. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
-const DECK_FLY_MS = 390;
-const DECK_FLY_STAGGER = 53;
-// Le Specifiche si girano (dorso in su) appena si tocca "Crea mazzo", poi partono le carte
-const DECK_FAN_FLIP_MS = 340;
 
 // Carte Specifiche della nemesi della partita per un Tier (come in buildDeck)
 function specificCardsOf(tier) {
@@ -3029,6 +3271,7 @@ function showDeckBuild() {
       pile.dataset.tier = tier;
       pile.dataset.kind = kind;
       pile.dataset.left = plan.count;
+      pile.dataset.count = plan.count;
       pile.setAttribute('aria-label', I18N_IT.deckBuildPile(plan.count, I18N_IT.deckBuildKinds[kind].toLowerCase(), tier));
       if (kind === 'specific') {
         // A faccia in su, a ventaglio (come le carte in mano); si toccano per vederle grandi
@@ -3076,137 +3319,371 @@ function showDeckBuild() {
 }
 
 // Carte Specifiche in grande: tutte quelle della nemesi (Tier 1, 2, 3), si scorrono a destra e sinistra; si parte dalla
-// prima del Tier toccato
+// prima del Tier toccato. Sopra: "Tier 1 | Tier 2 | Tier 3" e sotto ogni Tier un pallino per carta (come i carosello):
+// il pallino acceso è la carta mostrata. Toccando un Tier si va alla sua prima carta.
 function openSpecificViewer(tier) {
   const cards = [1, 2, 3].flatMap(t => specificCardsOf(t).map(data => ({ data, t })));
   if (!cards.length) return;
   let close = () => {};
   const cancel = () => close();
-  const dialog = dialogShell(I18N_IT.deckBuildKinds.specific, settings.nemesis, cancel, { displayTitle: false });
+  const dialog = dialogShell(I18N_IT.specificTitle, settings.nemesis, cancel, { displayTitle: false });
   dialog.classList.add('ae-spec-viewer');
+  const nav = el('div', 'ae-spec-tiers');
+  const dots = [];
+  [1, 2, 3].forEach((t, ti) => {
+    const ofTier = cards.filter(c => c.t === t);
+    if (!ofTier.length) return;
+    if (nav.children.length) {
+      const sep = el('span', 'ae-spec-sep', '|');
+      sep.setAttribute('aria-hidden', 'true');
+      nav.appendChild(sep);
+    }
+    const group = el('button', 'ae-spec-tier');
+    group.type = 'button';
+    group.dataset.tier = t;
+    const row = el('span', 'ae-spec-dots');
+    row.setAttribute('aria-hidden', 'true');
+    ofTier.forEach(() => { const d = el('span'); row.appendChild(d); dots.push({ d, group }); });
+    group.append(el('span', 'ae-spec-tier-name', I18N_IT.tierN(t)), row);
+    group.addEventListener('click', () => goTo(cards.findIndex(c => c.t === t), true));
+    nav.appendChild(group);
+  });
   const track = el('div', 'ae-spec-track');
-  cards.forEach(({ data, t }, i) => {
+  cards.forEach(({ data, t }) => {
     const slide = el('div', 'ae-spec-slide');
     slide.dataset.tier = t;
-    const art = cardArt(data);
-    slide.append(art, el('p', 'ae-spec-caption', I18N_IT.tierN(t) + ' · ' + (i + 1) + '/' + cards.length));
+    slide.appendChild(cardArt(data));
     track.appendChild(slide);
   });
+  let current = -1;
+  const mark = i => {
+    if (i === current || i < 0 || i >= cards.length) return;
+    current = i;
+    dots.forEach(({ d, group }, k) => {
+      d.classList.toggle('is-on', k === i);
+      if (k === i) [...nav.querySelectorAll('.ae-spec-tier')].forEach(g => {
+        g.classList.toggle('is-current', g === group);
+        g.setAttribute('aria-current', String(g === group));
+      });
+    });
+  };
+  const indexNow = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth + 12));
+  const goTo = (i, smooth) => {
+    const slide = track.children[i];
+    if (!slide) return;
+    track.scrollTo({ left: slide.offsetLeft - track.offsetLeft, behavior: smooth && !reducedMotion.matches ? 'smooth' : 'auto' });
+    mark(i);
+  };
+  track.addEventListener('scroll', () => mark(indexNow()), { passive: true });
   const footer = el('div', 'ae-modal-footer');
   footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
-  dialog.append(track, footer);
+  dialog.append(nav, track, footer);
   close = openModal(dialog, { onCancel: cancel });
-  const first = track.querySelector(`.ae-spec-slide[data-tier="${tier}"]`);
-  if (first) track.scrollLeft = first.offsetLeft - track.offsetLeft;
+  goTo(Math.max(0, cards.findIndex(c => c.t === tier)), false);
 }
-
 
 function closeDeckBuild() {
   mainEl.classList.remove('is-deck-building');
   const old = document.getElementById('deck-build');
   if (old) old.remove();
+  deckFlight = null;
+  if (deckSlider) { deckSlider.lock(false); deckSlider.setProgress(0, true); }
 }
 
-function runDeckBuild() {
+// Ricomincia (Menu, durante "Crea mazzo") o cambio dei giocatori: mazzo nuovo con le scelte correnti, di nuovo i 9 mazzi
+function rebuildDeck() {
+  clearTransition();
+  closeAllModals();
+  newGame();
+  ui.deckBuilding = true;
+  ui.deckShown = 0;
+  ui.deckDark = true;
+  showDeckBuild();
+  render();
+  prefetchDeckImages();
+}
+
+// Finestra della nemesi (tocco sul nome in alto, solo durante "Crea mazzo"): nome e illustrazione come nel menu, e il
+// numero di giocatori, che si può cambiare (il mazzo si rifà subito)
+function openGameSetup() {
+  if (!ui.deckBuilding || ui.isTransitioning) return;
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.gameSetupTitle, '', cancel, { displayTitle: false });
+  dialog.classList.add('ae-game-setup');
+  const head = el('div', 'start-choice-head ae-game-setup-head');
+  head.appendChild(el('p', 'start-choice-info', settings.nemesis || ''));
+  const battleNo = battleOf(settings.nemesis);
+  head.appendChild(el('p', 'ae-game-setup-battle', battleNo ? I18N_IT.battle(battleNo) : I18N_IT.battleMissing));
+  const art = nemesisArt[settings.nemesis];
+  head.classList.toggle('has-art', !!art);
+  if (art) {
+    const portrait = el('span', 'nemesis-art');
+    portrait.setAttribute('aria-hidden', 'true');
+    portrait.style.backgroundImage = `url("${encodeURI(art.portrait)}")`;
+    head.prepend(portrait);
+  }
+  const label = el('h3', 'start-label', 'Giocatori');
+  label.id = 'game-setup-players';
+  const choices = el('div', 'choices');
+  choices.setAttribute('role', 'group');
+  choices.setAttribute('aria-labelledby', label.id);
+  const renderChoices = () => choices.replaceChildren(...startOptions.players.map(value => {
+    const b = el('button', '', String(value));
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(value === settings.players));
+    b.setAttribute('aria-label', I18N_IT.players(value));
+    b.addEventListener('click', () => {
+      if (settings.players === value) return;
+      settings.players = value;
+      // Il mazzo dipende dai giocatori: si rifà, con la finestra ancora aperta
+      newGame();
+      ui.deckShown = 0;
+      showDeckBuild();
+      render();
+      renderChoices();
+      choices.querySelector('[aria-pressed="true"]').focus();
+    });
+    return b;
+  }));
+  renderChoices();
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
+  dialog.append(head, label, choices, footer);
+  close = openModal(dialog, { onCancel: cancel });
+}
+
+// --- "Crea mazzo" con lo slider: il quadratino si trascina da sinistra a destra e le carte vanno nel mazzo in alto
+// seguendo il dito. Avanzamento p (0..1): con p = 0 si vedono tutti i mazzi, a metà strada è nel mazzo circa metà delle
+// carte, alla fine il mazzo è completo e la partita inizia. Lasciando prima della fine il quadratino torna indietro
+// (e le carte tornano nei loro mazzi). Prima il Tier 3 (in fondo al mazzo), poi il 2, poi l'1; dentro ogni Tier le
+// carte partono in ordine casuale dai tre mazzi.
+// Ogni carta ha una copia (fantasma) che vola dal suo mazzo a quello in alto; DECK_FLY_WINDOW carte sono in volo
+// insieme. Il mazzo vero è già fatto (newGame): l'animazione lo mostra soltanto.
+const DECK_FLY_WINDOW = 3;
+// Oltre questa frazione dello slider, al rilascio, il mazzo si completa
+const DECK_SLIDE_DONE = 0.94;
+let deckFlight = null;
+
+// Prepara i voli (una volta per schermata): ordine delle carte, mazzo di partenza, copie da far volare
+function prepareDeckFlight() {
   const layer = document.getElementById('deck-build');
-  const finish = () => {
-    ui.deckBuilding = false;
-    ui.deckShown = null;
-    mainEl.classList.remove('is-deck-building');
-    if (layer && layer.isConnected && layer.animate && !reducedMotion.matches) {
-      const fade = layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
-      fade.onfinish = () => layer.remove();
-      setTimeout(() => layer.remove(), 400);
-    } else {
-      closeDeckBuild();
-    }
-    render();
-    nemesisBtn.focus({ preventScroll: true });
-    // Banner "Partita iniziata", uguale a quello dei Tier
-    showBanner(I18N_IT.gameStarted);
-  };
-  if (!layer || reducedMotion.matches || !document.body.animate) { finish(); return; }
-  // Tempi di partenza: una carta ogni DECK_FLY_STAGGER, senza pause tra un Tier e l'altro (la prima del Tier dopo
-  // parte subito dopo l'ultima del Tier prima, senza aspettare che arrivi)
-  // Prima si girano le Specifiche, poi partono le carte
-  layer.classList.add('is-flipping');
-  const launches = [];
-  let time = DECK_FAN_FLIP_MS;
+  if (!layer) return null;
+  if (deckFlight && deckFlight.layer === layer) return deckFlight;
+  const order = [];
   [3, 2, 1].forEach(tier => {
     const ofTier = [];
     ['basic', 'upgraded', 'specific'].forEach(kind => {
       const pile = layer.querySelector(`.deck-build-pile[data-tier="${tier}"][data-kind="${kind}"]`);
-      for (let i = 0; i < Number(pile.dataset.left); i++) ofTier.push(pile);
+      const fan = kind === 'specific' ? [...pile.querySelectorAll('.deck-build-fan-card')] : null;
+      const total = kind === 'specific' ? fan.length : Number(pile.dataset.count);
+      for (let i = 0; i < total; i++) ofTier.push({ pile, fanCard: fan ? fan[i] : null });
     });
-    if (!ofTier.length) return;
-    if (launches.length) time += DECK_FLY_STAGGER;
-    shuffle(ofTier).forEach((pile, i) => {
-      launches.push({ pile, at: time });
-      if (i < ofTier.length - 1) time += DECK_FLY_STAGGER;
-    });
+    order.push(...shuffle(ofTier));
   });
-  const duration = launches.length ? time + DECK_FLY_MS : 0;
-  lockFor(duration + 300, finish);
-  ui.deckBuilding = false; // il pulsante non riparte durante l'animazione (resta bloccato da lockFor)
-  nemesisBtn.textContent = I18N_IT.buildDeck;
-  launches.forEach(({ pile, at }, i) => setTimeout(() => launchDeckCard(pile, i), at));
+  order.forEach((c, i) => { c.i = i; c.ghost = null; c.state = 0; });
+  deckFlight = { layer, order, p: 0 };
+  return deckFlight;
 }
 
-// Una carta parte da un mazzo (coperta) o dal ventaglio delle Specifiche (a faccia in su, si gira a metà volo)
-function launchDeckCard(pile, i) {
-  const left = Number(pile.dataset.left) - 1;
-  pile.dataset.left = left;
-  pile.querySelector('.ae-pile-count').textContent = String(left);
-  if (left <= 0) pile.classList.add('is-empty');
-  let source = pile.querySelector(':scope > img');
-  let faceUp = null;
-  if (pile.classList.contains('is-fan')) {
-    // una carta a caso tra quelle rimaste nel ventaglio
-    const remaining = [...pile.querySelectorAll('.deck-build-fan-card:not(.is-gone)')];
-    const card = remaining[Math.floor(Math.random() * remaining.length)];
-    if (card) {
-      // la carta è già girata: vola coperta
-      source = card;
-      card.classList.add('is-gone');
-    }
-  }
-  if (!source) return;
+// Copia della carta in volo, creata al primo movimento (le misure si prendono allora)
+function deckGhost(c) {
+  if (c.ghost) return c.ghost;
+  const source = c.fanCard || c.pile.querySelector(':scope > img');
   const from = source.getBoundingClientRect();
-  const to = dockDeck.getBoundingClientRect();
+  const w = c.fanCard ? source.offsetWidth : from.width;
+  const h = c.fanCard ? source.offsetHeight : from.height;
+  const cx = from.left + from.width / 2;
+  const cy = from.top + from.height / 2;
   const ghost = el('div', 'ae-fly-ghost ae-draw-ghost ae-deck-card');
   const img = document.createElement('img');
   img.alt = '';
-  img.src = faceUp || CARD_BACK;
+  img.src = CARD_BACK;
   ghost.appendChild(img);
-  // (rettangolo senza rotazione del ventaglio: la copia parte dritta dal centro della carta)
-  const w = pile.classList.contains('is-fan') ? source.offsetWidth : from.width;
-  const h = pile.classList.contains('is-fan') ? source.offsetHeight : from.height;
-  const cx = from.left + from.width / 2;
-  const cy = from.top + from.height / 2;
-  Object.assign(ghost.style, { left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px' });
+  Object.assign(ghost.style, { left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px', visibility: 'hidden' });
   document.body.appendChild(ghost);
-  if (faceUp) setTimeout(() => { img.src = CARD_BACK; }, DECK_FLY_MS / 2);
-  const dx = to.left + to.width / 2 - cx;
-  const dy = to.top + to.height / 2 - cy;
-  const s = to.width / w;
-  let landed = false;
-  const land = () => {
-    if (landed) return;
-    landed = true;
-    ghost.remove();
-    ui.deckShown = Math.min(deck.length, (ui.deckShown || 0) + 1);
-    renderDockPiles();
+  c.ghost = ghost;
+  c.cx = cx; c.cy = cy; c.w = w;
+  return ghost;
+}
+
+// Disegna i mazzi e le carte in volo per l'avanzamento p
+function setDeckProgress(p) {
+  const flight = prepareDeckFlight();
+  if (!flight) return;
+  flight.p = p;
+  const n = flight.order.length;
+  // Le Specifiche si girano (dorso in su) appena lo slider si muove; tornano a faccia in su a slider fermo all'inizio
+  flight.layer.classList.toggle('is-flipping', p > 0);
+  const to = dockDeck.getBoundingClientRect();
+  const x = p * (n + DECK_FLY_WINDOW - 1);
+  let landed = 0;
+  const taken = new Map();
+  flight.order.forEach(c => {
+    const t = n ? Math.max(0, Math.min(1, (x - c.i) / DECK_FLY_WINDOW)) : 1;
+    if (t >= 1) landed++;
+    if (t > 0) taken.set(c.pile, (taken.get(c.pile) || 0) + 1);
+    if (c.fanCard) c.fanCard.classList.toggle('is-gone', t > 0);
+    if (t <= 0 || t >= 1) {
+      if (c.ghost) c.ghost.style.visibility = 'hidden';
+      return;
+    }
+    const ghost = deckGhost(c);
+    const dx = to.left + to.width / 2 - c.cx;
+    const dy = to.top + to.height / 2 - c.cy;
+    const s = 1 + (to.width / c.w - 1) * t;
+    const arc = Math.sin(Math.PI * t);
+    ghost.style.visibility = '';
+    ghost.style.transform = `translate(${dx * t}px, ${dy * t - 30 * arc}px) rotate(${(c.i % 2 ? 8 : -8) * arc}deg) scale(${s})`;
+  });
+  flight.layer.querySelectorAll('.deck-build-pile').forEach(pile => {
+    const left = Math.max(0, Number(pile.dataset.count) - (taken.get(pile) || 0));
+    pile.dataset.left = left;
+    pile.querySelector('.ae-pile-count').textContent = String(left);
+    pile.classList.toggle('is-empty', left <= 0);
+  });
+  const before = ui.deckShown || 0;
+  ui.deckShown = Math.min(deck.length, landed);
+  renderDockPiles();
+  if (ui.deckShown > before) {
     dockDeck.classList.remove('is-bump');
     void dockDeck.offsetWidth;
     dockDeck.classList.add('is-bump');
+  }
+}
+
+// Fine di "Crea mazzo": la schermata sparisce, banner "Partita iniziata", poi lo sfondo passa dal nero a quello del
+// turno giocatori
+const DECK_DARK_FADE_MS = 900;
+function finishDeckBuild() {
+  const layer = document.getElementById('deck-build');
+  if (deckFlight) deckFlight.order.forEach(c => { if (c.ghost) c.ghost.remove(); });
+  deckFlight = null;
+  ui.deckBuilding = false;
+  ui.deckShown = null;
+  if (deckSlider) { deckSlider.lock(false); deckSlider.setProgress(0, true); }
+  mainEl.classList.remove('is-deck-building');
+  if (layer && layer.animate && !reducedMotion.matches) {
+    const fade = layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' });
+    fade.onfinish = () => layer.remove();
+    setTimeout(() => layer.remove(), 400);
+  } else if (layer) {
+    layer.remove();
+  }
+  render();
+  nemesisBtn.focus({ preventScroll: true });
+  // Banner "Partita iniziata", uguale a quello dei Tier; finito il banner lo sfondo si accende
+  showBanner(I18N_IT.gameStarted);
+  setTimeout(() => {
+    ui.deckDark = false;
+    app.classList.remove('is-deck-dark');
+  }, reducedMotion.matches ? 0 : TIER_BANNER_MS);
+}
+
+// Completa il mazzo da dove è arrivato lo slider (rilascio vicino alla fine, tastiera), poi la partita inizia
+function runDeckBuild() {
+  if (!ui.deckBuilding || ui.isTransitioning) return;
+  const flight = prepareDeckFlight();
+  if (!flight || reducedMotion.matches) { finishDeckBuild(); return; }
+  const from = flight.p;
+  const ms = Math.max(250, (1 - from) * Math.min(2400, flight.order.length * 70));
+  lockFor(ms + 120, finishDeckBuild);
+  if (deckSlider) deckSlider.lock(true);
+  tween(from, 1, ms, p => { setDeckProgress(p); if (deckSlider) deckSlider.setProgress(p); });
+}
+
+// Piccola animazione numerica (requestAnimationFrame, con riserva setTimeout per il browser di prova)
+function tween(from, to, ms, step, done) {
+  const t0 = performance.now();
+  let finished = false;
+  const tick = () => {
+    if (finished) return;
+    const k = Math.min(1, (performance.now() - t0) / ms);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    step(from + (to - from) * e);
+    if (k >= 1) { finished = true; if (done) done(); return; }
+    if (window.requestAnimationFrame) requestAnimationFrame(tick); else setTimeout(tick, 16);
   };
-  const anim = ghost.animate([
-    { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
-    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) rotate(${i % 2 ? 8 : -8}deg) scale(${(1 + s) / 2})`, offset: 0.5 },
-    { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(${s})` }
-  ], { duration: DECK_FLY_MS, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
-  anim.onfinish = land;
-  setTimeout(land, DECK_FLY_MS + 150);
+  tick();
+  setTimeout(() => { if (!finished) { finished = true; step(to); if (done) done(); } }, ms + 200);
+}
+
+// Slider di "Crea mazzo" nel dock, al posto del pulsante principale: box con il quadratino dorato che si trascina
+// a destra. Pulsa finché non lo si tocca. Da tastiera: freccia destra / Invio completano.
+let deckSlider = null;
+function buildDeckSlider() {
+  const box = el('div', 'ae-deck-slider');
+  box.setAttribute('role', 'slider');
+  box.setAttribute('aria-label', I18N_IT.slideToBuildLabel);
+  box.setAttribute('aria-valuemin', '0');
+  box.setAttribute('aria-valuemax', '100');
+  box.setAttribute('aria-valuenow', '0');
+  box.tabIndex = 0;
+  box.hidden = true;
+  const fill = el('span', 'ae-deck-slider-fill');
+  const label = el('span', 'ae-deck-slider-label', I18N_IT.slideToBuild);
+  const knob = el('span', 'ae-deck-slider-knob');
+  knob.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">'
+    + '<path d="M6 6l6 6-6 6M12 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  box.append(fill, label, knob);
+  let p = 0;
+  let locked = false;
+  let drag = null;
+  const range = () => Math.max(1, box.clientWidth - knob.offsetWidth - 8);
+  const setProgress = (value, quiet) => {
+    p = Math.max(0, Math.min(1, value));
+    box.style.setProperty('--p', String(p));
+    knob.style.transform = `translateX(${p * range()}px)`;
+    fill.style.width = `calc(${p * range()}px + ${knob.offsetWidth || 48}px + 4px)`;
+    box.setAttribute('aria-valuenow', String(Math.round(p * 100)));
+    if (!quiet) box.classList.toggle('is-started', p > 0);
+    if (quiet && p === 0) box.classList.remove('is-started', 'is-dragging');
+  };
+  const lock = on => { locked = on; if (on) box.classList.add('is-started'); };
+  const release = () => {
+    if (!drag) return;
+    drag = null;
+    box.classList.remove('is-dragging');
+    if (p >= DECK_SLIDE_DONE) { runDeckBuild(); return; }
+    // Prima della fine: il quadratino torna all'inizio e le carte ai loro mazzi
+    lock(true);
+    tween(p, 0, Math.max(160, p * 450), v => { setDeckProgress(v); setProgress(v); }, () => {
+      lock(false);
+      setProgress(0, true);
+      setDeckProgress(0);
+    });
+  };
+  box.addEventListener('pointerdown', e => {
+    if (locked || !ui.deckBuilding || ui.isTransitioning || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const kr = knob.getBoundingClientRect();
+    // Si prende il quadratino (o il box: il quadratino salta sotto il dito solo se il tocco è vicino all'inizio)
+    if (e.clientX > kr.right + 24) return;
+    e.preventDefault();
+    drag = { x: e.clientX - p * range(), id: e.pointerId };
+    try { box.setPointerCapture(e.pointerId); } catch (_) { /* niente cattura */ }
+    box.classList.add('is-dragging', 'is-started');
+    prepareDeckFlight();
+  });
+  box.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const v = (e.clientX - drag.x) / range();
+    const before = p;
+    setProgress(v);
+    setDeckProgress(p);
+    if (before < 1 && p >= 1) buzz(30);
+  });
+  box.addEventListener('pointerup', release);
+  box.addEventListener('pointercancel', release);
+  box.addEventListener('lostpointercapture', release);
+  box.addEventListener('keydown', e => {
+    if (locked) return;
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight' || e.key === 'End') {
+      e.preventDefault();
+      runDeckBuild();
+    }
+  });
+  box.addEventListener('contextmenu', e => e.preventDefault());
+  return { box, setProgress, lock };
 }
 
 // Passo Pesca: una carta coperta parte dal mazzo in alto a sinistra e vola al centro, dove diventa la carta da pescare
@@ -3410,16 +3887,85 @@ function openSideMenu() {
   // Nemesi uccisa al tavolo (vita a 0): si va alla schermata Vittoria; la partita non cambia (Chiudi torna indietro)
   const killed = button(I18N_IT.nemesisKilled, 'secondary', () => { close(); showVictory(); });
   killed.classList.add('ae-button--full');
-  const exit = button(I18N_IT.exitGame, 'secondary', () => { close(); openStart(); });
-  exit.classList.add('ae-button--full', 'ae-side-exit');
+  // Esci dalla partita (rosso): va tenuto premuto, poi si torna al menu iniziale
+  const exit = button(I18N_IT.exitGame, 'danger');
+  exit.classList.add('ae-button--full', 'ae-side-exit', 'ae-hold-exit');
+  exit.setAttribute('aria-label', I18N_IT.exitGameLabel);
+  holdToConfirm(exit, HOLD_EXIT_MS, () => { close(); openStart(); }, () => showToast(I18N_IT.holdToExit));
   // Undo: annulla l'ultima azione (prima le modifiche non salvate)
   const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
-  panel.append(statsList, undoItem, discardOpen, killed, bgRow, exit);
+  const items = [statsList, undoItem, discardOpen, killed];
+  // Durante "Crea mazzo": Ricomincia la partita (mazzo nuovo con la stessa nemesi e gli stessi giocatori)
+  if (ui.deckBuilding) {
+    const restart = button(I18N_IT.restartGame, 'secondary', () => { close(); rebuildDeck(); });
+    restart.classList.add('ae-button--full');
+    items.splice(1, 0, restart);
+  }
+  panel.append(...items, bgRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
   swipeToClose(panel, cancel);
+  menuCloseToggle(menuBtn, panel.parentElement, cancel);
+}
+
+// Pulsante Menu aperto: sopra il menu, nello stesso punto del pulsante, le tre linee diventano una X (animazione
+// classica "hamburger → X": la linea centrale sparisce, le altre due ruotano di 45°). Toccando la X le linee tornano e il
+// menu si chiude. Il pulsante vero resta sotto l'oscuramento.
+function menuCloseToggle(source, backdrop, close) {
+  const r = source.getBoundingClientRect();
+  if (!r.width) return;
+  const x = el('button', 'ae-icon-button ae-menu-button ae-menu-toggle');
+  x.type = 'button';
+  x.setAttribute('aria-label', I18N_IT.close);
+  x.appendChild(el('span', 'ae-menu-lines'));
+  Object.assign(x.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  x.addEventListener('click', e => {
+    e.stopPropagation();
+    x.classList.remove('is-open');
+    setTimeout(close, reducedMotion.matches ? 0 : 180);
+  });
+  backdrop.appendChild(x);
+  void x.offsetWidth;
+  setTimeout(() => x.classList.add('is-open'), 20);
+}
+
+// Pulsante da tenere premuto (ms): si riempie da sinistra (CSS .is-holding); lasciando prima si annulla e si chiama
+// onShort (per esempio un avviso). Da tastiera (Invio, clic senza puntatore) vale subito.
+const HOLD_EXIT_MS = 900;
+function holdToConfirm(btn, ms, onDone, onShort) {
+  let timer = null;
+  let fired = false;
+  btn.classList.add('is-hold-action');
+  btn.style.setProperty('--ae-hold-ms', ms + 'ms');
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+    btn.classList.remove('is-holding');
+  };
+  btn.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    fired = false;
+    cancel();
+    void btn.offsetWidth;
+    btn.classList.add('is-holding');
+    timer = setTimeout(() => {
+      timer = null;
+      fired = true;
+      buzz(30);
+      onDone();
+    }, ms);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => btn.addEventListener(t, () => {
+    if (!timer) return;
+    cancel();
+    if (t === 'pointerup' && onShort) onShort();
+  }));
+  btn.addEventListener('click', e => {
+    if (e.detail === 0 && !fired) onDone();
+  });
+  btn.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 // Menu laterale: trascinandolo verso destra segue il dito; oltre un terzo della larghezza (o con uno scatto) si chiude
@@ -3472,30 +4018,6 @@ startBtn.addEventListener('click', onStartClick);
 resumeBtn.addEventListener('click', resumeGame);
 undoBtn.addEventListener('click', undo);
 nemesisBtn.addEventListener('click', onNemesisClick);
-// "Crea mazzo": si tiene premuto per HOLD_BUILD_MS; il pulsante si riempie d'oro da sinistra (CSS .is-holding).
-// Lasciando prima, o uscendo dal pulsante col dito, si annulla.
-const HOLD_BUILD_MS = 800;
-let holdTimer = null;
-function cancelHold() {
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  nemesisBtn.classList.remove('is-holding');
-}
-nemesisBtn.addEventListener('pointerdown', e => {
-  if (!ui.deckBuilding || ui.isTransitioning || resolving || (e.pointerType === 'mouse' && e.button !== 0)) return;
-  cancelHold();
-  void nemesisBtn.offsetWidth;
-  nemesisBtn.classList.add('is-holding');
-  holdTimer = setTimeout(() => {
-    cancelHold();
-    if (!ui.deckBuilding || ui.isTransitioning) return;
-    buzz(30);
-    runDeckBuild();
-  }, HOLD_BUILD_MS);
-});
-['pointerup', 'pointerleave', 'pointercancel'].forEach(t => nemesisBtn.addEventListener(t, () => { if (holdTimer) cancelHold(); }));
-// Pressione lunga sul telefono: niente menu contestuale né selezione del testo
-nemesisBtn.addEventListener('contextmenu', e => { if (ui.deckBuilding) e.preventDefault(); });
 // Turno giocatori con modifiche non salvate: "Annulla modifiche" accanto a "Salva modifiche" (stessa riga) toglie tutte
 // le bozze (vita dei minion, costi pagati); non è un passo di undo, perché le bozze non sono ancora nella partita
 cancelDraftsBtn = el('button', 'ae-button ae-button--secondary ae-cancel-drafts', I18N_IT.cancelChanges);
@@ -3504,7 +4026,8 @@ cancelDraftsBtn.hidden = true;
 {
   const row = el('div', 'ae-main-row');
   nemesisBtn.before(row);
-  row.append(cancelDraftsBtn, nemesisBtn);
+  deckSlider = buildDeckSlider();
+  row.append(cancelDraftsBtn, nemesisBtn, deckSlider.box);
 }
 cancelDraftsBtn.addEventListener('click', () => {
   if (resolving || ui.isTransitioning || !ui.drafts.size) return;
@@ -3579,9 +4102,12 @@ function closeTopForBack() {
   if (modals.length) { modals[modals.length - 1].onCancel(); return true; }
   if (undoFloat) { closeUndoFloat(); return true; }
   if (deckPopover) { closeDeckPopover(); return true; }
-  const collectionX = document.querySelector('.collection-screen .collection-head .ae-icon-button');
-  if (collectionX) { collectionX.click(); return true; }
+  // La mia collezione sopra le Opzioni: si chiude prima quella in cima
+  const screens = document.querySelectorAll('.collection-screen');
+  if (screens.length) { screens[screens.length - 1].querySelector('.collection-head .ae-icon-button').click(); return true; }
   if (!discardLayer.hidden) { closeDiscard(); return true; }
+  // Pagina "Nuova partita": Indietro torna al menu iniziale
+  if (!startLayer.hidden && startMode === 'setup') { setStartMode('home', true); return true; }
   return false;
 }
 function armBackGuard() { history.pushState({ aeBackGuard: true }, ''); }
@@ -3626,7 +4152,7 @@ async function init() {
     loadImage(CARD_BACK);
     preloadBannerFont();
     render();
-    setStartMode(readSave() ? 'choice' : 'setup', true);
+    setStartMode('home', true);
   } catch (err) {
     console.error(err);
     // Senza replaceChildren: se l'errore viene da un browser vecchio, qui non deve fallire di nuovo
