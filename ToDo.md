@@ -16,6 +16,7 @@
 - Rimpicciolire le carte in alto per guadagnare spazio, tenere i token potere e la vita. si può pensare di non fare la miniatura ma di creare delle carte solo gialle per i poteri e solo azzurre per i minion, o ancora meglio, tenere solo la parte in alto della carta, solo lartwork
 - dare feedback di danni come nella 0.3
 - le wave non numerarle con numeri arabi ma con numeri romani
+- Aggiungere la scelta del back delle carte come valore estetico e customizzabile in più (idea: mettere il back delle carte da briscola)
 
 # Menu Principale 
 - togliere il box dei pulsanti, mostra solo le scritte
