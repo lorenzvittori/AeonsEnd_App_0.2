@@ -179,6 +179,8 @@ const I18N_IT = {
     gothicGlass: 'Vetrata gotica', watercolor: 'Acquerello', popArt: 'Pop art', minimal: 'Minimalista',
     impressionist: 'Impressionista', geometric: 'Geometrico', ink: 'Inchiostro', organic: 'Organico', arcane: 'Diagramma arcano'
   },
+  selectAll: 'Seleziona tutto',
+  deselectAll: 'Deseleziona tutto',
   trackPlayers: 'Turno dei giocatori',
   trackPlayersName: 'Giocatori',
   trackNemesisName: 'Nemesi',
@@ -512,7 +514,7 @@ function aetherCost(data) {
 function countMinionKilled(entry) {
   stats.minionsKilled++;
   statCard('minionsKilled', entry.data);
-  stats.minions.push({ name: entry.data.name, turns: Math.max(0, turn - (entry.bornTurn || 0)) });
+  stats.minions.push({ id: entry.data.id, name: entry.data.name, turns: Math.max(0, turn - (entry.bornTurn || 0)) });
 }
 // Potere scartato pagando il costo
 function countPowerPaid(entry) {
@@ -911,8 +913,42 @@ function scrollQueueTo(item) {
   const cRect = queueViewport.getBoundingClientRect();
   const iRect = item.getBoundingClientRect();
   const left = iRect.left - cRect.left + queueViewport.scrollLeft + iRect.width / 2 - queueViewport.clientWidth / 2;
-  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  queueViewport.scrollTo({ left, behavior: reduce ? 'auto' : 'smooth' });
+  fastScrollTo(queueViewport, left);
+}
+
+// Scorrimento orizzontale animato più veloce di quello del browser (circa il 50% in più: FAST_SCROLL_MS). Durante
+// l'animazione lo scroll-snap è spento, altrimenti il browser riaggancerebbe la carta a ogni passo; un dito sul
+// contenitore la interrompe. Con "riduci movimento" salta subito.
+const FAST_SCROLL_MS = 260;
+const scrollJobs = new WeakMap();
+const scrollJobWatched = new WeakSet();
+function cancelFastScroll(container) {
+  const job = scrollJobs.get(container);
+  if (!job) return;
+  job.cancelled = true;
+  scrollJobs.delete(container);
+  container.style.scrollSnapType = '';
+}
+function fastScrollTo(container, left, ms = FAST_SCROLL_MS) {
+  const to = Math.max(0, Math.min(container.scrollWidth - container.clientWidth, left));
+  // Stessa meta di un'animazione già in corso (ridisegni, ridimensionamenti): la si lascia finire
+  const running = scrollJobs.get(container);
+  if (running && Math.abs(running.to - to) < 1) return;
+  cancelFastScroll(container);
+  const from = container.scrollLeft;
+  if (Math.abs(to - from) < 1 || reducedMotion.matches) { container.scrollLeft = to; return; }
+  if (!scrollJobWatched.has(container)) {
+    scrollJobWatched.add(container);
+    container.addEventListener('pointerdown', () => cancelFastScroll(container), { passive: true });
+  }
+  const job = { cancelled: false, to };
+  scrollJobs.set(container, job);
+  container.style.scrollSnapType = 'none';
+  tween(from, to, ms, v => { if (!job.cancelled) container.scrollLeft = v; }, () => {
+    if (job.cancelled) return;
+    container.scrollLeft = to;
+    cancelFastScroll(container);
+  });
 }
 
 function centredQueueUid() {
@@ -929,6 +965,11 @@ function centredQueueUid() {
 }
 
 function markQueueRail(uid) {
+  // Comandi (vita del minion, rimozione del potere) solo sulla carta grande al centro (style.css .queue-slot.is-centred)
+  queueList.querySelectorAll('.queue-slot').forEach(slot => {
+    const item = slot.querySelector('.ae-queue-item');
+    slot.classList.toggle('is-centred', !!item && Number(item.dataset.uid) === uid);
+  });
   if (!queueRail) return;
   queueRail.querySelectorAll('.ae-queue-item').forEach(item => {
     const on = Number(item.dataset.uid) === uid;
@@ -2000,7 +2041,7 @@ function collectionSummaryText() {
   return I18N_IT.collectionSummary(waves.size, collection.size);
 }
 
-// Opzioni (dal menu iniziale): per ora solo "La mia collezione", con il riepilogo
+// Opzioni (dal menu iniziale): La mia collezione (con il riepilogo), Dorso delle carte e Sfondo
 function openOptions(trigger) {
   const layer = el('div', 'collection-screen options-screen');
   layer.setAttribute('role', 'dialog');
@@ -2025,7 +2066,23 @@ function openOptions(trigger) {
   const summary = el('span', 'options-item-note', collectionSummaryText());
   item.append(el('span', 'options-item-label', I18N_IT.myCollection), summary);
   item.addEventListener('click', () => openCollection(item, () => { summary.textContent = collectionSummaryText(); }));
-  body.appendChild(item);
+  // Dorso delle carte (la stessa griglia del Menu della partita): il nome del dorso scelto sotto la voce
+  const backItem = el('button', 'options-item');
+  backItem.type = 'button';
+  const backNote = el('span', 'options-item-note', I18N_IT.cardBacks[currentCardBack().id]);
+  backItem.append(el('span', 'options-item-label', I18N_IT.cardBack), backNote);
+  backItem.addEventListener('click', () => openCardBackPicker(
+    () => { backNote.textContent = I18N_IT.cardBacks[currentCardBack().id]; },
+    // Chiusa la griglia, la pagina iniziale resta coperta dalle Opzioni
+    () => { if (layer.isConnected) startLayer.inert = true; }));
+  // Sfondo (lo stesso menu a tendina del Menu della partita)
+  const bgItem = el('label', 'options-item options-item--field');
+  const bgSelect = el('select', 'ae-select');
+  bgSelect.append(...BACKGROUNDS.map(b => Object.assign(el('option', '', I18N_IT.backgrounds[b.id]), { value: b.id })));
+  bgSelect.value = currentBackground().id;
+  bgSelect.addEventListener('change', () => setBackground(bgSelect.value));
+  bgItem.append(el('span', 'options-item-label', I18N_IT.background), bgSelect);
+  body.append(item, backItem, bgItem);
   layer.append(head, body);
   layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
   document.body.appendChild(layer);
@@ -2058,6 +2115,18 @@ function openCollection(trigger, onSaved) {
   head.append(el('h2', 'collection-title', I18N_IT.myCollection), x);
   const body = el('div', 'collection-body');
   body.appendChild(el('p', 'start-note', I18N_IT.collectionHint));
+  // Seleziona tutto / Deseleziona tutto: spuntano o tolgono tutte le wave e le mini espansioni (valgono con "Salva")
+  const bulk = el('div', 'collection-bulk');
+  const setAll = on => {
+    collectionCatalog().forEach(({ products }) => products.forEach(p => { if (on) draft.add(p.id); else draft.delete(p.id); }));
+    body.querySelectorAll('.collection-item input').forEach(input => {
+      input.checked = on;
+      if (input.closest('.is-mini')) input.disabled = !on;
+    });
+    body.querySelectorAll('.collection-item.is-mini').forEach(r => r.classList.toggle('is-disabled', !on));
+  };
+  bulk.append(button(I18N_IT.selectAll, 'secondary', () => setAll(true)), button(I18N_IT.deselectAll, 'secondary', () => setAll(false)));
+  body.appendChild(bulk);
 
   const toggle = (label, id, extraClass) => {
     const row = el('label', 'ae-switch-row collection-item' + (extraClass ? ' ' + extraClass : ''));
@@ -2716,9 +2785,10 @@ function scrollFocusTo(uid, smooth, jump = false) {
   if (Math.abs(focusEl.scrollLeft - left) < 1) return;
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (smooth && !reduce) {
-    focusProgrammaticUntil = performance.now() + 600;
-    focusEl.scrollTo({ left, behavior: 'smooth' });
+    focusProgrammaticUntil = performance.now() + FAST_SCROLL_MS + 200;
+    fastScrollTo(focusEl, left);
   } else {
+    cancelFastScroll(focusEl);
     focusEl.scrollLeft = left;
   }
 }
@@ -3119,10 +3189,17 @@ function trackDrag(container) {
 trackDrag(queueViewport);
 trackDrag(rail);
 
+// Carte grandi del turno giocatori: una carta non al centro si porta al centro; si apre solo quella al centro
 queueList.addEventListener('click', e => {
   const item = e.target.closest('.ae-queue-item');
   if (!item || queueViewport.dataset.dragged === '1') return;
-  const entry = entryByUid(Number(item.dataset.uid));
+  const uid = Number(item.dataset.uid);
+  if (uid !== centredQueueUid()) {
+    scrollQueueTo(item.closest('.queue-slot') || item);
+    markQueueRail(uid);
+    return;
+  }
+  const entry = entryByUid(uid);
   if (entry) openCardDialog(entry);
 });
 
@@ -3140,7 +3217,8 @@ focusEl.addEventListener('click', e => {
   const slide = stage && stage.closest('.ae-focus-slide');
   if (!slide) return;
   const uid = Number(slide.dataset.uid);
-  if (uid !== ui.viewedUid) return;
+  // Carta non al centro: si porta al centro (come un tocco sulla fascia), non si apre
+  if (uid !== ui.viewedUid) { viewCard(uid); return; }
   if (uid === DRAW_UID) {
     onResolveClick();
     return;
@@ -3478,17 +3556,33 @@ function openStats() {
   statsTimes().forEach(([label, ms]) => timeList.append(el('dt', '', label),
     el('dd', '', ms === null ? I18N_IT.statsTimeUnknown : formatDuration(ms))));
   // Turni in gioco di ogni minion: prima quelli uccisi, poi quelli ancora in gioco
+  // Ogni minion con la sua carta (le partite vecchie non hanno l'id: si cerca per nome)
+  const minionCard = m => (m.id && cardsById.get(m.id)) || allCards.find(c => c.type === 'Minion' && c.name === m.name) || null;
   const minions = [
-    ...stats.minions.map(m => ({ name: m.name, turns: m.turns, alive: false })),
-    ...queue.filter(e => e.data.type === 'Minion').map(e => ({ name: e.data.name, turns: Math.max(0, turn - (e.bornTurn || 0)), alive: true }))
+    ...stats.minions.map(m => ({ name: m.name, data: minionCard(m), turns: m.turns, alive: false })),
+    ...queue.filter(e => e.data.type === 'Minion').map(e => ({ name: e.data.name, data: e.data, turns: Math.max(0, turn - (e.bornTurn || 0)), alive: true }))
   ];
   const minionTitle = el('h3', 'ae-stats-subtitle', I18N_IT.statsMinionsTitle);
   let minionList;
   if (minions.length) {
-    minionList = el('dl', 'ae-side-stats');
-    minions.forEach(m => minionList.append(
-      el('dt', '', m.name + (m.alive ? ' (' + I18N_IT.stillInPlay + ')' : '')),
-      el('dd', '', I18N_IT.minionTurns(m.turns))));
+    // Una riga per minion: miniatura (toccandola la carta si vede grande), nome e turni in gioco
+    minionList = el('div', 'ae-stats-minions');
+    minions.forEach(m => {
+      const row = el('div', 'ae-stats-minion');
+      if (m.data) {
+        const pic = el('button', 'ae-stats-minion-pic');
+        pic.type = 'button';
+        pic.setAttribute('aria-label', m.name);
+        pic.appendChild(cardArt(m.data, { thumb: true, lazy: true }));
+        pic.addEventListener('click', () => openDiscardZoom(m.data));
+        row.appendChild(pic);
+      }
+      const text = el('div', 'ae-stats-minion-text');
+      text.append(el('span', 'ae-stats-minion-name', m.name),
+        el('span', 'ae-stats-minion-note', m.alive ? I18N_IT.stillInPlay : ''));
+      row.append(text, el('span', 'ae-stats-minion-turns', I18N_IT.minionTurns(m.turns)));
+      minionList.appendChild(row);
+    });
   } else {
     minionList = el('p', 'ae-stats-empty', I18N_IT.statsNoMinions);
   }
@@ -4241,8 +4335,10 @@ function openSideMenu() {
 }
 
 // Scelta del dorso delle carte: griglia di miniature; un tocco sceglie il dorso, lo applica subito e chiude
-function openCardBackPicker(onChosen) {
-  let close = () => {};
+// onClosed: dopo la chiusura, in ogni caso (le Opzioni lo usano per tenere la pagina iniziale coperta)
+function openCardBackPicker(onChosen, onClosed) {
+  let closeModalFn = () => {};
+  const close = () => { closeModalFn(); if (onClosed) onClosed(); };
   const cancel = () => close();
   const dialog = dialogShell(I18N_IT.cardBack, '', cancel, { displayTitle: false });
   dialog.classList.add('ae-back-picker');
@@ -4270,7 +4366,7 @@ function openCardBackPicker(onChosen) {
   const footer = el('div', 'ae-modal-footer');
   footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
   dialog.append(grid, footer);
-  close = openModal(dialog, { onCancel: cancel, initialFocus: grid.querySelector('[aria-pressed="true"]') });
+  closeModalFn = openModal(dialog, { onCancel: cancel, initialFocus: grid.querySelector('[aria-pressed="true"]') });
 }
 
 // Pulsante Menu aperto: sopra il menu, nello stesso punto del pulsante, le tre linee diventano una X (animazione

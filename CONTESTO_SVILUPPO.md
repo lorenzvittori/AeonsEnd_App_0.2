@@ -59,14 +59,16 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 **Menu iniziale ("Aeon's End – Nemesis Companion")**
 - Se c'è una partita salvata, la finestra **Partita in corso** (nemesi, giocatori, illustrazione) con solo *Riprendi
   partita*. Sotto, sempre: **Nuova partita** (secondario se c'è una partita in corso) e **Opzioni**.
-- **Opzioni:** per ora una voce, *La mia collezione* (con il riepilogo wave · prodotti).
+- I pulsanti del menu iniziale sono **solo scritte** (Cinzel 22px, oro la voce principale), senza box (v163).
+- **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (la stessa griglia del
+  Menu della partita, con il nome del dorso scelto) e *Sfondo* (menu a tendina).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
   lei il contenuto sfuma nel nero (`.start-setup-head`). Il vecchio Menu (tre linee) è stato tolto in v158: *La mia
   collezione* si apre da Opzioni nel menu iniziale. Anche il tasto Indietro torna al menu iniziale.
 - **La mia collezione:** schermata con un interruttore per ogni wave (la sua scatola base) e, sotto, le sue mini
-  espansioni (interruttori più piccoli e un po' più a sinistra). Nemesi e carte Basic / Upgraded Basic escono solo dai
+  espansioni (interruttori più piccoli e un po' più a sinistra). In cima *Seleziona tutto* e *Deseleziona tutto*. Nemesi e carte Basic / Upgraded Basic escono solo dai
   prodotti spuntati. Vale solo con "Salva collezione".
 - **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
 - **Wave:** menu a tendina con una casella per wave (solo quelle della collezione), **anche più di una**
@@ -113,8 +115,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Tocco sugli scarti: si apre la pila degli scarti, dalla più recente, e ogni carta si ingrandisce.
   - Tocco sul mazzo: compare "Pesca carta", che mostra la carta in cima con *Rimetti nel mazzo* (nessun cambiamento) o
     *Scarta* (va negli scarti, un passo di undo). Serve per gli effetti che fanno pescare o guardare la carta in cima.
-- Al centro il nome della nemesi e sotto: fiamma con il numero della battaglia | icona dei giocatori | Turno N.
-- A destra il **Menu**.
+- Dalla v163: **a sinistra** il nome della nemesi e sotto fiamma con il numero della battaglia | icona dei giocatori |
+  Turno N (allineati a sinistra); **a destra** mazzo e scarti e, ancora a destra, il **Menu**. (Prima: mazzi a
+  sinistra, nome al centro.)
 - **Barra della fase** (v162, proposta A della tavola di progetto "Indicatore fase di gioco"; `renderTurnTrack`,
   `.ae-turn-track`), subito sotto la testata: **due metà uguali**, Giocatori e Nemesi, con il nome sotto.
   - La metà della fase in corso è **accesa**: alta 8px, colore pieno con bagliore (**blu** nel turno giocatori,
@@ -137,7 +140,13 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **altri poteri:** la nota "! Non rimovibile".
 - Le modifiche sono una bozza: il pulsante principale diventa **Salva modifiche**, con accanto **Annulla modifiche**.
   Salvando (un solo passo di undo) i minion a 0 e i poteri pagati volano negli scarti.
-- Toccando una carta grande si apre la sua finestra (vita del minion, token del potere, rimozione del potere).
+- I **comandi** sotto le carte si vedono solo sulla carta grande **al centro** (`.queue-slot.is-centred`, aggiornata
+  da `markQueueRail` mentre si scorre).
+- Toccando la carta grande al centro si apre la sua finestra (vita del minion, token del potere, rimozione del
+  potere); toccando una carta di lato la si porta al centro, senza aprirla. Lo stesso nel turno nemesi.
+- Gli scorrimenti animati verso una carta (tocco sulla fascia piccola o su una carta di lato, Turno Nemesi) sono
+  circa il 50% più veloci di quelli del browser: `fastScrollTo`, 260ms, con lo scroll-snap spento durante
+  l'animazione; un dito sulle carte la interrompe.
 - Il pulsante **Turno Nemesi**, con l'illustrazione della nemesi, avvia il turno della nemesi: breve scossa dello
   schermo e vibrazione (urgenza, `shakeApp`). Lo sfondo (maga a sinistra, nemesi a destra) scorre verso il lato della
   nemesi.
@@ -169,6 +178,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   passati da quando è stato pescato (uccisi e ancora in gioco). Sotto carte giocate, carte rimanenti (per Tier e nome),
   minion uccisi (con la vita della carta), poteri scartati, poteri risolti e attacchi risolti c'è un box con le carte in
   fila; toccandone una la si vede grande. Gli elenchi sono in `stats.cards` (id); i salvataggi più vecchi non li hanno.
+  "Turni in gioco dei minion" ha una riga per minion con la miniatura della carta (toccandola si vede grande), il
+  nome e i turni; i minion uccisi hanno l'id in `stats.minions` dalla v163 (prima si cerca la carta per nome).
   In cima i **Tempi**: tempo di partita e tempo nei Tier 1, 2 e 3 (`statsTimes`). L'inizio è `stats.startedAt`
   (`newGame`), l'inizio di un Tier è la sua prima carta pescata (`stats.tierAt`, in `drawNewCard`), la fine è l'ultima
   apertura della Vittoria (`stats.endedAt`) o adesso. È il tempo dell'orologio: comprende le pause con l'app chiusa.
@@ -403,6 +414,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 | `v152-prima-layout-tablet-desktop` | Con la vecchia vista a due colonne da 900px, prima della colonna centrale per tablet e desktop (v153). |
 | `v154-prima-mobile` | Prima delle modifiche per il telefono della v155 (orizzontale, aree di tocco, app installabile, service worker). |
 | `v156-prima-menu-e-slider` | Prima della v157 (menu iniziale con Opzioni, slider di Crea mazzo, salvataggio dal primo turno nemesi). |
+| `v162-prima-voci-semplici` | Prima della v163 (testata invertita, menu iniziale a scritte, comandi solo sulla carta al centro, scorrimento veloce, Opzioni con dorso e sfondo). |
 | `v157-prima-nuova-partita-e-dorsi` | Prima della v158 (pagina Nuova partita con X e wave multiple, dorsi, tempi, zoom della carta nemesi). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.

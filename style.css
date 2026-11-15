@@ -1063,6 +1063,39 @@ body { overflow: hidden; }
 .ae-turn-dots span { width: 7px; height: 7px; border-radius: 50%; background: #3a3d47; transition: background-color .2s ease-out; }
 .ae-turn-dots span.is-on { background: hsl(356 70% 62%); box-shadow: 0 0 6px hsl(356 70% 62% / .8); }
 @media (prefers-reduced-motion: reduce) { .ae-turn-seg, .ae-turn-label, .ae-turn-dots span { transition: none; } }
+/* --- v163 --- */
+/* Testata: a sinistra nome della nemesi e, sotto, battaglia | giocatori | turno; a destra mazzo e scarti, poi il Menu */
+.ae-shell.clear-header > .ae-header { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 10px; padding-left: 16px; }
+.ae-shell.clear-header > .ae-header > .ae-phase { order: 1; justify-self: start; align-items: flex-start; text-align: left; }
+.ae-shell.clear-header > .ae-header > .ae-header-piles { order: 2; justify-self: end; margin-left: 0; margin-right: 6px; }
+.ae-shell.clear-header > .ae-header > .ae-menu-button { order: 3; }
+/* Menu iniziale: solo le scritte, senza il box dei pulsanti */
+.start-home .ae-button, .start-choice .start-choice-resume {
+  min-height: 52px; background: none; border: 0; box-shadow: none; font: 600 22px/28px var(--ae-font-display); letter-spacing: .04em;
+}
+.start-home .ae-button--primary, .start-choice .start-choice-resume { color: var(--ae-gold); }
+.start-home .ae-button--secondary { color: var(--ae-text); }
+.start-home .ae-button:hover:not(:disabled), .start-choice .start-choice-resume:hover { filter: none; text-decoration: underline; text-underline-offset: 6px; }
+.start-home { gap: 4px; }
+/* La mia collezione: Seleziona tutto / Deseleziona tutto */
+.collection-bulk { display: flex; gap: 8px; }
+.collection-bulk .ae-button { flex: 1 1 0; min-width: 0; min-height: 44px; font-size: 14px; }
+/* Carte grandi del turno giocatori: i comandi si vedono solo sulla carta al centro */
+.queue-slot > .queue-controls { transition: opacity .15s ease-out; }
+.queue-slot:not(.is-centred) > .queue-controls { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Opzioni: voce con il menu a tendina (Sfondo) */
+.options-item--field { cursor: default; gap: 8px; }
+.options-item--field .ae-select { margin-bottom: 0; }
+/* Statistiche: turni in gioco dei minion con la miniatura della carta */
+.ae-stats-minions { display: flex; flex-direction: column; gap: 8px; }
+.ae-stats-minion { display: flex; align-items: center; gap: 12px; }
+.ae-stats-minion-pic { flex: 0 0 44px; width: 44px; padding: 0; border: 0; background: none; }
+.ae-stats-minion-pic .ae-card-art { width: 100%; height: auto; aspect-ratio: 63 / 88; }
+.ae-stats-minion-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.ae-stats-minion-name { font: 600 15px/20px var(--ae-font-ui); }
+.ae-stats-minion-note { color: var(--ae-text-muted); font: 500 12px/16px var(--ae-font-ui); }
+.ae-stats-minion-note:empty { display: none; }
+.ae-stats-minion-turns { flex: 0 0 auto; font: 700 15px/20px var(--ae-font-ui); font-variant-numeric: tabular-nums; }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
 

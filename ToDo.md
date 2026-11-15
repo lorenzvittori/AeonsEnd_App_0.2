@@ -9,7 +9,7 @@
 - non mettere il nome nemesi e le info al centro ma spostale attaccate a destra
 - [x] creare la time line
 - [x] inserire nelle statistiche il tempo della partita
-- nei turni in gioco dei Minions, mettere la foto del Minion
+- [x] nei turni in gioco dei Minions, mettere la foto del Minion
 - rifare creazione del mazzo, la 0.3 ha delle buone idee
 - [x] quando faccio danni ad un Minion che ha vita X devo vedere x/X
 - Rimpicciolire le carte in alto per guadagnare spazio, tenere i token potere e la vita. si può pensare di non fare la miniatura ma di creare delle carte solo gialle per i poteri e solo azzurre per i minion, o ancora meglio, tenere solo la parte in alto della carta, solo lartwork
@@ -19,7 +19,7 @@
 - Mettere le regole dentro il Gioco, magari copiando la wiki o addirittura mettendo una parte di ai (chiamata API)
 
 # Menu Principale 
-- togliere il box dei pulsanti, mostra solo le scritte
+- [x] togliere il box dei pulsanti, mostra solo le scritte
 - Ci deve essere: Nuova Partita, continua partita, opzioni, Biblioteca
 - Opzioni -> collezione, scelta back, scelta sfondo, scelta lingua, scelta se fare animazione di creazione mazzo
 
@@ -33,21 +33,21 @@
 - [x] la freccia verso il basso per aprire i dettagli del boss deve essere attaccata al boss selezionato, ora è troppo in basso
 
 # Finestra Collezione
-- Ci deve essere Seleziona tutto e deseleziona tutto
+- [x] Ci deve essere Seleziona tutto e deseleziona tutto
 - [x] il flag on/off delle espansioni devono essere più piccole le leggermente più a sinistra del falg della wave
 
 # Barra informativa superiore
-- inverti il nome della nemesi e i mazzi pesca e scarti. A sinitra mette il nome della nemesi, sotto metti battaglia, giocatori e turno. a destra metti mazzo pesca e mazzo scarti, ancora a destra il pulsante menu. 
+- [x] inverti il nome della nemesi e i mazzi pesca e scarti. A sinitra mette il nome della nemesi, sotto metti battaglia, giocatori e turno. a destra metti mazzo pesca e mazzo scarti, ancora a destra il pulsante menu. 
 
 # Barra lista carte piccole (in ogni fase):
 - quando una carta viene rimossa(minion ucciso, potere pagato o risolto, attacco risolto) deve passare da trasparenza 100 a trasparenza 0 nello stesso tempo in un la carta grande va nel mazzo pesca. nella lista, le carta a destra della carta rimossa si rispostano a sinistra solo dopo che la carta è arrivata a 0 di trasparenza. a quel punto di blocco le carte si spostano velocemnte a sinistra in modo "pensate" con un'animazione che le fa rimbalzare unsa sola volta poco.
 - nel poteri aggiungi un box in basso alle carte in cui metti il costo da pagare per scartalo
-- aumenta la velocita si passaggio da una carta a quella cliccata del 50% 
+- [x] aumenta la velocita si passaggio da una carta a quella cliccata del 50% 
 
 
 # Vista grande carte (in ogni fase):
-- devo poter vedere le interazioni (modificare vita per i minin e rimuovere poteri) solo per la carta al centro dello schermo, per le altre no. 
-- se clicco su una carta che non è quella centrale, non mi apre la carta ma mi sposta su quella carta. la carta la apro solo se clicco la carta centrale nella visualizzzazione grande. 
+- [x] devo poter vedere le interazioni (modificare vita per i minin e rimuovere poteri) solo per la carta al centro dello schermo, per le altre no. 
+- [x] se clicco su una carta che non è quella centrale, non mi apre la carta ma mi sposta su quella carta. la carta la apro solo se clicco la carta centrale nella visualizzzazione grande. 
 - quando rimuovo una carta, le altre carte non si adattano subito e si mettano al centro, aspettano che la carta sia nel mazzo pesca e poi si spostano al centro. 
 - vorrei che lo Swipe fosse più "magnetico", non può bloccarsi tra due carte, le animazioni più elastiche. 
 - [x] bug: nel turno nemesi ora vedo la vita dei minion del tipo x/X anche se non gli ho fatto danno
