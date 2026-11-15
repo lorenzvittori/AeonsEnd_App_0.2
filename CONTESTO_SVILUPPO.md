@@ -124,16 +124,22 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
   gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
   sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste; finite le 6 si
-  rimescola. Il primo turno si estrae a inizio partita (`newGame`): se è la nemesi, finito "Crea mazzo" parte subito il
-  turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
+  rimescola. Dalla v193 il primo turno **non** si estrae da solo: finito "Crea mazzo" l'app è in **attesa**
+  (`awaitingTurnCard`, nessuna carta estratta, barra tutta grigia) e il pulsante principale è "**Pesca carta turno**"
+  (fondo grigio chiaro tenue); toccandolo si estrae il primo turno (`drawFirstTurn`, con undo): se è la nemesi parte
+  subito il turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
   - **Jolly** (v179, solo con 3 giocatori): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
     caso, poi a ogni giro passa al giocatore dopo: (jolly mod 3) + 1, cioè 1→2→3→1. I turni del jolly valgono per quel
     giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: jolly a caso.
-  - **Carte 1/2 e 3/4** (v192, wave 4; solo con 4 giocatori): con l'opzione del Menu della partita "**Carte turno 1/2
-    e 3/4**" (interruttore, attivo di default; preferenza del browser `aeonsend-app-0.2-turn-pairs`, vale dal prossimo
-    giro) il mazzo è 1/2, 1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è **metà e metà
-    dei due colori** (anche il pulsante principale) e sotto compaiono due pulsantini "**Giocatore x**" / "**Giocatore
-    y**" (`chooseTurnPlayer`, con undo): scelto il giocatore, casella, scritta e pulsante prendono il suo colore.
+  - **Carte 1/2 e 3/4** (v192, wave 4; solo con 4 giocatori): con l'opzione "**Carte turno 1/2 e 3/4**" nelle
+    **Opzioni del menu iniziale** (v193; nella v192 era nel Menu della partita; interruttore, attivo di default;
+    preferenza del browser `aeonsend-app-0.2-turn-pairs`; a partita in corso vale dal prossimo giro) il mazzo è 1/2,
+    1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è **metà e metà dei due colori**, sotto
+    c'è "x / y" e al centro compare la finestra "**Chi gioca questo turno?**" (v193, `renderPairChoice`): due carte
+    grandi come quelle della fascia piccola, bordo nero, colore del giocatore scurito e numero nero al centro. Finché
+    non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu (la testata resta sopra
+    l'oscuramento; mazzo e scarti velati). La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
+    casella, scritta e pulsante prendono il suo colore.
     L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si
     sceglie, quello che si salva non va nelle Statistiche maghi.
@@ -253,8 +259,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Dorso delle carte:** miniatura e nome del dorso scelto; toccandolo si apre la griglia dei 29 dorsi
   (`openCardBackPicker`) e un tocco sceglie. Vale per mazzo in testata, carta da pescare, Crea mazzo e il retro della
   carta che si gira; resta salvato nel browser (`CARD_BACKS`, `setCardBack`), non entra nella partita.
-- **Esci dalla partita:** rosso, va **tenuto premuto** (`holdToConfirm`, 0,9 s); un tocco breve avvisa "Tieni premuto
-  per uscire". Porta al menu iniziale.
+- **Esci dalla partita:** rosso; dalla v193 apre la finestra di conferma "**Uscire dalla partita?**" (`openExitConfirm`:
+  Annulla, con il fuoco, ed Esci). Esci porta al menu iniziale. (Fino alla v192 andava tenuto premuto.)
 - Aprendo il Menu le tre linee del pulsante diventano una **X** (animazione, `menuCloseToggle`); toccando la X il menu si
   chiude. Vale anche per il Menu della pagina Nuova partita.
 

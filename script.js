@@ -161,6 +161,9 @@ const I18N_IT = {
   wave: 'Wave',
   holdToExit: 'Tieni premuto per uscire',
   exitGameLabel: 'Esci dalla partita: tieni premuto',
+  exitConfirmTitle: 'Uscire dalla partita?',
+  exitConfirmText: 'Torni al menu iniziale.',
+  exitConfirm: 'Esci',
   statsListEmpty: 'Nessuna carta',
   statsHp: hp => `HP ${hp}`,
   players: n => (n === 1 ? '1 giocatore' : `${n} giocatori`),
@@ -197,9 +200,12 @@ const I18N_IT = {
   trackPlayerName: n => `Giocatore ${n}`,
   trackWildName: 'Jolly',
   trackPairChoose: (a, b) => `Turno del giocatore ${a} o ${b}: scegliete chi gioca`,
-  trackPickLabel: n => `Gioca il giocatore ${n}`,
   turnPairsOption: 'Carte turno 1/2 e 3/4',
-  turnPairsHint: 'Con 4 giocatori, dal prossimo giro',
+  turnPairsHint: 'Ordine turno della wave 4, con 4 giocatori',
+  drawTurnCard: 'Pesca carta turno',
+  trackWaiting: 'Carta turno da pescare',
+  pairChoiceTitle: 'Chi gioca questo turno?',
+  pairChoiceLabel: n => `Giocatore ${n}`,
   ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
@@ -523,9 +529,16 @@ function newGame() {
   maxTierDrawn = 0;
   stats = emptyStats(deck.length);
   stats.startedAt = Date.now();
-  // Primo turno: estratto subito dal mazzo dei turni (può essere anche la nemesi, vedi finishDeckBuild)
-  turnOrder = { left: [], drawn: [], round: 0 };
-  drawTurnCard();
+  // Mazzo dei turni ancora da cominciare (v193): finito "Crea mazzo" si aspetta "Pesca carta turno" (drawFirstTurn)
+  turnOrder = { left: [], drawn: [], round: 0, picks: {} };
+}
+// Attesa prima del primo turno: nessuna carta turno pescata
+function awaitingTurnCard() {
+  return !resolving && !turnOrder.drawn.length;
+}
+// "Pesca carta turno": estrae il primo turno; se è la nemesi parte subito il turno nemesi
+function drawFirstTurn() {
+  if (drawTurnCard() === 'nemesis') nemesisTurn();
 }
 
 // Carte del mazzo dei turni per il numero di giocatori (regole del gioco): 2 giocatori = due carte a testa,
@@ -592,6 +605,8 @@ function chooseTurnPlayer(player) {
   if (resolving || ui.isTransitioning || !isPairCard(turnOrder.drawn[cur]) || turnCardPlayer(turnOrder.drawn[cur], cur)) return;
   act(() => { turnOrder.picks = Object.assign({}, turnOrder.picks, { [cur]: player }); });
   render();
+  announce(turnTrack.getAttribute('aria-label'));
+  nemesisBtn.focus({ preventScroll: true });
   turnTrack.classList.remove('is-changed');
   void turnTrack.offsetWidth;
   turnTrack.classList.add('is-changed');
@@ -2219,7 +2234,19 @@ function openOptions(trigger) {
   const bgItem = el('div', 'options-item options-item--row');
   bgItem.append(el('span', 'options-item-label', I18N_IT.background),
     backgroundChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }, { compact: true }));
-  body.append(item, backItem, bgItem);
+  // Carte turno 1/2 e 3/4 (wave 4, v192; dalla v193 qui e non nel Menu della partita): interruttore, attivo di default
+  const pairsItem = el('label', 'options-item options-item--row ae-switch-row options-switch');
+  const pairsInput = document.createElement('input');
+  pairsInput.type = 'checkbox';
+  pairsInput.setAttribute('role', 'switch');
+  pairsInput.checked = turnPairsOn();
+  pairsInput.addEventListener('change', () => setTurnPairs(pairsInput.checked));
+  const pairsSw = el('span', 'ae-switch');
+  pairsSw.setAttribute('aria-hidden', 'true');
+  const pairsText = el('span', 'options-switch-text');
+  pairsText.append(el('span', 'options-item-label', I18N_IT.turnPairsOption), el('span', 'options-item-note', I18N_IT.turnPairsHint));
+  pairsItem.append(pairsText, pairsInput, pairsSw);
+  body.append(item, backItem, bgItem, pairsItem);
   layer.append(head, body);
   layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
   document.body.appendChild(layer);
@@ -2488,7 +2515,9 @@ function restore(s) {
   }
   // Mazzo dei turni. Salvataggi senza (prima della v168): giro nuovo con il turno in corso già estratto
   const savedOrder = s.turnOrder;
-  if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn) && savedOrder.drawn.length) {
+  // (drawn vuoto: attesa di "Pesca carta turno", v193, per esempio con l'undo)
+  if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn)
+    && (savedOrder.drawn.length || (!resolving && !savedOrder.round))) {
     // Salvataggi della v168 senza il contatore dei giri: si parte dai turni nemesi giocati
     turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice(),
       round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn),
@@ -2659,7 +2688,9 @@ function render() {
   const turnCard = currentTurnCard();
   // (jolly: il colore del giocatore che è jolly in questo giro)
   // (carta 1/2 o 3/4 non ancora scelta: metà e metà dei due colori, v192)
-  const playerKind = turnCardPlayer(turnCard) || (turnCard === 'wild' || isPairCard(turnCard) ? turnCard : null);
+  // (attesa di "Pesca carta turno", v193: fondo grigio chiaro tenue, come il jolly)
+  const playerKind = turnCardPlayer(turnCard) || (turnCard === 'wild' || isPairCard(turnCard) ? turnCard : null)
+    || (awaitingTurnCard() ? 'wild' : null);
   nemesisBtn.classList.toggle('has-player-color', !!playerKind);
   if (playerKind) nemesisBtn.dataset.kind = playerKind;
   else delete nemesisBtn.dataset.kind;
@@ -2670,7 +2701,7 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : I18N_IT.endTurn;
+  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : awaitingTurnCard() ? I18N_IT.drawTurnCard : I18N_IT.endTurn;
   nemesisBtn.classList.toggle('is-save', saving);
   // "Crea mazzo": al posto del pulsante lo slider; sfondo nero fino alla fine del banner "Partita iniziata"
   if (ui.deckBuilding) nemesisBtn.hidden = true;
@@ -3314,7 +3345,9 @@ function onNemesisClick(e) {
     saveAllDrafts();
     return;
   }
-  act(endPlayerTurn);
+  // Carta x/y senza giocatore: si sceglie nella finestra (v193)
+  if (needsPairChoice()) return;
+  act(awaitingTurnCard() ? drawFirstTurn : endPlayerTurn);
   if (!resolving) {
     // Dal mazzo dei turni è uscito un giocatore (o il jolly): si resta nel turno giocatori, cambia il colore della barra
     render();
@@ -3540,19 +3573,11 @@ function renderTurnTrack() {
   // Scritta sotto la casella accesa (alle due estremità allineata al bordo, per non uscire dalla barra)
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
   const curKind = currentTurnCard();
-  // Carta x/y senza giocatore: sotto la casella i due pulsanti "Giocatore x" e "Giocatore y" (v192)
+  // Carta x/y senza giocatore: la scelta è nella finestra al centro (v193, renderPairChoice); sotto la casella "x / y"
   const choosing = !resolving && isPairCard(curKind) && !turnCardPlayer(curKind);
-  turnTrack.setAttribute('role', choosing ? 'group' : 'img');
   turnTrackLabel.classList.toggle('is-choice', choosing);
   if (choosing) {
-    turnTrackLabel.replaceChildren(...pairOptions(curKind).map(p => {
-      const b = el('button', 'ae-turn-pick', I18N_IT.trackPlayerName(Number(p.slice(1))));
-      b.type = 'button';
-      b.dataset.kind = p;
-      b.setAttribute('aria-label', I18N_IT.trackPickLabel(Number(p.slice(1))));
-      b.addEventListener('click', () => chooseTurnPlayer(p));
-      return b;
-    }));
+    turnTrackLabel.replaceChildren(pairOptions(curKind).map(p => p.slice(1)).join(' / '));
   } else if (resolving) {
     turnTrackLabel.replaceChildren(I18N_IT.trackNemesisName, el('span', 'ae-turn-label-dot'),
       drawStep ? I18N_IT.trackDraw : I18N_IT.trackResolve);
@@ -3593,12 +3618,65 @@ function renderTurnTrack() {
   turnTrackLabel.style.left = cur >= 0
     ? `calc(${cur} * ((100% - 152px) / 5 + 6px) + 61px)` : '0%';
   const card = currentTurnCard();
-  const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
+  const name = awaitingTurnCard() ? I18N_IT.trackWaiting
+    : resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
     : card === 'wild' ? (turnOrder.wild ? I18N_IT.trackWildOf(turnOrder.wild) : I18N_IT.trackWild)
     : isPairCard(card) ? (turnCardPlayer(card) ? I18N_IT.trackPlayer(Number(turnCardPlayer(card).slice(1)))
       : I18N_IT.trackPairChoose(...pairOptions(card).map(p => Number(p.slice(1)))))
     : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
-  turnTrack.setAttribute('aria-label', [name, I18N_IT.trackPosition(cur + 1, total)].filter(Boolean).join(', '));
+  turnTrack.setAttribute('aria-label', [name, cur >= 0 ? I18N_IT.trackPosition(cur + 1, total) : ''].filter(Boolean).join(', '));
+  renderPairChoice();
+}
+
+// Finestra "Chi gioca questo turno?" (v193): esce una carta 1/2 o 3/4 senza giocatore. Al centro due carte grandi come
+// quelle della fascia piccola (bordo nero, colore del giocatore scurito, numero nero al centro). Finché non si sceglie
+// è tutto disattivato (inert) tranne la scelta e il pulsante Menu; la testata resta sopra l'oscuramento.
+const pairChoice = el('div', 'ae-pair-choice');
+pairChoice.hidden = true;
+const pairChoicePanel = el('div', 'ae-pair-choice-panel');
+pairChoicePanel.setAttribute('role', 'dialog');
+pairChoicePanel.setAttribute('aria-labelledby', 'ae-pair-choice-title');
+const pairChoiceTitle = el('h2', 'ae-pair-choice-title', I18N_IT.pairChoiceTitle);
+pairChoiceTitle.id = 'ae-pair-choice-title';
+const pairChoiceCards = el('div', 'ae-pair-choice-cards');
+pairChoicePanel.append(pairChoiceTitle, pairChoiceCards);
+pairChoice.appendChild(pairChoicePanel);
+app.appendChild(pairChoice);
+
+function needsPairChoice() {
+  const cur = currentTurnCard();
+  return !resolving && !ui.deckBuilding && isPairCard(cur) && !turnCardPlayer(cur);
+}
+function renderPairChoice() {
+  const show = needsPairChoice();
+  const wasShown = !pairChoice.hidden;
+  pairChoice.hidden = !show;
+  app.classList.toggle('is-pair-choice', show);
+  mainEl.inert = show;
+  const dock = document.querySelector('.ae-dock');
+  if (dock) dock.inert = show;
+  headerPiles.inert = show;
+  if (!show) return;
+  // Misura delle carte della fascia piccola (52px sul telefono)
+  const small = document.querySelector('.ae-compact-rail .ae-queue-item');
+  const w = small && small.getBoundingClientRect().width ? small.getBoundingClientRect().width : 52;
+  pairChoice.style.setProperty('--ae-pick-w', w + 'px');
+  const kind = currentTurnCard();
+  if (pairChoiceCards.dataset.kind !== kind) {
+    pairChoiceCards.dataset.kind = kind;
+    pairChoiceCards.replaceChildren(...pairOptions(kind).map(p => {
+      const b = el('button', 'ae-pair-pick', p.slice(1));
+      b.type = 'button';
+      b.dataset.kind = p;
+      b.setAttribute('aria-label', I18N_IT.pairChoiceLabel(Number(p.slice(1))));
+      b.addEventListener('click', () => chooseTurnPlayer(p));
+      return b;
+    }));
+  }
+  if (!wasShown) {
+    announce(I18N_IT.pairChoiceTitle);
+    pairChoiceCards.firstChild.focus({ preventScroll: true });
+  }
 }
 
 // In alto a sinistra, al posto di Undo (che è nel Menu), uno accanto all'altro e uguali nei due turni: il mazzo nemesi
@@ -4278,15 +4356,9 @@ function finishDeckBuild() {
   } else if (layer) {
     layer.remove();
   }
-  // Il mazzo dei turni ha dato subito la nemesi (newGame): la partita comincia con il turno nemesi
-  if (currentTurnCard() === 'nemesis' && !resolving) {
-    nemesisTurn();
-    save();
-    enterNemesisTurnView();
-  } else {
-    render();
-    nemesisBtn.focus({ preventScroll: true });
-  }
+  // v193: niente carta turno pescata da sola: il pulsante è "Pesca carta turno"
+  render();
+  nemesisBtn.focus({ preventScroll: true });
   // Banner "Partita iniziata", uguale a quello dei Tier; finito il banner lo sfondo si accende
   showBanner(I18N_IT.gameStarted);
   setTimeout(() => {
@@ -4501,6 +4573,20 @@ function closeDeckPopover() {
   deckPopover = null;
 }
 
+// Conferma di "Esci dalla partita" (v193): Annulla torna al Menu, Esci va al menu iniziale (la partita resta salvata)
+function openExitConfirm(onExit) {
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.exitConfirmTitle, '', cancel, { displayTitle: false });
+  dialog.classList.add('ae-exit-confirm');
+  dialog.appendChild(el('p', 'ae-modal-text', I18N_IT.exitConfirmText));
+  const footer = el('div', 'ae-modal-footer');
+  const cancelBtn = button(I18N_IT.cancel, 'secondary', cancel);
+  footer.append(cancelBtn, button(I18N_IT.exitConfirm, 'danger', () => { close(); onExit(); }));
+  dialog.appendChild(footer);
+  close = openModal(dialog, { onCancel: cancel, initialFocus: cancelBtn });
+}
+
 function openDeckDraw() {
   const data = deck[deck.length - 1];
   if (!data) return;
@@ -4601,27 +4687,13 @@ function openSideMenu() {
   // Nemesi uccisa al tavolo (vita a 0): si va alla schermata Vittoria; la partita non cambia (Chiudi torna indietro)
   const killed = button(I18N_IT.nemesisKilled, 'secondary', () => { close(); showVictory(); });
   killed.classList.add('ae-button--full');
-  // Esci dalla partita (rosso): va tenuto premuto, poi si torna al menu iniziale
-  const exit = button(I18N_IT.exitGame, 'danger');
+  // Esci dalla partita (rosso): finestra di conferma (v193, prima andava tenuto premuto), poi il menu iniziale
+  const exit = button(I18N_IT.exitGame, 'danger', () => openExitConfirm(() => { close(); openStart(); }));
   exit.classList.add('ae-button--full', 'ae-side-exit', 'ae-hold-exit');
-  exit.setAttribute('aria-label', I18N_IT.exitGameLabel);
-  holdToConfirm(exit, HOLD_EXIT_MS, () => { close(); openStart(); }, () => showToast(I18N_IT.holdToExit));
   // Undo: annulla l'ultima azione (prima le modifiche non salvate)
   const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
-  // Carte turno 1/2 e 3/4 (wave 4, v192): interruttore, attivo di default
-  const pairsRow = el('label', 'ae-switch-row ae-side-field ae-side-switch');
-  const pairsInput = document.createElement('input');
-  pairsInput.type = 'checkbox';
-  pairsInput.setAttribute('role', 'switch');
-  pairsInput.checked = turnPairsOn();
-  pairsInput.addEventListener('change', () => setTurnPairs(pairsInput.checked));
-  const pairsSw = el('span', 'ae-switch');
-  pairsSw.setAttribute('aria-hidden', 'true');
-  const pairsText = el('span', 'ae-side-switch-text');
-  pairsText.append(el('span', 'ae-side-field-label', I18N_IT.turnPairsOption), el('span', 'ae-side-switch-hint', I18N_IT.turnPairsHint));
-  pairsRow.append(pairsText, pairsInput, pairsSw);
   const items = [statsList, undoItem, discardOpen, killed];
   // Durante "Crea mazzo": Ricomincia la partita (mazzo nuovo con la stessa nemesi e gli stessi giocatori)
   if (ui.deckBuilding) {
@@ -4629,7 +4701,7 @@ function openSideMenu() {
     restart.classList.add('ae-button--full');
     items.splice(1, 0, restart);
   }
-  panel.append(...items, bgRow, backRow, pairsRow, exit);
+  panel.append(...items, bgRow, backRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
   swipeToClose(panel, cancel);
