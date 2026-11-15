@@ -451,17 +451,10 @@ body { overflow: hidden; }
 .queue-view .ae-queue-item .ae-card-art { border: 0; }
 /* Undo e Menu dello stesso colore di "Turno N" */
 .ae-shell.clear-header .ae-header .ae-icon-button { color: var(--ae-text-muted); }
-/* Linee sopra e sotto la fascia piccola: lunghe metà e centrate */
-.queue-view .queue-rail, .ae-rail-row {
-  border-top: 0; border-bottom: 0;
-  background: linear-gradient(var(--ae-border), var(--ae-border)) center top / 50% 1px no-repeat,
-    linear-gradient(var(--ae-border), var(--ae-border)) center bottom / 50% 1px no-repeat;
-}
+/* Nessuna linea tra testata, fascia piccola e carte grandi (v162): le zone sono separate solo dallo spazio */
+.queue-view .queue-rail, .ae-rail-row,
+.ae-resolve-layout.is-draw-phase .ae-rail-row { border-top: 0; border-bottom: 0; background: none; }
 .ae-rail-row { padding: 1px 10px; }
-.ae-resolve-layout.is-draw-phase .ae-rail-row {
-  background: linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center top / 50% 1px no-repeat,
-    linear-gradient(rgba(223, 174, 89, .6), rgba(223, 174, 89, .6)) center bottom / 50% 1px no-repeat;
-}
 /* Inizia partita: la pagina iniziale esce a sinistra, il turno giocatori entra da destra */
 .start-screen.is-sliding-out { animation: ae-slide-out-left .38s ease-in-out forwards; }
 .ae-shell.is-sliding-in { animation: ae-slide-in-right .38s ease-in-out; }
@@ -1044,28 +1037,32 @@ body { overflow: hidden; }
   -webkit-user-drag: none;
 }
 .nemesis-flip.is-zoomed { touch-action: none; }
-/* Barra dei turni sotto la testata (script.js renderTurnTrack): 6 segmenti come le storie di Instagram. Colori dei
-   turni desaturati del 10% (saturazione 80% → 72% il blu, 64% → 58% il rosso scuro) */
-:root { --ae-turn-blue: hsl(214 72% 52%); --ae-turn-red: hsl(356 58% 36%); --ae-turn-todo: #3a3d47; }
-.ae-turn-track { position: relative; flex: 0 0 auto; padding: 8px 16px 0; height: 24px; }
+/* Barra della fase sotto la testata (script.js renderTurnTrack, proposta A): due metà uguali con il nome sotto. Accesa
+   (8px, colore e bagliore) la metà della fase in corso, l'altra è una linea sottile quasi spenta. Colori dei turni
+   desaturati del 10% (blu: saturazione 80% → 72%; rosso scuro: 64% → 58%) */
+:root {
+  --ae-turn-blue: hsl(214 72% 52%); --ae-turn-red: hsl(356 58% 42%);
+  --ae-turn-blue-text: hsl(214 72% 72%); --ae-turn-red-text: hsl(356 62% 70%); --ae-turn-off: rgba(236, 232, 222, .14);
+}
+.ae-turn-track { flex: 0 0 auto; padding: 10px 16px 0; }
 .ae-turn-track[hidden] { display: none; }
-.ae-turn-track-bar { display: flex; gap: 4px; }
+.ae-turn-track-bar { display: flex; gap: 6px; align-items: center; height: 8px; }
 .ae-turn-seg {
-  flex: 0 1 16%; min-width: 0; height: 6px; border-radius: 3px; background: var(--ae-turn-todo);
-  transition: flex-basis .35s cubic-bezier(.3, 0, .2, 1), background-color .35s ease-out;
+  flex: 1 1 0; min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
+  transition: height .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out;
 }
-.ae-turn-seg.is-players.is-done, .ae-turn-seg.is-players.is-now { background: var(--ae-turn-blue); }
-.ae-turn-seg.is-nemesis.is-done, .ae-turn-seg.is-nemesis.is-now { background: var(--ae-turn-red); }
-.ae-turn-seg.is-now { box-shadow: 0 0 8px rgba(0, 0, 0, .5); }
-/* Pallini del turno nemesi sotto il segmento attuale: risoluzione / pesca */
-.ae-turn-dots {
-  position: absolute; top: 18px; display: flex; gap: 6px; transform: translateX(-50%);
-  transition: left .35s cubic-bezier(.3, 0, .2, 1);
-}
+.ae-turn-track.is-players .ae-turn-seg.is-players { height: 8px; border-radius: 4px; background: var(--ae-turn-blue); box-shadow: 0 0 12px hsl(214 72% 52% / .55); }
+.ae-turn-track.is-nemesis .ae-turn-seg.is-nemesis { height: 8px; border-radius: 4px; background: var(--ae-turn-red); box-shadow: 0 0 12px hsl(356 58% 45% / .6); }
+.ae-turn-labels { display: flex; gap: 6px; margin-top: 6px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.ae-turn-label { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: rgba(236, 232, 222, .32); transition: color .3s ease-out; }
+.ae-turn-track.is-players .ae-turn-label.is-players { color: var(--ae-turn-blue-text); }
+.ae-turn-track.is-nemesis .ae-turn-label.is-nemesis { color: var(--ae-turn-red-text); }
+/* Pallini del turno nemesi accanto a "Nemesi": risoluzione / pesca */
+.ae-turn-dots { display: flex; gap: 6px; }
 .ae-turn-dots[hidden] { display: none; }
-.ae-turn-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--ae-turn-todo); transition: background-color .2s ease-out; }
-.ae-turn-dots span.is-on { background: hsl(356 58% 52%); box-shadow: 0 0 6px hsl(356 58% 52% / .8); }
-@media (prefers-reduced-motion: reduce) { .ae-turn-seg, .ae-turn-dots, .ae-turn-dots span { transition: none; } }
+.ae-turn-dots span { width: 7px; height: 7px; border-radius: 50%; background: #3a3d47; transition: background-color .2s ease-out; }
+.ae-turn-dots span.is-on { background: hsl(356 70% 62%); box-shadow: 0 0 6px hsl(356 70% 62% / .8); }
+@media (prefers-reduced-motion: reduce) { .ae-turn-seg, .ae-turn-label, .ae-turn-dots span { transition: none; } }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
 

@@ -180,6 +180,8 @@ const I18N_IT = {
     impressionist: 'Impressionista', geometric: 'Geometrico', ink: 'Inchiostro', organic: 'Organico', arcane: 'Diagramma arcano'
   },
   trackPlayers: 'Turno dei giocatori',
+  trackPlayersName: 'Giocatori',
+  trackNemesisName: 'Nemesi',
   trackNemesisResolve: 'Turno nemesi, fase di risoluzione',
   trackNemesisDraw: 'Turno nemesi, fase di pesca',
   statsTime: 'Tempo di partita',
@@ -3208,51 +3210,33 @@ menuBtn.addEventListener('click', openSideMenu);
   infoRow.remove();
 })();
 
-// Barra dei turni sotto la testata (come le storie di Instagram): sempre 6 segmenti, i 4 turni dei giocatori e i 2 della
-// nemesi di un round. PER ORA DI PROVA: l'app non conosce l'ordine dei turni, quindi i segmenti alternano
-// giocatori / nemesi (G N G N G N) e ogni turno dell'app avanza di un segmento; dopo il sesto si ricomincia.
-// Il segmento del turno in corso è largo il 50% della barra (blu = giocatori, rosso scuro = nemesi); quelli già fatti
-// hanno il colore del loro turno, quelli ancora da fare sono grigi e larghi la metà di quelli fatti. Nel turno nemesi due
-// pallini sotto il segmento: acceso il primo = risoluzione, acceso il secondo = pesca. È ricavata dallo stato (turn,
-// resolving, isDrawStep): nessuno stato nuovo.
-const TURN_TRACK_SEGMENTS = 6;
+// Barra della fase sotto la testata (proposta A, v162): due metà uguali, Giocatori e Nemesi, con il nome sotto.
+// La metà della fase in corso è accesa (8px, colore pieno e bagliore: blu = giocatori, rosso scuro = nemesi, colori
+// desaturati del 10%) e il suo nome ha lo stesso colore; l'altra è una linea sottile quasi spenta, con il nome spento.
+// Nel turno nemesi due pallini accanto a "Nemesi": acceso il primo = risoluzione, acceso il secondo = pesca.
+// È ricavata dallo stato (resolving, isDrawStep): nessuno stato nuovo.
 const turnTrack = el('div', 'ae-turn-track');
 turnTrack.setAttribute('role', 'img');
 const turnTrackBar = el('div', 'ae-turn-track-bar');
-for (let i = 0; i < TURN_TRACK_SEGMENTS; i++) {
-  const seg = el('span', 'ae-turn-seg ' + (i % 2 ? 'is-nemesis' : 'is-players'));
-  turnTrackBar.appendChild(seg);
-}
-const turnTrackDots = el('div', 'ae-turn-dots');
+turnTrackBar.append(el('span', 'ae-turn-seg is-players'), el('span', 'ae-turn-seg is-nemesis'));
+const turnTrackDots = el('span', 'ae-turn-dots');
 turnTrackDots.append(el('span'), el('span'));
-turnTrack.append(turnTrackBar, turnTrackDots);
+const turnTrackLabels = el('div', 'ae-turn-labels');
+const nemesisLabel = el('span', 'ae-turn-label is-nemesis', I18N_IT.trackNemesisName);
+nemesisLabel.appendChild(turnTrackDots);
+turnTrackLabels.append(el('span', 'ae-turn-label is-players', I18N_IT.trackPlayersName), nemesisLabel);
+turnTrack.append(turnTrackBar, turnTrackLabels);
 mainEl.prepend(turnTrack);
-
-// Posizione nel giro dei 6 segmenti: il turno giocatori prima del turno nemesi N è il segmento 2·(N−1), il turno
-// nemesi N il segmento dopo (turn = turni nemesi iniziati)
-function turnTrackIndex() {
-  return resolving ? (((turn - 1) % 3) * 2 + 1) : ((turn % 3) * 2);
-}
 
 function renderTurnTrack() {
   turnTrack.hidden = !!ui.deckBuilding;
   if (ui.deckBuilding) return;
-  const now = turnTrackIndex();
-  const done = now;
-  const todo = TURN_TRACK_SEGMENTS - 1 - now;
-  // Il segmento attuale è il 50%; il resto si divide tra fatti (peso 1) e da fare (peso 0,5)
-  const unit = 50 / Math.max(0.5, done + todo * 0.5);
-  [...turnTrackBar.children].forEach((seg, i) => {
-    const state = i < now ? 'is-done' : i === now ? 'is-now' : 'is-todo';
-    seg.className = 'ae-turn-seg ' + (i % 2 ? 'is-nemesis' : 'is-players') + ' ' + state;
-    seg.style.flexBasis = (i === now ? 50 : i < now ? unit : unit / 2) + '%';
-  });
-  // Pallini solo nel turno nemesi, sotto il segmento attuale
+  // La classe sulla barra intera accende una metà e il suo nome (style.css .ae-turn-track.is-players / .is-nemesis)
+  turnTrack.classList.toggle('is-players', !resolving);
+  turnTrack.classList.toggle('is-nemesis', resolving);
+  // Pallini solo nel turno nemesi, accanto a "Nemesi"
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
   turnTrackDots.hidden = !resolving;
-  // Centro del segmento attuale (in proporzione alla barra, che ha 16px di margine per lato)
-  const centre = ((done * unit) + 25) / 100;
-  turnTrackDots.style.left = `calc(16px + (100% - 32px) * ${centre})`;
   turnTrackDots.children[0].classList.toggle('is-on', resolving && !drawStep);
   turnTrackDots.children[1].classList.toggle('is-on', resolving && drawStep);
   turnTrack.setAttribute('aria-label', !resolving ? I18N_IT.trackPlayers
