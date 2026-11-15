@@ -139,7 +139,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-red`). Jolly (v179): **strisce bianche e del colore** del
     giocatore che è jolly in quel giro (`data-owner`); le bianche sono spesse la metà delle colorate (v180: 3px e 6px).
   - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" nel colore del giocatore (v169); nel turno
-    del jolly "**Jolly · Giocatore N**" (v179; "Jolly" in bianco dalla v181); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+    del jolly "**Jolly · N**" (v179; "Jolly" in bianco dalla v181; dalla v183 solo il numero del giocatore, senza "Giocatore"); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Sotto le caselle dei turni già passati nel giro una sigla (v182, `.ae-turn-mark`): **N** = nemesi, **1-4** =
     giocatore, **J** = jolly (bianca), nel colore del turno e velata.
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
