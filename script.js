@@ -188,8 +188,6 @@ const I18N_IT = {
   wavesMore: (first, n) => `${first} + ${n}`,
   wavesLabel: 'Scegli le wave',
   randomNemesis: 'Nemesi a caso tra quelle della collezione',
-  zoomNemesisCard: 'Ingrandisci la carta della nemesi',
-  zoomHint: 'Allarga con due dita o tocca due volte',
   exitGame: 'Esci dalla partita'
 };
 
@@ -1409,7 +1407,8 @@ function renderNemesisPreview() {
     expand.setAttribute('aria-expanded', String(open));
   }
   if (!open) {
-    // Chiusa: la prossima volta si riapre dal fronte
+    // Chiusa: la prossima volta si riapre dal fronte e non ingrandita
+    resetNemesisZoom();
     nemesisShowBack = false;
     nemesisFlipAngle = 0;
     const inner = preview.querySelector('.nemesis-flip-inner');
@@ -1456,36 +1455,113 @@ function buildNemesisFlip(preview) {
   const dots = el('div', 'nemesis-flip-dots');
   dots.setAttribute('aria-hidden', 'true');
   dots.append(el('span'), el('span'));
-  // Lente in alto a destra sulla carta: apre il lato che si vede a tutto schermo, da ingrandire con due dita
-  const zoom = el('button', 'ae-icon-button nemesis-zoom');
-  zoom.type = 'button';
-  zoom.setAttribute('aria-label', I18N_IT.zoomNemesisCard);
-  zoom.innerHTML = ZOOM_SVG;
-  // Il tocco sulla lente non deve girare la carta (il giro parte da pointerdown sulla carta)
-  zoom.addEventListener('pointerdown', e => e.stopPropagation());
-  zoom.addEventListener('click', e => {
-    e.stopPropagation();
+  preview.append(flip, dots);
+
+  // Zoom con due dita sul lato che si vede: sopra la carta compare un livello con la stessa immagine, ingrandita dentro
+  // il riquadro della carta (fino a NEMESIS_ZOOM_MAX); da ingrandita un dito la sposta e un doppio tocco torna normale.
+  // Il livello evita di ingrandire la carta che si gira in 3D (le due facce).
+  const zoom = { scale: 1, tx: 0, ty: 0, layer: null, img: null };
+  const pointers = new Map();
+  let pinch = null;
+  let pan = null;
+  let lastTap = null;
+  const applyZoom = animate => {
+    const w = flip.offsetWidth, h = flip.offsetHeight;
+    const maxX = Math.max(0, (w * zoom.scale - w) / 2), maxY = Math.max(0, (h * zoom.scale - h) / 2);
+    zoom.tx = Math.max(-maxX, Math.min(maxX, zoom.tx));
+    zoom.ty = Math.max(-maxY, Math.min(maxY, zoom.ty));
+    zoom.img.style.transition = animate ? 'transform .2s ease-out' : 'none';
+    zoom.img.style.transform = `translate(${zoom.tx}px, ${zoom.ty}px) scale(${zoom.scale})`;
+  };
+  const openZoomLayer = () => {
+    if (zoom.layer) return;
     const art = nemesisArt[settings.nemesis];
     if (!art) return;
     const showBack = nemesisShowBack && !!art.back;
-    openImageZoom(encodeURI(showBack ? art.back : art.card),
-      showBack ? I18N_IT.nemesisCardBack(settings.nemesis) : I18N_IT.nemesisCard(settings.nemesis));
-  });
-  flip.appendChild(zoom);
-  preview.append(flip, dots);
+    zoom.layer = el('div', 'nemesis-zoom-layer');
+    zoom.layer.setAttribute('aria-hidden', 'true');
+    zoom.img = el('img');
+    zoom.img.alt = '';
+    zoom.img.draggable = false;
+    zoom.img.src = encodeURI(showBack ? art.back : art.card);
+    zoom.layer.appendChild(zoom.img);
+    flip.appendChild(zoom.layer);
+    flip.classList.add('is-zoomed');
+  };
+  const resetZoom = () => {
+    if (zoom.layer) zoom.layer.remove();
+    zoom.layer = null;
+    zoom.img = null;
+    zoom.scale = 1;
+    zoom.tx = 0;
+    zoom.ty = 0;
+    pinch = null;
+    pan = null;
+    flip.classList.remove('is-zoomed');
+  };
+  resetNemesisZoom = resetZoom;
+  // Punto (relativo al centro della carta) che resta sotto le dita / sotto il tocco
+  const local = (x, y) => { const r = flip.getBoundingClientRect(); return { x: x - r.left - r.width / 2, y: y - r.top - r.height / 2 }; };
+  const zoomAt = (scale, p, animate) => {
+    const ix = (p.x - zoom.tx) / zoom.scale, iy = (p.y - zoom.ty) / zoom.scale;
+    zoom.scale = Math.max(1, Math.min(NEMESIS_ZOOM_MAX, scale));
+    zoom.tx = p.x - ix * zoom.scale;
+    zoom.ty = p.y - iy * zoom.scale;
+    applyZoom(animate);
+  };
 
   // La carta ruota seguendo il dito (tutta la larghezza della carta = mezzo giro). Al rilascio: oltre
-  // SWIPE_MIN_DISTANCE completa il mezzo giro nella direzione del dito, altrimenti torna com'era.
+  // SWIPE_MIN_DISTANCE completa il mezzo giro nella direzione del dito, altrimenti torna com'era. Il retro si vede solo
+  // così (un tocco non gira la carta) e non mentre la carta è ingrandita.
   let drag = null;
   const setAngle = (deg, animate) => {
     inner.style.transition = animate ? '' : 'none';
     inner.style.transform = `rotateY(${deg}deg)`;
   };
   flip.addEventListener('pointerdown', e => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      // Secondo dito: niente giro, comincia lo zoom
+      if (drag) { setAngle(nemesisFlipAngle, true); drag = null; }
+      pointers.forEach((p, id) => { try { flip.setPointerCapture(id); } catch (_) {} });
+      openZoomLayer();
+      if (!zoom.layer) return;
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: zoom.scale, m: local((a.x + b.x) / 2, (a.y + b.y) / 2), tx: zoom.tx, ty: zoom.ty };
+      pan = null;
+      return;
+    }
+    if (pointers.size !== 1) return;
+    if (zoom.layer) {
+      try { flip.setPointerCapture(e.pointerId); } catch (_) {}
+      pan = { x: e.clientX, y: e.clientY, tx: zoom.tx, ty: zoom.ty, moved: false };
+      return;
+    }
     if (!flip.classList.contains('has-back')) return;
     drag = { x: e.clientX, y: e.clientY, id: e.pointerId, dx: 0, active: false };
   });
   flip.addEventListener('pointermove', e => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2 && zoom.layer) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      const m = local((a.x + b.x) / 2, (a.y + b.y) / 2);
+      // Il punto dell'immagine che era sotto le dita all'inizio resta sotto le dita
+      const ix = (pinch.m.x - pinch.tx) / pinch.s, iy = (pinch.m.y - pinch.ty) / pinch.s;
+      zoom.scale = Math.max(1, Math.min(NEMESIS_ZOOM_MAX, pinch.s * d / pinch.d));
+      zoom.tx = m.x - ix * zoom.scale;
+      zoom.ty = m.y - iy * zoom.scale;
+      applyZoom(false);
+      return;
+    }
+    if (pan) {
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) pan.moved = true;
+      zoom.tx = pan.tx + dx;
+      zoom.ty = pan.ty + dy;
+      applyZoom(false);
+      return;
+    }
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
@@ -1498,19 +1574,33 @@ function buildNemesisFlip(preview) {
     const width = flip.offsetWidth || 300;
     setAngle(nemesisFlipAngle + Math.max(-180, Math.min(180, dx / width * 180)), false);
   });
+  const endZoomGesture = e => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (!zoom.layer) return;
+    if (pointers.size === 1) {
+      // Da due dita a una: si continua a spostare con quella rimasta
+      const [p] = [...pointers.values()];
+      pan = { x: p.x, y: p.y, tx: zoom.tx, ty: zoom.ty, moved: true };
+      return;
+    }
+    if (pointers.size) return;
+    // Doppio tocco sulla carta ingrandita: torna normale
+    if (pan && !pan.moved && e.type === 'pointerup') {
+      const now = performance.now();
+      if (lastTap && now - lastTap < 320) { lastTap = null; zoomAt(1, { x: 0, y: 0 }, true); }
+      else lastTap = now;
+    }
+    pan = null;
+    if (zoom.scale < 1.05) resetZoom();
+  };
   const endDrag = (e, cancelled) => {
+    endZoomGesture(e);
     if (!drag || (e && e.pointerId !== drag.id)) return;
     const { dx, active } = drag;
     drag = null;
-    if (!active) {
-      // Tocco senza trascinare: la carta ruota di mezzo giro
-      if (cancelled) return;
-      nemesisFlipAngle += 180;
-      nemesisShowBack = !nemesisShowBack;
-      setAngle(nemesisFlipAngle, true);
-      updateNemesisFlip(preview);
-      return;
-    }
+    // Un tocco senza trascinare non gira la carta: il retro si vede solo con lo swipe
+    if (!active) return;
     if (!cancelled && Math.abs(dx) >= SWIPE_MIN_DISTANCE) {
       nemesisFlipAngle += dx > 0 ? 180 : -180;
       nemesisShowBack = !nemesisShowBack;
@@ -1522,128 +1612,9 @@ function buildNemesisFlip(preview) {
   flip.addEventListener('pointercancel', e => endDrag(e, true));
 }
 let nemesisFlipAngle = 0;
-
-const ZOOM_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">'
-  + '<circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.2"/>'
-  + '<path d="M15 15l5 5M10.5 8v5M8 10.5h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
-
-// Immagine a tutto schermo da ingrandire: due dita (pinch) o doppio tocco per lo zoom (fino a 5×), un dito per spostarla
-// quando è ingrandita, rotella del mouse sul computer. Si chiude con la X, Esc o Indietro.
-const ZOOM_MAX = 5;
-function openImageZoom(src, alt) {
-  let close = () => {};
-  const cancel = () => close();
-  const box = el('div', 'ae-zoom');
-  box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-modal', 'true');
-  box.setAttribute('aria-label', alt);
-  const img = el('img', 'ae-zoom-img');
-  img.src = src;
-  img.alt = alt;
-  img.draggable = false;
-  const x = el('button', 'ae-icon-button ae-zoom-close');
-  x.type = 'button';
-  x.setAttribute('aria-label', I18N_IT.close);
-  x.appendChild(icon('close'));
-  x.addEventListener('click', cancel);
-  box.append(img, x, el('p', 'ae-zoom-hint', I18N_IT.zoomHint));
-
-  let scale = 1, tx = 0, ty = 0;
-  const pointers = new Map();
-  let pinch = null;
-  let pan = null;
-  let lastTap = null;
-  const centre = () => { const r = box.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
-  // L'immagine non può uscire dallo schermo più del necessario: a scala 1 resta al centro
-  const clampPan = () => {
-    const maxX = Math.max(0, (img.offsetWidth * scale - box.clientWidth) / 2);
-    const maxY = Math.max(0, (img.offsetHeight * scale - box.clientHeight) / 2);
-    tx = Math.max(-maxX, Math.min(maxX, tx));
-    ty = Math.max(-maxY, Math.min(maxY, ty));
-  };
-  const apply = animate => {
-    clampPan();
-    img.style.transition = animate ? 'transform .2s ease-out' : 'none';
-    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-    box.classList.toggle('is-zoomed', scale > 1.01);
-  };
-  // Zoom intorno a un punto dello schermo (resta sotto le dita / sotto il tocco)
-  const zoomAt = (newScale, px, py, animate) => {
-    const c = centre();
-    const s = Math.max(1, Math.min(ZOOM_MAX, newScale));
-    const ix = (px - c.x - tx) / scale;
-    const iy = (py - c.y - ty) / scale;
-    scale = s;
-    tx = px - c.x - ix * s;
-    ty = py - c.y - iy * s;
-    apply(animate);
-  };
-  box.addEventListener('pointerdown', e => {
-    if (e.target.closest('.ae-zoom-close')) return;
-    try { box.setPointerCapture(e.pointerId); } catch (_) {}
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()];
-      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: scale, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, tx, ty };
-      pan = null;
-    } else if (pointers.size === 1) {
-      pan = { x: e.clientX, y: e.clientY, tx, ty, moved: false };
-    }
-  });
-  box.addEventListener('pointermove', e => {
-    if (!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pinch && pointers.size >= 2) {
-      const [a, b] = [...pointers.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      // Punto dell'immagine che era sotto le dita all'inizio: resta sotto le dita
-      const c = centre();
-      const ix = (pinch.mx - c.x - pinch.tx) / pinch.s;
-      const iy = (pinch.my - c.y - pinch.ty) / pinch.s;
-      scale = Math.max(1, Math.min(ZOOM_MAX, pinch.s * d / pinch.d));
-      tx = mx - c.x - ix * scale;
-      ty = my - c.y - iy * scale;
-      apply(false);
-    } else if (pan) {
-      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
-      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) pan.moved = true;
-      if (scale > 1) { tx = pan.tx + dx; ty = pan.ty + dy; apply(false); }
-    }
-  });
-  const end = e => {
-    if (!pointers.has(e.pointerId)) return;
-    pointers.delete(e.pointerId);
-    if (pointers.size < 2) pinch = null;
-    if (pointers.size === 1) {
-      // Da due dita a una: si continua a spostare con quella rimasta
-      const [p] = [...pointers.values()];
-      pan = { x: p.x, y: p.y, tx, ty, moved: true };
-      return;
-    }
-    if (pointers.size) return;
-    // Doppio tocco: ingrandisce a 2,5× sul punto toccato, o torna a 1×
-    if (pan && !pan.moved && e.type === 'pointerup') {
-      const now = performance.now();
-      if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
-        zoomAt(scale > 1.01 ? 1 : 2.5, e.clientX, e.clientY, true);
-        lastTap = null;
-      } else {
-        lastTap = { t: now, x: e.clientX, y: e.clientY };
-      }
-    }
-    pan = null;
-    if (scale < 1.02) { scale = 1; tx = 0; ty = 0; apply(true); }
-  };
-  box.addEventListener('pointerup', end);
-  box.addEventListener('pointercancel', end);
-  box.addEventListener('wheel', e => {
-    e.preventDefault();
-    zoomAt(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY, false);
-  }, { passive: false });
-  close = openModal(box, { onCancel: cancel, initialFocus: x, closeOnScrim: false });
-  box.parentElement.classList.add('ae-zoom-backdrop');
-}
+const NEMESIS_ZOOM_MAX = 4;
+// Toglie lo zoom della carta nemesi (carta chiusa o cambiata); la imposta buildNemesisFlip
+let resetNemesisZoom = () => {};
 
 function updateNemesisFlip(preview) {
   const flip = preview.querySelector('.nemesis-flip');

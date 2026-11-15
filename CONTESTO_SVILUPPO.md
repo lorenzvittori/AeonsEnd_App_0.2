@@ -77,9 +77,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   quelle giocabili della collezione (diversa da quella scelta), aggiunge la sua wave e scorre fino a lei.
   - Ogni pulsante mostra parte dell'illustrazione, la battaglia e, se c'è, la mini espansione.
   - Sulla nemesi scelta c'è una freccia, a cavallo del bordo in basso (o un secondo tocco), che apre la sua carta
-    intera; un tocco o uno slide la gira e mostra il retro con il setup.
-  - La **lente** in alto a destra sulla carta apre il lato che si vede a tutto schermo (`openImageZoom`): due dita o
-    doppio tocco per ingrandire (fino a 5×), un dito per spostarla, rotella sul computer; X, Esc o Indietro per chiudere.
+    intera. Il retro con il setup si vede **solo con lo swipe** orizzontale (un tocco non gira più la carta).
+  - **Zoom con due dita** direttamente sulla carta (v160; la lente e la finestra a tutto schermo sono state tolte):
+    sopra la carta compare un livello con il lato che si vede, ingrandito dentro il riquadro della carta fino a 4×
+    (`.nemesis-zoom-layer`, in `buildNemesisFlip`). Lasciando le dita resta ingrandita: un dito la sposta (la pagina non
+    scorre), un doppio tocco o riavvicinare le dita la riporta normale; da ingrandita lo swipe non gira la carta.
+    Chiudendo la carta lo zoom si toglie (`resetNemesisZoom`).
 - **"Inizia partita"** in fondo: sopra il pulsante 16px di nero pieno, poi la sfumatura.
   - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
     collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso.
