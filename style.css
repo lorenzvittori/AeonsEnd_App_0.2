@@ -1119,6 +1119,8 @@ body { overflow: hidden; }
 .ae-next-slot { pointer-events: none; }
 /* v169: box NUOVA come sul dorso al passo Pesca (.ae-compact-rail .ae-next-card .ae-new-tag) */
 .ae-compact-rail .ae-next-slot .ae-new-tag { display: block; top: 3px; right: 3px; padding: 1px 3px; font-size: 10px; line-height: 12px; border-radius: 4px; }
+/* v173: durante la risoluzione NUOVA è grigia (diventa dorata al passo Pesca, sul dorso) */
+.ae-compact-rail .ae-next-slot .ae-new-tag { background: #8a8780; color: #15161c; }
 .ae-next-slot .ae-card-art,
 .ae-compact-rail .ae-queue-item.ae-next-slot .ae-card-art {
   display: block; aspect-ratio: 5 / 7; box-sizing: border-box; background: none; box-shadow: none;

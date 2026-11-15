@@ -190,7 +190,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     nemesi riparte subito (scossa e vibrazione).
 - Nella **fascia piccola**, durante la risoluzione, dopo l'ultima carta c'è il posto della carta da pescare: solo un
   **bordo tratteggiato grigio**, come mazzo e scarti vuoti (v168, `nextSlotItem`), con il box **NUOVA** come sul dorso
-  (v169). Al passo Pesca al suo posto compare il dorso.
+  (v169), ma con lo sfondo **grigio** (v173; dorato solo al passo Pesca, sul dorso). Al passo Pesca al suo posto compare il dorso.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
 - **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
 - **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi), oppure "Nemesi uccisa" nel
