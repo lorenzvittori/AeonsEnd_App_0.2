@@ -138,6 +138,16 @@ const I18N_IT = {
   newGame: 'Nuova partita',
   savedGameTitle: 'Partita in corso',
   resumeGame: 'Riprendi partita',
+  addCollection: 'Inserisci collezione',
+  collectionEmptyHint: 'Prima inserisci la tua collezione',
+  nemesisMissingTitle: 'Nemesi non più presente in collezione',
+  nemesisMissingText: (name, product) => `${name} (${product}) non è più nella tua collezione. Con Continua la rimetto nella collezione e riprendi la partita.`,
+  continueLabel: 'Continua',
+  drawFirstTurnCard: 'Pesca la prima carta turno',
+  endTurnShuffle: 'Fine turno · Mischia mazzo',
+  ctaPutInPlayShuffle: 'Metti in gioco · Mischia mazzo',
+  emptyHintStart: 'Premi «Pesca carta turno» per iniziare',
+  emptyHintWait: 'Le carte arrivano nel turno della nemesi',
   loadError: 'Impossibile caricare le carte. Riprova',
   resumeError: 'La partita salvata non si può riprendere',
   chooseNemesis: 'Scegli una nemesi disponibile per iniziare',
@@ -468,8 +478,8 @@ function loadCollection() {
     const saved = JSON.parse(localStorage.getItem(COLLECTION_KEY));
     if (Array.isArray(saved)) { collection = new Set(saved); return; }
   } catch (err) { /* collezione illeggibile: si riparte da quella predefinita */ }
-  // Predefinita: i prodotti delle nemesi segnate come possedute in nemesis.json
-  collection = new Set(nemeses.filter(n => n.owned).map(productOfNemesis));
+  // Nuovi utenti (v194): collezione vuota; nel menu iniziale compare "Inserisci collezione"
+  collection = new Set();
 }
 
 function saveCollection() {
@@ -503,7 +513,9 @@ let deckPlan = [];
 function buildDeck() {
   deckPlan = [];
   const battle = deckSetup.battles.find(b => b.battle === battleOf(settings.nemesis));
-  const setup = battle.players[String(settings.players)];
+  // Nessuna nemesi giocabile (per esempio collezione vuota, v194): mazzo vuoto, si sceglie dopo
+  const setup = battle && battle.players[String(settings.players)];
+  if (!setup) return [];
   const result = [];
   [3, 2, 1].forEach(tier => {
     const ofTier = c => c.tier === tier && c.type !== 'Curse';
@@ -568,14 +580,24 @@ function playerKinds() {
 }
 // Estrae a caso una carta tra quelle rimaste (finite le 6 si rimescola). pick: solo le carte che lo soddisfano
 // (serve per i salvataggi vecchi, senza mazzo dei turni)
+// Giro nuovo: si rimescola e il contatore dei giri ("Turno N" nella testata) sale.
+// Con 3 giocatori il jolly è uno dei giocatori (v179): al primo giro a caso, poi a ogni giro il successivo (1→2→3→1)
+function shuffleTurnOrder() {
+  const wild = Number(settings.players) === 3
+    ? (turnOrder.wild ? (turnOrder.wild % 3) + 1 : 1 + Math.floor(Math.random() * 3)) : null;
+  turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {} };
+}
+// Turno in corso = ultima carta del giro (v194): finendolo si mischia il mazzo e si aspetta "Pesca la prima carta turno"
+function turnRoundOver() {
+  return turnOrder.drawn.length > 0 && !turnOrder.left.length;
+}
+// Fine di un turno: carta turno dopo, o a fine giro mazzo mischiato e attesa (null)
+function nextTurnCard() {
+  if (turnRoundOver()) { shuffleTurnOrder(); return null; }
+  return drawTurnCard();
+}
 function drawTurnCard(pick) {
-  // Giro nuovo: si rimescola e il contatore dei giri ("Turno N" nella testata) sale.
-  // Con 3 giocatori il jolly è uno dei giocatori (v179): al primo giro a caso, poi a ogni giro il successivo (1→2→3→1)
-  if (!turnOrder.left.length) {
-    const wild = Number(settings.players) === 3
-      ? (turnOrder.wild ? (turnOrder.wild % 3) + 1 : 1 + Math.floor(Math.random() * 3)) : null;
-    turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {} };
-  }
+  if (!turnOrder.left.length) shuffleTurnOrder();
   let choices = turnOrder.left.map((c, i) => i);
   if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
   const card = turnOrder.left.splice(choices[Math.floor(Math.random() * choices.length)], 1)[0];
@@ -1244,9 +1266,12 @@ function renderQueue() {
     return slot;
   }));
   queueEmpty.hidden = queue.length > 0;
-  // "Premi Turno Nemesi per pescare" solo prima del primo turno nemesi
+  // Suggerimento solo prima del primo turno nemesi (v194: non più "Premi «Turno Nemesi» per pescare")
   const emptyHint = queueEmpty.querySelector('p');
-  if (emptyHint) emptyHint.hidden = turn > 0;
+  if (emptyHint) {
+    emptyHint.hidden = turn > 0;
+    emptyHint.textContent = awaitingTurnCard() ? I18N_IT.emptyHintStart : I18N_IT.emptyHintWait;
+  }
   sizeQueue();
 
   const anchor = ui.queueAnchor;
@@ -1984,11 +2009,31 @@ function startHomeActions() {
   box.id = 'start-home';
   const fresh = button(I18N_IT.newGame, 'primary', () => setStartMode('setup', true));
   fresh.classList.add('ae-button--full', 'start-home-new');
+  // Collezione vuota (v194): "Inserisci collezione" apre La mia collezione; "Nuova partita" è oscurato
+  const addCollection = button(I18N_IT.addCollection, 'primary', () => openCollection(addCollection, () => {
+    const next = startHomeActions().querySelector('.start-home-new');
+    if (next && !next.disabled) next.focus({ preventScroll: true });
+  }));
+  addCollection.classList.add('ae-button--full', 'start-home-collection');
   const options = button(I18N_IT.options, 'secondary', () => openOptions(options));
   options.classList.add('ae-button--full', 'start-home-options');
-  box.append(fresh, options);
+  box.append(addCollection, fresh, options);
   startChoicePanel().after(box);
   return box;
+}
+function updateHomeCollection() {
+  const box = document.getElementById('start-home');
+  if (!box) return;
+  const empty = !collection || collection.size === 0;
+  box.querySelector('.start-home-collection').hidden = !empty;
+  const fresh = box.querySelector('.start-home-new');
+  fresh.disabled = empty;
+  fresh.title = empty ? I18N_IT.collectionEmptyHint : '';
+  // Con la collezione vuota il pulsante principale è "Inserisci collezione"
+  // (altrimenti principale solo senza partita salvata, come in setStartMode)
+  const primary = !empty && !readSave();
+  fresh.classList.toggle('ae-button--primary', primary);
+  fresh.classList.toggle('ae-button--secondary', !primary);
 }
 
 // Testata della pagina "Nuova partita": titolo e X (torna al menu iniziale). Resta ferma in alto mentre la pagina scorre
@@ -2026,6 +2071,7 @@ function setStartMode(mode, focus) {
   const fresh = home.querySelector('.start-home-new');
   fresh.classList.toggle('ae-button--primary', !saved);
   fresh.classList.toggle('ae-button--secondary', !!saved);
+  updateHomeCollection();
   if (saved) {
     const head = panel.querySelector('.start-choice-head');
     head.querySelector('.start-choice-info').textContent =
@@ -2044,7 +2090,8 @@ function setStartMode(mode, focus) {
   startLayer.scrollTop = 0;
   updateStartActions();
   if (focus) {
-    const target = isHome ? (saved ? panel.querySelector('.start-choice-resume') : fresh) : document.querySelector('#choices-players button');
+    const target = isHome ? (saved ? panel.querySelector('.start-choice-resume')
+      : fresh.disabled ? home.querySelector('.start-home-collection') : fresh) : document.querySelector('#choices-players button');
     if (target) target.focus({ preventScroll: true });
   }
 }
@@ -2335,6 +2382,7 @@ function openCollection(trigger, onSaved) {
     saveCollection();
     close();
     renderStartChoices();
+    updateHomeCollection();
     if (onSaved) onSaved();
     showToast(I18N_IT.collectionSaved);
   });
@@ -2398,10 +2446,40 @@ function startGame() {
   prefetchDeckImages();
 }
 
-// Riprendi partita: si ricarica lo stato salvato nel browser, compreso l'undo
+// Riprendi partita: si ricarica lo stato salvato nel browser, compreso l'undo.
+// v194: se la nemesi della partita non è più nella collezione, una finestra lo dice; "Continua" rimette nella
+// collezione il suo prodotto (e la scatola base della sua wave) e riprende la partita.
 function resumeGame() {
   const saved = readSave();
   if (!saved) return;
+  const info = nemeses.find(n => n.name === saved.settings.nemesis);
+  if (info && collection && !collection.has(productOfNemesis(info))) {
+    openMissingNemesis(info, () => {
+      collection.add(info.wave + '|base');
+      collection.add(productOfNemesis(info));
+      saveCollection();
+      renderStartChoices();
+      updateHomeCollection();
+      resumeSavedGame(saved);
+    });
+    return;
+  }
+  resumeSavedGame(saved);
+}
+function openMissingNemesis(info, onContinue) {
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.nemesisMissingTitle, '', cancel, { displayTitle: false });
+  dialog.classList.add('ae-exit-confirm');
+  dialog.appendChild(el('p', 'ae-modal-text', I18N_IT.nemesisMissingText(info.name,
+    info.miniExpansion || waveLabel(info.wave))));
+  const footer = el('div', 'ae-modal-footer');
+  const go = button(I18N_IT.continueLabel, 'primary', () => { close(); onContinue(); });
+  footer.append(button(I18N_IT.cancel, 'secondary', cancel), go);
+  dialog.appendChild(footer);
+  close = openModal(dialog, { onCancel: cancel, initialFocus: go });
+}
+function resumeSavedGame(saved) {
   try {
     const previousSettings = settings;
     settings = saved.settings;
@@ -2517,7 +2595,7 @@ function restore(s) {
   const savedOrder = s.turnOrder;
   // (drawn vuoto: attesa di "Pesca carta turno", v193, per esempio con l'undo)
   if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn)
-    && (savedOrder.drawn.length || (!resolving && !savedOrder.round))) {
+    && (savedOrder.drawn.length || !resolving)) {
     // Salvataggi della v168 senza il contatore dei giri: si parte dai turni nemesi giocati
     turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice(),
       round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn),
@@ -2701,7 +2779,12 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : awaitingTurnCard() ? I18N_IT.drawTurnCard : I18N_IT.endTurn;
+  // v194: a inizio giro (dopo il primo) "Pesca la prima carta turno"; all'ultimo turno del giro "Fine turno · Mischia mazzo"
+  // (durante l'animazione del mazzo mischiato resta "Fine turno · Mischia mazzo")
+  nemesisBtn.textContent = saving ? I18N_IT.saveChanges
+    : ui.trackShuffle ? I18N_IT.endTurnShuffle
+    : awaitingTurnCard() ? (turnOrder.round >= 1 ? I18N_IT.drawFirstTurnCard : I18N_IT.drawTurnCard)
+    : turnRoundOver() ? I18N_IT.endTurnShuffle : I18N_IT.endTurn;
   nemesisBtn.classList.toggle('is-save', saving);
   // "Crea mazzo": al posto del pulsante lo slider; sfondo nero fino alla fine del banner "Partita iniziata"
   if (ui.deckBuilding) nemesisBtn.hidden = true;
@@ -2758,7 +2841,9 @@ function canDraw() {
 // un passo a parte, con il pulsante "Pesca".
 function actionText(entry, isNew) {
   const { data, tokens } = entry;
-  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved : I18N_IT.ctaPutInPlayEnd;
+  // (ultima carta del giro dei turni: "Metti in gioco · Mischia mazzo", v194)
+  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved
+    : turnRoundOver() ? I18N_IT.ctaPutInPlayShuffle : I18N_IT.ctaPutInPlayEnd;
   // Potere: il token se ne va da solo; il pulsante dice solo cosa succede dopo
   if (data.type === 'Power') return tokens > 1 ? I18N_IT.ctaPowerNext : I18N_IT.ctaPowerLast;
   // Minion (resta in gioco) e attacco (va negli scarti)
@@ -3198,13 +3283,52 @@ function endPlayerTurn() {
   // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
   ui.drafts.clear();
   queue.filter(isGone).forEach(discardGone);
-  if (drawTurnCard() === 'nemesis') nemesisTurn();
+  if (nextTurnCard() === 'nemesis') nemesisTurn();
 }
 
 // Fine del turno nemesi ("Metti in gioco · Fine turno nemesi"): si estrae il turno dopo; se è di nuovo la nemesi, il
-// turno nemesi riparte subito
+// turno nemesi riparte subito. Ultima carta del giro: mazzo dei turni mischiato e attesa (v194)
 function afterNemesisTurn() {
-  if (drawTurnCard() === 'nemesis') nemesisTurn();
+  if (nextTurnCard() === 'nemesis') nemesisTurn();
+}
+
+// Animazione "mazzo mischiato" della barra della fase (v194), a fine giro. Le scritte sotto la barra svaniscono e le
+// caselle diventano grigie e tutte uguali (render con ui.trackShuffle, transizioni di style.css); poi, veloci, le 6
+// caselle si uniscono in una sola al centro, si fermano un attimo e tornano al loro posto. fadeMs: attesa della
+// dissolvenza (0 se è già avvenuta, per esempio durante il passaggio dal turno nemesi)
+const SHUFFLE_FADE_MS = 320;
+const SHUFFLE_MERGE_MS = 760;
+function beginTrackShuffle() {
+  ui.trackShuffle = true;
+  turnTrack.classList.add('is-shuffling');
+}
+function playTurnShuffle(fadeMs) {
+  beginTrackShuffle();
+  const motion = !reducedMotion.matches && !!turnTrackBar.animate;
+  const fade = motion ? fadeMs : 0;
+  const merge = motion ? SHUFFLE_MERGE_MS : 0;
+  lockFor(fade + merge + 40, () => {
+    ui.trackShuffle = false;
+    turnTrack.classList.remove('is-shuffling');
+    nemesisBtn.focus({ preventScroll: true });
+    announce(I18N_IT.drawFirstTurnCard);
+  });
+  render();
+  if (!motion) return;
+  setTimeout(() => {
+    const bar = turnTrackBar.getBoundingClientRect();
+    const cx = bar.left + bar.width / 2;
+    [...turnTrackBar.children].forEach(seg => {
+      const r = seg.getBoundingClientRect();
+      const dx = cx - (r.left + r.width / 2);
+      seg.animate([
+        { transform: 'none' },
+        { transform: `translateX(${dx}px)`, offset: 0.3 },
+        { transform: `translateX(${dx}px)`, offset: 0.62 },
+        { transform: 'none' }
+      ], { duration: merge, easing: 'ease-in-out' });
+    });
+  }, fade);
 }
 
 // Logica del pulsante principale (come nella v48): agisce sulla carta da risolvere in base al suo tipo.
@@ -3259,6 +3383,7 @@ function onResolveClick() {
   if (isDrawStep()) {
     // "Pesca": la carta coperta diventa la carta pescata, che si gira
     if (ui.viewedUid !== DRAW_UID) return;
+    const roundAtDraw = turnOrder.round;
     act(() => {
       drawNewCard();
       // Mazzo vuoto: il turno nemesi finisce e si estrae il turno dopo
@@ -3269,6 +3394,8 @@ function onResolveClick() {
       lockFor(duration('focus'));
     }
     render();
+    // (mazzo vuoto all'ultimo turno del giro: mazzo dei turni mischiato, v194)
+    if (!resolving && awaitingTurnCard() && turnOrder.round !== roundAtDraw) playTurnShuffle(SHUFFLE_FADE_MS);
     return;
   }
   const active = activeEntry();
@@ -3276,6 +3403,7 @@ function onResolveClick() {
   const ghostSource = focusEl.querySelector(`.ae-focus-slide[data-uid="${active.uid}"] .ae-focus-stage`);
   const wasNewStep = newIndex >= 0;
   const turnBefore = turn;
+  const roundBefore = turnOrder.round;
   const effect = act(() => {
     const result = resolveCurrent();
     // Fine del turno nemesi: si estrae il turno dopo dal mazzo dei turni
@@ -3288,6 +3416,11 @@ function onResolveClick() {
     announce(I18N_IT.trackNemesisResolve);
   }
 
+  // Fine dell'ultimo turno del giro (v194): mazzo dei turni mischiato; scritte e colori della barra svaniscono durante
+  // il passaggio al turno giocatori, poi le caselle si uniscono e si separano
+  const roundShuffled = !resolving && awaitingTurnCard() && turnOrder.round !== roundBefore;
+  const shuffleAfter = roundShuffled ? () => playTurnShuffle(0) : undefined;
+  if (roundShuffled) beginTrackShuffle();
   if (!resolving) {
     // Fine del turno nemesi: si torna alla VistaCoda con la carta pescata in vista
     // Carta appena pescata e messa in gioco (si prende dalla carta risolta, non da ui.lastDrawnUid: dopo un undo gli uid cambiano)
@@ -3303,13 +3436,13 @@ function onResolveClick() {
       // Il blocco dura anche per l'entrata delle carte da sinistra: lockFor alla fine ridisegna, e farlo prima
       // interromperebbe l'animazione
       const flyMs = reducedMotion.matches ? 150 : FLY_MS + 80;
-      lockFor(flyMs + (reducedMotion.matches ? 0 : ENTER_MS + 40));
+      lockFor(flyMs + (reducedMotion.matches ? 0 : ENTER_MS + 40), shuffleAfter);
       setTimeout(() => { toPlayersTurn(null); nemesisBtn.focus(); }, flyMs);
       return;
     }
     // Carta messa in gioco: passaggio morbido, la carta grande si trasforma nella carta del turno giocatori e le altre
     // entrano da sinistra (vedi toPlayersTurn)
-    lockFor(reducedMotion.matches ? duration('phase') : Math.max(MORPH_MS, MORPH_MS / 2 + ENTER_MS) + 40);
+    lockFor(reducedMotion.matches ? duration('phase') : Math.max(MORPH_MS, MORPH_MS / 2 + ENTER_MS) + 40, shuffleAfter);
     toPlayersTurn(kept && ghostSource ? kept.uid : null, ghostSource);
     if (wasNewStep) nemesisBtn.focus();
     return;
@@ -3347,7 +3480,13 @@ function onNemesisClick(e) {
   }
   // Carta x/y senza giocatore: si sceglie nella finestra (v193)
   if (needsPairChoice()) return;
+  // Fine dell'ultimo turno del giro: mazzo dei turni mischiato, animazione, poi "Pesca la prima carta turno" (v194)
+  const roundEnding = !awaitingTurnCard() && turnRoundOver();
   act(awaitingTurnCard() ? drawFirstTurn : endPlayerTurn);
+  if (roundEnding) {
+    playTurnShuffle(SHUFFLE_FADE_MS);
+    return;
+  }
   if (!resolving) {
     // Dal mazzo dei turni è uscito un giocatore (o il jolly): si resta nel turno giocatori, cambia il colore della barra
     render();
@@ -3566,10 +3705,21 @@ function renderTurnTrack() {
     const owner = drawn[i] === 'wild' ? turnCardPlayer('wild') : null;
     if (owner) seg.dataset.owner = owner;
     else delete seg.dataset.owner;
+    // Carta x/y (v194): sfumatura dai due colori (style.css ::after), che svanisce quando si sceglie il giocatore
+    if (i < drawn.length && isPairCard(drawn[i])) seg.dataset.pair = drawn[i];
+    else delete seg.dataset.pair;
     seg.classList.toggle('is-current', i === cur);
     seg.classList.toggle('is-past', i < cur);
   });
   turnTrack.classList.toggle('is-nemesis', resolving);
+  // Nessun turno in corso (attesa della carta turno): caselle tutte uguali (v194)
+  turnTrackBar.classList.toggle('is-idle', cur < 0);
+  // Mazzo dei turni appena mischiato (v194, playTurnShuffle): le scritte di prima restano e svaniscono (is-shuffling)
+  if (ui.trackShuffle) {
+    turnTrack.setAttribute('aria-label', I18N_IT.trackWaiting);
+    renderPairChoice();
+    return;
+  }
   // Scritta sotto la casella accesa (alle due estremità allineata al bordo, per non uscire dalla barra)
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
   const curKind = currentTurnCard();

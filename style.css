@@ -305,6 +305,9 @@ body { overflow: hidden; }
 .ae-side-stats dt { color: var(--ae-text-muted); }
 .ae-side-stats dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .ae-side-exit { margin-top: auto; }
+/* v194: menu iniziale con la collezione vuota: "Inserisci collezione" e "Nuova partita" oscurato */
+.start-home-collection[hidden] { display: none; }
+.start-home-new:disabled { opacity: .4; cursor: not-allowed; }
 /* v193: conferma di "Esci dalla partita" */
 .ae-exit-confirm .ae-modal-text { margin: 0 0 16px; color: var(--ae-text-muted); font: 400 15px/22px var(--ae-font-ui); }
 /* Menu: scelta dello sfondo (menu a tendina con l'etichetta sopra) */
@@ -1076,13 +1079,23 @@ body { overflow: hidden; }
   /* v180: strisce bianche spesse la metà di quelle colorate (3px e 6px) */
   background: repeating-linear-gradient(135deg, #fff 0 3px, var(--ae-seg) 3px 9px);
 }
-/* v192: carte turno 1/2 e 3/4 (wave 4): finché non si sceglie chi gioca la casella è metà e metà dei due colori */
-.ae-turn-seg[data-kind="p12"] { --ae-seg: var(--ae-turn-p1); --ae-seg-2: var(--ae-turn-p2); }
-.ae-turn-seg[data-kind="p34"] { --ae-seg: var(--ae-turn-p3); --ae-seg-2: var(--ae-turn-p4); }
-.ae-turn-seg[data-kind="p12"].is-current, .ae-turn-seg[data-kind="p34"].is-current,
-.ae-turn-seg[data-kind="p12"].is-past, .ae-turn-seg[data-kind="p34"].is-past {
-  background: linear-gradient(90deg, var(--ae-seg) 50%, var(--ae-seg-2) 50%);
+/* v192: carte turno 1/2 e 3/4 (wave 4). v194: finché non si sceglie chi gioca la casella è una sfumatura dai due
+   colori (strato ::after sopra il colore pieno); scelto il giocatore lo strato svanisce e resta il suo colore */
+.ae-turn-seg { position: relative; }
+.ae-turn-seg[data-kind="p12"] { --ae-seg: var(--ae-turn-p1); }
+.ae-turn-seg[data-kind="p34"] { --ae-seg: var(--ae-turn-p3); }
+.ae-turn-seg[data-pair="p12"] { --ae-pair-a: var(--ae-turn-p1); --ae-pair-b: var(--ae-turn-p2); }
+.ae-turn-seg[data-pair="p34"] { --ae-pair-a: var(--ae-turn-p3); --ae-pair-b: var(--ae-turn-p4); }
+.ae-turn-seg[data-pair]::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, var(--ae-pair-a), var(--ae-pair-b)); transition: opacity .45s ease-out;
 }
+.ae-turn-seg[data-pair][data-kind="p12"]::after, .ae-turn-seg[data-pair][data-kind="p34"]::after { opacity: 1; }
+/* v194: nessun turno in corso (attesa della carta turno, mazzo appena mischiato): 6 caselle uguali */
+.ae-turn-track-bar.is-idle .ae-turn-seg { flex-basis: calc((100% - 30px) / 6); }
+/* v194: mazzo dei turni mischiato: scritte e sigle sotto la barra svaniscono */
+.ae-turn-labels > * { transition: opacity .3s ease-out; }
+.ae-turn-track.is-shuffling .ae-turn-labels > * { opacity: 0 !important; }
 /* v170: la casella del turno in corso è lunga il doppio di una casella a misura fissa (6 caselle, 5 spazi da 6px:
    (100% - 30px) / 6 × 2); le altre 5 si stringono nello spazio che resta */
 .ae-turn-seg.is-current {
@@ -1162,9 +1175,9 @@ body { overflow: hidden; }
 .ae-button.has-player-color[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
 .ae-button.has-player-color[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
 .ae-button.has-player-color:disabled { opacity: .55; }
-/* v192: carta 1/2 o 3/4 non ancora scelta: fondo metà e metà dei due colori */
+/* v192: carta 1/2 o 3/4 non ancora scelta: fondo sfumato dai due colori (v194: sfumatura, non più metà e metà) */
 .ae-button.has-player-color[data-kind="p12"], .ae-button.has-player-color[data-kind="p34"] {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--ae-a) 16%, #15161c) 50%, color-mix(in srgb, var(--ae-b) 16%, #15161c) 50%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ae-a) 16%, #15161c), color-mix(in srgb, var(--ae-b) 16%, #15161c));
   border-color: color-mix(in srgb, var(--ae-a) 45%, transparent) color-mix(in srgb, var(--ae-b) 45%, transparent)
     color-mix(in srgb, var(--ae-b) 45%, transparent) color-mix(in srgb, var(--ae-a) 45%, transparent);
 }

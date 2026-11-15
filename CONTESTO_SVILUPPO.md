@@ -59,6 +59,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 **Menu iniziale ("Aeon's End – Nemesis Companion")**
 - Se c'è una partita salvata, la finestra **Partita in corso** (nemesi, giocatori, illustrazione) con solo *Riprendi
   partita*. Sotto, sempre: **Nuova partita** (secondario se c'è una partita in corso) e **Opzioni**.
+- **Collezione vuota** (v194; i nuovi utenti partono così): sopra compare **Inserisci collezione** (apre La mia
+  collezione, `updateHomeCollection`) e **Nuova partita** è oscurato e non si tocca. Con almeno un prodotto il pulsante
+  sparisce.
+- **Riprendi partita con la nemesi non più nella collezione** (v194, `openMissingNemesis`): finestra "**Nemesi non più
+  presente in collezione**" con Annulla e **Continua**; Continua rimette nella collezione il prodotto della nemesi (e la
+  scatola base della sua wave) e riprende la partita.
 - I pulsanti del menu iniziale sono **solo scritte** (Cinzel 22px, oro la voce principale), senza box (v163).
 - **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (in una riga: la scritta a
   sinistra e, piccola a destra, la miniatura del dorso scelto, `cardBackChoiceButton` con `compact`; si tocca per la
@@ -123,8 +129,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   resta per le statistiche e per i turni passati dai minion).
 - **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
   gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
-  sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste; finite le 6 si
-  rimescola. Dalla v193 il primo turno **non** si estrae da solo: finito "Crea mazzo" l'app è in **attesa**
+  sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste.
+  - **Fine giro** (v194, `turnRoundOver`, `nextTurnCard`, `shuffleTurnOrder`): all'ultima carta del giro il pulsante è
+    "**Fine turno · Mischia mazzo**" (nel turno nemesi "**Metti in gioco · Mischia mazzo**"). Toccandolo il mazzo dei
+    turni si mischia (giro nuovo, "Turno N" sale) e parte l'animazione (`playTurnShuffle`): le scritte sotto la barra
+    svaniscono, le caselle diventano tutte uguali e grigie (0,3 s), poi veloci si uniscono in una sola al centro, si
+    fermano un attimo e tornano al loro posto (0,76 s). Poi il pulsante è "**Pesca la prima carta turno**" (attesa, come
+    a inizio partita). Dal turno nemesi l'animazione parte dopo il passaggio al turno giocatori.
+  - Dalla v193 il primo turno **non** si estrae da solo: finito "Crea mazzo" l'app è in **attesa**
   (`awaitingTurnCard`, nessuna carta estratta, barra tutta grigia) e il pulsante principale è "**Pesca carta turno**"
   (fondo grigio chiaro tenue); toccandolo si estrae il primo turno (`drawFirstTurn`, con undo): se è la nemesi parte
   subito il turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
@@ -134,7 +146,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **Carte 1/2 e 3/4** (v192, wave 4; solo con 4 giocatori): con l'opzione "**Carte turno 1/2 e 3/4**" nelle
     **Opzioni del menu iniziale** (v193; nella v192 era nel Menu della partita; interruttore, attivo di default;
     preferenza del browser `aeonsend-app-0.2-turn-pairs`; a partita in corso vale dal prossimo giro) il mazzo è 1/2,
-    1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è **metà e metà dei due colori**, sotto
+    1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è una **sfumatura dai due colori**
+    (v194, strato `::after`; scelto il giocatore svanisce in 0,45 s e resta il suo colore), sotto
     c'è "x / y" e al centro compare la finestra "**Chi gioca questo turno?**" (v193, `renderPairChoice`): due carte
     grandi come quelle della fascia piccola, bordo nero, colore del giocatore scurito e numero nero al centro. Finché
     non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu (la testata resta sopra
@@ -407,8 +420,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   - `image` (`Data/<Nemesi>/Tier_N/<Nome>.webp`).
   - Il prodotto delle carte Basic / Upgraded Basic si ricava dal prefisso dell'id (`CARD_PRODUCT_PREFIX` in `script.js`:
     `NA-`, `TA-`, `SD-`, `ITW-`).
-- `nemesis.json`: `name`, `wave`, `waveOrder`, `miniExpansion`, `battle`, `flagBattle5`, `owned` (`owned` serve solo
-  come collezione iniziale).
+- `nemesis.json`: `name`, `wave`, `waveOrder`, `miniExpansion`, `battle`, `flagBattle5`, `owned` (dalla v194 non si
+  usa più: la collezione iniziale è vuota).
   - Una nemesi è giocabile se ha la battaglia, il suo prodotto è nella collezione e ha carte Specific.
 - `deck-setup.json`: la tabella del Nemesis Deck Setup.
 - **Immagini:**
