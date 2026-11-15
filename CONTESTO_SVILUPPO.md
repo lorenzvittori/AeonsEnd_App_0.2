@@ -62,17 +62,25 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Opzioni:** per ora una voce, *La mia collezione* (con il riepilogo wave · prodotti).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
-- In alto a destra il **Menu** (tre linee): *La mia collezione* ed *Esci* (torna al menu iniziale). Anche il tasto
-  Indietro torna al menu iniziale.
+- In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
+  lei il contenuto sfuma nel nero (`.start-setup-head`). Il vecchio Menu (tre linee) è stato tolto in v158: *La mia
+  collezione* si apre da Opzioni nel menu iniziale. Anche il tasto Indietro torna al menu iniziale.
 - **La mia collezione:** schermata con un interruttore per ogni wave (la sua scatola base) e, sotto, le sue mini
-  espansioni. Nemesi e carte Basic / Upgraded Basic escono solo dai prodotti spuntati. Vale solo con "Salva collezione".
+  espansioni (interruttori più piccoli e un po' più a sinistra). Nemesi e carte Basic / Upgraded Basic escono solo dai
+  prodotti spuntati. Vale solo con "Salva collezione".
 - **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
-- **Wave:** gruppo a sé, con pillole tonde (solo le wave della collezione); il vecchio `#wave-select` resta nascosto e
-  tiene il valore.
-- **Nemesi:** separata dalla wave da una linea; si sceglie la nemesi della wave.
+- **Wave:** menu a tendina con una casella per wave (solo quelle della collezione), **anche più di una**
+  (`selectedWaves`); resta sempre almeno una wave. Le wave si mostrano in **cifre romane** (`waveLabel`: "IV - The New
+  Age"), qui e nella collezione; i valori in `nemesis.json` restano in cifre arabe.
+- **Nemesi:** separata dalla wave da una linea; si vedono le nemesi di tutte le wave scelte (per wave, poi scatola
+  base / mini espansioni, poi battaglia). A destra del titolo "Nemesi" il **dado** sceglie una nemesi a caso tra tutte
+  quelle giocabili della collezione (diversa da quella scelta), aggiunge la sua wave e scorre fino a lei.
   - Ogni pulsante mostra parte dell'illustrazione, la battaglia e, se c'è, la mini espansione.
-  - Sulla nemesi scelta c'è una freccia (o un secondo tocco) che apre la sua carta intera; un tocco o uno slide la gira
-    e mostra il retro con il setup.
+  - Sulla nemesi scelta c'è una freccia, a cavallo del bordo in basso (o un secondo tocco), che apre la sua carta
+    intera; un tocco o uno slide la gira e mostra il retro con il setup.
+  - La **lente** in alto a destra sulla carta apre il lato che si vede a tutto schermo (`openImageZoom`): due dita o
+    doppio tocco per ingrandire (fino a 5×), un dito per spostarla, rotella sul computer; X, Esc o Indietro per chiudere.
+- **"Inizia partita"** in fondo: sopra il pulsante 16px di nero pieno, poi la sfumatura.
   - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
     collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso.
 - L'interruttore **Includi carte base potenziate** è stato tolto in v156 (per ora non serve): le Upgraded Basic sono
@@ -108,8 +116,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 **Turno dei giocatori**
 - In alto la fascia piccola con tutte le carte in gioco; sotto le stesse carte, grandi, che si scorrono in orizzontale.
 - Sotto ogni carta grande i suoi comandi:
-  - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Sul box compare "vita/totale" e sulla
-    carta "HP: −n";
+  - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
+    "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza
+    danno in corso si vede solo la vita. Lo stesso nella finestra della vita ("HP x / X") e, nel turno nemesi, la riga
+    sopra la carta mostra solo la vita;
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
   - **altri poteri:** la nota "! Non rimovibile".
 - Le modifiche sono una bozza: il pulsante principale diventa **Salva modifiche**, con accanto **Annulla modifiche**.
@@ -146,6 +156,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   passati da quando è stato pescato (uccisi e ancora in gioco). Sotto carte giocate, carte rimanenti (per Tier e nome),
   minion uccisi (con la vita della carta), poteri scartati, poteri risolti e attacchi risolti c'è un box con le carte in
   fila; toccandone una la si vede grande. Gli elenchi sono in `stats.cards` (id); i salvataggi più vecchi non li hanno.
+  In cima i **Tempi**: tempo di partita e tempo nei Tier 1, 2 e 3 (`statsTimes`). L'inizio è `stats.startedAt`
+  (`newGame`), l'inizio di un Tier è la sua prima carta pescata (`stats.tierAt`, in `drawNewCard`), la fine è l'ultima
+  apertura della Vittoria (`stats.endedAt`) o adesso. È il tempo dell'orologio: comprende le pause con l'app chiusa.
+  Le partite iniziate prima della v158 mostrano "—".
+- La schermata Vittoria aveva la scritta a 64px, più larga del telefono, che spingeva tutto a destra: ora il carattere
+  si adatta (`min(64px, 12.5vw)`).
 
 **Menu (pannello laterale al 70%)**
 - Turno nemesi N e carte nel mazzo.
@@ -155,6 +171,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Nemesi uccisa:** per quando la nemesi muore al tavolo; apre la schermata Vittoria.
 - **Sfondo:** menu a tendina con tre sfondi (Nemesi mascherata, Demone cornuto, Bocca con tentacoli). Cambia subito e
   resta salvato nel browser; non entra nella partita né nell'undo.
+- **Dorso delle carte:** miniatura e nome del dorso scelto; toccandolo si apre la griglia dei 13 dorsi
+  (`openCardBackPicker`) e un tocco sceglie. Vale per mazzo in testata, carta da pescare, Crea mazzo e il retro della
+  carta che si gira; resta salvato nel browser (`CARD_BACKS`, `setCardBack`), non entra nella partita.
 - **Esci dalla partita:** rosso, va **tenuto premuto** (`holdToConfirm`, 0,9 s); un tocco breve avvisa "Tieni premuto
   per uscire". Porta al menu iniziale.
 - Aprendo il Menu le tre linee del pulsante diventano una **X** (animazione, `menuCloseToggle`); toccando la X il menu si
@@ -265,8 +284,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `lockFor(ms)`, reveal, queueAnchor, drafts, flyingDiscards, tierBanner, deckBuilding, …).
 - **Undo e salvataggio:** `act(fn)` fa `snapshot()` per l'undo, esegue l'azione e salva.
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
-  - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione) e
-    `aeonsend-app-0.2-background` (sfondo), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
+  - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione),
+    `aeonsend-app-0.2-background` (sfondo) e `aeonsend-app-0.2-card-back` (dorso delle carte), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
     cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
@@ -312,8 +331,11 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   - `thumbs/<id>.webp`: miniature (264 x 369).
   - `Assets/nemesis/`: per ogni nemesi `<slug>.webp` (carta), `<slug>-back.webp` (retro con setup e storia),
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
-  - `Assets/ui/decor/`: `card-back-logo.webp` (dorso), `battle-bg.webp`, `battle-bg-2.webp`, `battle-bg-3.webp`
-    (sfondi scelti nel Menu).
+  - `Assets/ui/decor/`: `card-back-logo.webp` (dorso predefinito), `battle-bg.webp`, `battle-bg-2.webp`,
+    `battle-bg-3.webp` (sfondi scelti nel Menu).
+  - `Assets/ui/backs/`: gli altri 12 dorsi (`<nome>.webp`, 630 x 880, ritagliati al centro alle proporzioni 63:88) con
+    le miniature `<nome>-thumb.webp` (150 x 210) per la griglia di scelta; `logo-thumb.webp` è la miniatura del dorso
+    predefinito.
   - `Assets/power-token-2.webp` (token), `Assets/ui/icons/`: `life-drop.webp` (goccia della vita), `alert.webp` ("!"),
     `flame.png` (battaglia), `players-1..4.png`, icone SVG usate come maschera (undo, eye, close, discard, empty-deck).
   - Immagini non più usate tolte in v148 (vecchi sfondi dei due turni, vecchi dorsi, gocce di vita, logo, icone del
@@ -366,6 +388,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 | `v152-prima-layout-tablet-desktop` | Con la vecchia vista a due colonne da 900px, prima della colonna centrale per tablet e desktop (v153). |
 | `v154-prima-mobile` | Prima delle modifiche per il telefono della v155 (orizzontale, aree di tocco, app installabile, service worker). |
 | `v156-prima-menu-e-slider` | Prima della v157 (menu iniziale con Opzioni, slider di Crea mazzo, salvataggio dal primo turno nemesi). |
+| `v157-prima-nuova-partita-e-dorsi` | Prima della v158 (pagina Nuova partita con X e wave multiple, dorsi, tempi, zoom della carta nemesi). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 

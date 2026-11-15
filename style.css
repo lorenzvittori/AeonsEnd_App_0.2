@@ -565,7 +565,7 @@ body { overflow: hidden; }
 .ae-focus-slide.is-big .ae-focus-stage { scale: var(--ae-big-scale, 1.08); }
 
 /* Retro della faccia anteriore della carta che si gira: se l'immagine non fosse ancora disegnata si vede il dorso, non lo sfondo */
-.ae-flip-face--front { background: url('Assets/ui/decor/card-back-logo.webp') center / cover no-repeat; }
+.ae-flip-face--front { background: var(--ae-card-back, url('Assets/ui/decor/card-back-logo.webp')) center / cover no-repeat; }
 
 /* Turno giocatori: il blocco vita/token + carta + comandi (questi fuori dal flusso, 52px sotto la carta) è centrato tra
    la fascia in alto e il pulsante principale (prima era -14px come nel turno nemesi, e restava 10px in basso) */
@@ -585,11 +585,31 @@ body { overflow: hidden; }
 /* Schermata Vittoria: stesso fondo e stessa scritta del banner dei Tier (che qui resta ferma), sotto i pulsanti */
 .ae-modal-backdrop.ae-victory-backdrop {
   background: radial-gradient(ellipse at center, rgba(60, 40, 10, .55) 0%, rgba(0, 0, 0, .82) 70%);
-  animation: ae-fade .3s linear;
+  animation: ae-fade .3s linear; overflow: hidden;
 }
-.ae-victory-screen { width: min(340px, 100%); display: flex; flex-direction: column; align-items: center; gap: 48px; }
+.ae-victory-screen { width: min(340px, 100%); min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 48px; }
+/* "Vittoria" a 64px era più larga del telefono e spingeva tutta la schermata a destra: il carattere si adatta allo schermo */
+.ae-victory-screen .ae-tier-banner-text { max-width: calc(100vw - 24px); font-size: min(64px, 12.5vw); text-align: center; }
 .ae-victory-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; animation: ae-fade .4s ease-out 1s both; }
 @media (prefers-reduced-motion: reduce) { .ae-victory-actions { animation: none; } }
+/* Menu: dorso delle carte scelto (miniatura e nome), si tocca per la griglia dei dorsi */
+.ae-back-choice {
+  min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 6px 12px 6px 6px; text-align: left;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); color: var(--ae-text);
+  font: 500 15px/20px var(--ae-font-ui);
+}
+.ae-back-choice-thumb { width: 36px; height: 50px; object-fit: cover; border-radius: 3px; flex: 0 0 auto; }
+.ae-back-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ae-back-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--ae-text-muted);
+  font: 600 12px/16px var(--ae-font-ui); text-align: center;
+}
+.ae-back-item img {
+  display: block; width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 5% / 3.58%;
+  border: 2px solid transparent; box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
+}
+.ae-back-item[aria-pressed='true'] { color: var(--ae-gold); }
+.ae-back-item[aria-pressed='true'] img { border-color: var(--ae-gold); box-shadow: 0 0 12px rgba(223, 174, 89, .6); }
 /* Statistiche */
 .ae-stats-subtitle { margin-top: 4px; color: var(--ae-gold); font: 600 15px/20px var(--ae-font-display); }
 .ae-stats-empty { color: var(--ae-text-muted); font: 500 14px/20px var(--ae-font-ui); }
@@ -953,6 +973,94 @@ body { overflow: hidden; }
 }
 .wave-pill[aria-pressed='true'] { border-color: var(--ae-gold); background: rgba(223, 174, 89, .14); color: var(--ae-gold); }
 .start-nemesis { padding-top: 20px; border-top: 1px solid var(--ae-border); }
+
+/* --- v158: pagina Nuova partita --- */
+/* Testata "Nuova partita" con la X: ferma in alto; il contenuto che scorre sotto sfuma nel nero */
+.start-screen.is-setup { padding-top: 0; }
+.start-screen.is-setup .start-title { display: none; }
+.start-setup-head {
+  position: sticky; top: 0; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: calc(var(--ae-safe-top) + 14px) 0 10px; background: var(--ae-bg);
+}
+.start-setup-head[hidden] { display: none; }
+.start-setup-head::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 28px; pointer-events: none;
+  background: linear-gradient(to bottom, var(--ae-bg), rgba(16, 17, 22, 0));
+}
+.start-setup-title { font: 600 26px/32px var(--ae-font-display); color: var(--ae-text); }
+.start-setup-close { margin-right: -10px; color: var(--ae-text-muted); }
+/* Wave: menu a tendina con le caselle (si può sceglierne più di una) */
+.wave-dropdown { position: relative; }
+.wave-dropdown-toggle {
+  width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); color: var(--ae-text);
+  font: 600 15px/20px var(--ae-font-ui); text-align: left;
+}
+.wave-dropdown-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wave-dropdown-toggle svg { flex: 0 0 auto; transition: transform .15s ease-out; }
+.wave-dropdown.is-open .wave-dropdown-toggle { border-color: var(--ae-gold); }
+.wave-dropdown.is-open .wave-dropdown-toggle svg { transform: rotate(180deg); }
+.wave-menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 7; max-height: 50vh; overflow-y: auto; padding: 6px;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .6);
+}
+.wave-menu[hidden] { display: none; }
+.wave-option {
+  position: relative; min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 10px; border-radius: var(--ae-radius-sm);
+  color: var(--ae-text); font: 500 15px/20px var(--ae-font-ui); cursor: pointer;
+}
+.wave-option:hover { background: var(--ae-surface-raised); }
+.wave-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.wave-option-box {
+  flex: 0 0 auto; width: 20px; height: 20px; display: grid; place-items: center; border: 2px solid var(--ae-text-muted); border-radius: 5px;
+}
+.wave-option input:checked + .wave-option-box { border-color: var(--ae-gold); background: var(--ae-gold); }
+.wave-option input:checked + .wave-option-box::after {
+  content: ''; width: 5px; height: 10px; margin-top: -2px; border: solid #20160B; border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.wave-option input:focus-visible + .wave-option-box { outline: 3px solid var(--ae-focus); outline-offset: 2px; }
+/* Titolo "Nemesi" con il dado a destra */
+.start-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.start-label-row .start-label { margin-bottom: 0; }
+.nemesis-random { margin: -10px -10px -10px 0; color: var(--ae-gold); }
+/* Freccia della nemesi scelta: a cavallo del bordo in basso del pulsante. La regola v155 ".nemesis-toggle { position:
+   relative }" la rimetteva nel flusso, sotto il pulsante e spostata di altri 13px: per questo sembrava staccata */
+.nemesis-toggle.nemesis-expand { position: absolute; }
+/* "Inizia partita": sopra il pulsante 16px di nero pieno, poi la sfumatura di prima (20px) */
+.start-actions { padding-top: 36px; background: linear-gradient(to bottom, rgba(16, 17, 22, 0), var(--ae-bg) 20px); }
+/* La mia collezione: interruttori delle mini espansioni più piccoli e un po' più a sinistra di quello della wave */
+.collection-item.is-mini .ae-switch { flex-basis: 40px; width: 40px; height: 24px; border-radius: 12px; margin-right: 10px; }
+.collection-item.is-mini .ae-switch::after { top: 3px; left: 3px; width: 18px; height: 18px; }
+.collection-item.is-mini input:checked + .ae-switch::after { transform: translateX(16px); }
+
+/* Carta della nemesi: lente per vederla a tutto schermo e ingrandirla */
+.nemesis-zoom {
+  position: absolute; top: 8px; right: 8px; z-index: 2; width: 40px; height: 40px; flex-basis: 40px;
+  border-radius: 50%; background: rgba(16, 17, 22, .75); color: var(--ae-text); border: 1px solid rgba(236, 232, 222, .35);
+}
+.nemesis-zoom:hover:not(:disabled) { background: rgba(16, 17, 22, .9); }
+.ae-modal-backdrop.ae-zoom-backdrop { padding: 0; background: #000; }
+.ae-zoom {
+  position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden; touch-action: none;
+  user-select: none; -webkit-user-select: none;
+}
+.ae-zoom-img {
+  display: block; max-width: 100vw; max-height: 100dvh; width: auto; height: auto; transform-origin: center center;
+  -webkit-user-drag: none; will-change: transform;
+}
+.ae-zoom-close {
+  position: absolute; top: calc(var(--ae-safe-top) + 8px); right: 8px; z-index: 2; border-radius: 50%;
+  background: rgba(16, 17, 22, .75); color: var(--ae-text);
+}
+.ae-zoom-hint {
+  position: absolute; left: 50%; bottom: calc(var(--ae-safe-bottom) + 16px); transform: translateX(-50%); padding: 6px 12px;
+  border-radius: 999px; background: rgba(16, 17, 22, .8); color: var(--ae-text-muted); font: 500 13px/18px var(--ae-font-ui);
+  white-space: nowrap; pointer-events: none; transition: opacity .2s ease-out;
+}
+.ae-zoom.is-zoomed .ae-zoom-hint { opacity: 0; }
+/* Statistiche: tempi */
+.ae-stats-times { margin-bottom: 4px; }
 
 /* Statistiche: sotto alcune righe le carte in fila (si toccano per vederle grandi) */
 .ae-stats-list { display: flex; flex-direction: column; gap: 8px; }

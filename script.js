@@ -105,6 +105,7 @@ const I18N_IT = {
     powersResolved: 'Poteri risolti',
     attacksResolved: 'Attacchi risolti'
   },
+  statsTimeTitle: 'Tempi',
   statsMinionsTitle: 'Turni in gioco dei minion',
   statsNoMinions: 'Nessun minion in gioco in questa partita',
   minionTurns: n => (n === 1 ? '1 turno' : `${n} turni`),
@@ -167,6 +168,24 @@ const I18N_IT = {
   menuDeck: 'Carte nel mazzo',
   background: 'Sfondo',
   backgrounds: { masked: 'Nemesi mascherata', horned: 'Demone cornuto', maw: 'Bocca con tentacoli' },
+  cardBack: 'Dorso delle carte',
+  cardBackChosen: name => `Dorso: ${name}`,
+  cardBacks: {
+    logo: "Logo Aeon's End", owlRed: 'Gufo rosso', lily: 'Giglio', plaid: 'Tartan', owlGold: 'Gufo oro',
+    crystals: 'Cristalli viola', veins: 'Venature', mask: 'Maschera spezzata', demon: 'Demone', tentacles: 'Tentacoli',
+    ruins: 'Rovine', runeCircle: 'Cerchio di rune', runesRed: 'Rune rosse'
+  },
+  statsTime: 'Tempo di partita',
+  statsTierTime: n => `Tempo nel Tier ${n}`,
+  statsTimeUnknown: '—',
+  newGameTitle: 'Nuova partita',
+  backToMenu: 'Torna al menu iniziale',
+  wavesNone: 'Nessuna wave',
+  wavesMore: (first, n) => `${first} + ${n}`,
+  wavesLabel: 'Scegli le wave',
+  randomNemesis: 'Nemesi a caso tra quelle della collezione',
+  zoomNemesisCard: 'Ingrandisci la carta della nemesi',
+  zoomHint: 'Allarga con due dita o tocca due volte',
   exitGame: 'Esci dalla partita'
 };
 
@@ -238,8 +257,30 @@ const UNDO_LIMIT = 300;
 const DATA_ROOT = '';
 // Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
 const THUMB_DIR = 'thumbs/';
-// Dorso delle carte nemesi (retro con il logo Aeon's End): mazzo, carta da pescare, creazione del mazzo
-const CARD_BACK = 'Assets/ui/decor/card-back-logo.webp';
+// Dorso delle carte nemesi: mazzo, carta da pescare, creazione del mazzo. Si sceglie nel Menu ("Dorso delle carte"); la
+// scelta resta salvata nel browser e non fa parte della partita. Predefinito: il logo Aeon's End.
+// Ogni dorso è 630 x 880 WebP con una miniatura 150 x 210 per la scelta (Assets/ui/backs/).
+const CARD_BACK_KEY = 'aeonsend-app-0.2-card-back';
+const CARD_BACKS = [
+  { id: 'logo', src: 'Assets/ui/decor/card-back-logo.webp', thumb: 'Assets/ui/backs/logo-thumb.webp' },
+  ...['owlRed:owl-red', 'owlGold:owl-gold', 'lily:lily', 'plaid:plaid', 'crystals:crystals', 'veins:veins', 'mask:mask',
+    'demon:demon', 'tentacles:tentacles', 'ruins:ruins', 'runeCircle:rune-circle', 'runesRed:runes-red']
+    .map(s => { const [id, file] = s.split(':'); return { id, src: `Assets/ui/backs/${file}.webp`, thumb: `Assets/ui/backs/${file}-thumb.webp` }; })
+];
+function currentCardBack() {
+  let id = null;
+  try { id = localStorage.getItem(CARD_BACK_KEY); } catch (err) { /* si usa quello predefinito */ }
+  return CARD_BACKS.find(b => b.id === id) || CARD_BACKS[0];
+}
+let CARD_BACK = currentCardBack().src;
+// Il dorso dietro la carta che si gira (style.css .ae-flip-face--front) segue la stessa scelta
+document.documentElement.style.setProperty('--ae-card-back', `url("${CARD_BACK}")`);
+function setCardBack(id) {
+  try { localStorage.setItem(CARD_BACK_KEY, id); } catch (err) { console.warn(err); }
+  CARD_BACK = currentCardBack().src;
+  document.documentElement.style.setProperty('--ae-card-back', `url("${CARD_BACK}")`);
+  loadImage(CARD_BACK);
+}
 
 // Tutte le carte (cards.json) e la tabella Nemesis Deck Setup (deck-setup.json), lette all'avvio
 let allCards = [];
@@ -278,8 +319,11 @@ let maxTierDrawn = 0;
 let stats = emptyStats(0);
 function emptyStats(deckSize) {
   // cards: id delle carte di ogni gruppo (elenchi delle Statistiche); i salvataggi vecchi non li hanno (elenchi vuoti)
+  // startedAt / tierAt[2|3] / endedAt: istanti (Date.now) di inizio partita, prima carta del Tier 2 e del Tier 3 pescata,
+  // prima Vittoria. Salvataggi vecchi: null (il tempo non si mostra)
   return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [],
-    cards: { minionsKilled: [], powersPaid: [], powersResolved: [], attacksResolved: [] } };
+    cards: { minionsKilled: [], powersPaid: [], powersResolved: [], attacksResolved: [] },
+    startedAt: null, tierAt: {}, endedAt: null };
 }
 // Aggiunge una carta all'elenco di un gruppo delle statistiche
 function statCard(group, data) {
@@ -443,6 +487,7 @@ function newGame() {
   turn = 0;
   maxTierDrawn = 0;
   stats = emptyStats(deck.length);
+  stats.startedAt = Date.now();
 }
 
 // --- Statistiche: si aggiornano quando una carta esce dal gioco ---
@@ -592,10 +637,10 @@ function setDraft(entry, patch) {
 // Copia della carta con la vita in bozza, per disegnare box e fascia
 function displayEntry(entry) {
   const d = draftOf(entry);
-  // isDraft: la vita è in bozza, il box mostra "x/tot" (dopo Salva solo "x")
+  // isDraft: la vita è in bozza, il box mostra "x/X" con X = vita prima del danno (dopo Salva solo "x")
   if (!d) return entry;
   const view = Object.assign({}, entry);
-  if (d.hp !== undefined) Object.assign(view, { hp: d.hp, isDraft: true });
+  if (d.hp !== undefined) Object.assign(view, { hp: d.hp, hpBefore: entry.hp, isDraft: true });
   if (d.paid) view.paid = true;
   return view;
 }
@@ -607,8 +652,8 @@ function statusBadge(entry) {
   badge.setAttribute('aria-hidden', 'true');
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
-    // Vita + goccia; con una modifica non ancora salvata: vita / massimo
-    const hpText = entry.isDraft ? I18N_IT.hp(entry.hp, entry.data.hp) : String(entry.hp);
+    // Vita + goccia; con una modifica non ancora salvata: vita / vita prima del danno
+    const hpText = entry.isDraft ? I18N_IT.hp(entry.hp, entry.hpBefore) : String(entry.hp);
     // Testo lungo (per esempio 13/17): nella fascia piccola il box si allarga e il testo si stringe
     if (hpText.length > 3) badge.classList.add('is-long');
     badge.append(icon('heart'), el('span', '', hpText));
@@ -1174,8 +1219,10 @@ function buildHpPanel(dialog, panel, entry, close) {
   panel.append(row, controls);
   dialog.appendChild(footer);
 
+  // "HP x / X": X è la vita prima del danno (la vita salvata), non la vita massima della carta
+  const before = entry.hp;
   function update() {
-    number.textContent = `HP ${draft} / ${max}`;
+    number.textContent = `HP ${draft} / ${before}`;
     const change = draft - original;
     delta.className = 'ae-hp-delta' + (change < 0 ? ' is-loss' : change > 0 ? ' is-gain' : '');
     delta.replaceChildren();
@@ -1401,6 +1448,22 @@ function buildNemesisFlip(preview) {
   const dots = el('div', 'nemesis-flip-dots');
   dots.setAttribute('aria-hidden', 'true');
   dots.append(el('span'), el('span'));
+  // Lente in alto a destra sulla carta: apre il lato che si vede a tutto schermo, da ingrandire con due dita
+  const zoom = el('button', 'ae-icon-button nemesis-zoom');
+  zoom.type = 'button';
+  zoom.setAttribute('aria-label', I18N_IT.zoomNemesisCard);
+  zoom.innerHTML = ZOOM_SVG;
+  // Il tocco sulla lente non deve girare la carta (il giro parte da pointerdown sulla carta)
+  zoom.addEventListener('pointerdown', e => e.stopPropagation());
+  zoom.addEventListener('click', e => {
+    e.stopPropagation();
+    const art = nemesisArt[settings.nemesis];
+    if (!art) return;
+    const showBack = nemesisShowBack && !!art.back;
+    openImageZoom(encodeURI(showBack ? art.back : art.card),
+      showBack ? I18N_IT.nemesisCardBack(settings.nemesis) : I18N_IT.nemesisCard(settings.nemesis));
+  });
+  flip.appendChild(zoom);
   preview.append(flip, dots);
 
   // La carta ruota seguendo il dito (tutta la larghezza della carta = mezzo giro). Al rilascio: oltre
@@ -1452,6 +1515,128 @@ function buildNemesisFlip(preview) {
 }
 let nemesisFlipAngle = 0;
 
+const ZOOM_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">'
+  + '<circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.2"/>'
+  + '<path d="M15 15l5 5M10.5 8v5M8 10.5h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+// Immagine a tutto schermo da ingrandire: due dita (pinch) o doppio tocco per lo zoom (fino a 5×), un dito per spostarla
+// quando è ingrandita, rotella del mouse sul computer. Si chiude con la X, Esc o Indietro.
+const ZOOM_MAX = 5;
+function openImageZoom(src, alt) {
+  let close = () => {};
+  const cancel = () => close();
+  const box = el('div', 'ae-zoom');
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-label', alt);
+  const img = el('img', 'ae-zoom-img');
+  img.src = src;
+  img.alt = alt;
+  img.draggable = false;
+  const x = el('button', 'ae-icon-button ae-zoom-close');
+  x.type = 'button';
+  x.setAttribute('aria-label', I18N_IT.close);
+  x.appendChild(icon('close'));
+  x.addEventListener('click', cancel);
+  box.append(img, x, el('p', 'ae-zoom-hint', I18N_IT.zoomHint));
+
+  let scale = 1, tx = 0, ty = 0;
+  const pointers = new Map();
+  let pinch = null;
+  let pan = null;
+  let lastTap = null;
+  const centre = () => { const r = box.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  // L'immagine non può uscire dallo schermo più del necessario: a scala 1 resta al centro
+  const clampPan = () => {
+    const maxX = Math.max(0, (img.offsetWidth * scale - box.clientWidth) / 2);
+    const maxY = Math.max(0, (img.offsetHeight * scale - box.clientHeight) / 2);
+    tx = Math.max(-maxX, Math.min(maxX, tx));
+    ty = Math.max(-maxY, Math.min(maxY, ty));
+  };
+  const apply = animate => {
+    clampPan();
+    img.style.transition = animate ? 'transform .2s ease-out' : 'none';
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    box.classList.toggle('is-zoomed', scale > 1.01);
+  };
+  // Zoom intorno a un punto dello schermo (resta sotto le dita / sotto il tocco)
+  const zoomAt = (newScale, px, py, animate) => {
+    const c = centre();
+    const s = Math.max(1, Math.min(ZOOM_MAX, newScale));
+    const ix = (px - c.x - tx) / scale;
+    const iy = (py - c.y - ty) / scale;
+    scale = s;
+    tx = px - c.x - ix * s;
+    ty = py - c.y - iy * s;
+    apply(animate);
+  };
+  box.addEventListener('pointerdown', e => {
+    if (e.target.closest('.ae-zoom-close')) return;
+    try { box.setPointerCapture(e.pointerId); } catch (_) {}
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: scale, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, tx, ty };
+      pan = null;
+    } else if (pointers.size === 1) {
+      pan = { x: e.clientX, y: e.clientY, tx, ty, moved: false };
+    }
+  });
+  box.addEventListener('pointermove', e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      // Punto dell'immagine che era sotto le dita all'inizio: resta sotto le dita
+      const c = centre();
+      const ix = (pinch.mx - c.x - pinch.tx) / pinch.s;
+      const iy = (pinch.my - c.y - pinch.ty) / pinch.s;
+      scale = Math.max(1, Math.min(ZOOM_MAX, pinch.s * d / pinch.d));
+      tx = mx - c.x - ix * scale;
+      ty = my - c.y - iy * scale;
+      apply(false);
+    } else if (pan) {
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      if (Math.hypot(dx, dy) > DRAG_THRESHOLD) pan.moved = true;
+      if (scale > 1) { tx = pan.tx + dx; ty = pan.ty + dy; apply(false); }
+    }
+  });
+  const end = e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pointers.size === 1) {
+      // Da due dita a una: si continua a spostare con quella rimasta
+      const [p] = [...pointers.values()];
+      pan = { x: p.x, y: p.y, tx, ty, moved: true };
+      return;
+    }
+    if (pointers.size) return;
+    // Doppio tocco: ingrandisce a 2,5× sul punto toccato, o torna a 1×
+    if (pan && !pan.moved && e.type === 'pointerup') {
+      const now = performance.now();
+      if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+        zoomAt(scale > 1.01 ? 1 : 2.5, e.clientX, e.clientY, true);
+        lastTap = null;
+      } else {
+        lastTap = { t: now, x: e.clientX, y: e.clientY };
+      }
+    }
+    pan = null;
+    if (scale < 1.02) { scale = 1; tx = 0; ty = 0; apply(true); }
+  };
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  box.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomAt(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY, false);
+  }, { passive: false });
+  close = openModal(box, { onCancel: cancel, initialFocus: x, closeOnScrim: false });
+  box.parentElement.classList.add('ae-zoom-backdrop');
+}
+
 function updateNemesisFlip(preview) {
   const flip = preview.querySelector('.nemesis-flip');
   const showBack = nemesisShowBack && flip.classList.contains('has-back');
@@ -1464,14 +1649,30 @@ function updateNemesisFlip(preview) {
   dots.children[1].classList.toggle('is-on', showBack);
 }
 
-// Nemesi della wave scelta: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
-function renderBosses(wave) {
+// Wave scelte nella pagina Nuova partita (anche più di una): si vedono le nemesi di tutte
+let selectedWaves = [];
+
+// Numero della wave in cifre romane per mostrarla ("4 - The New Age" → "IV - The New Age"); il valore resta quello di
+// nemesis.json
+function toRoman(n) {
+  const map = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let out = '';
+  map.forEach(([v, s]) => { while (n >= v) { out += s; n -= v; } });
+  return out;
+}
+function waveLabel(wave) {
+  return String(wave).replace(/^(\d+)(\s*-\s*)/, (m, num, sep) => toRoman(Number(num)) + sep);
+}
+
+// Nemesi delle wave scelte: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
+function renderBosses() {
   const list = document.getElementById('nemesis-list');
-  // Prima le nemesi della scatola base della wave, poi quelle delle mini espansioni; in ognuno dei due gruppi per battaglia
+  // Per wave (nell'ordine delle wave); in ogni wave prima le nemesi della scatola base, poi quelle delle mini espansioni,
+  // in ognuno dei due gruppi per battaglia
   const byBattle = n => (n.battle === null || n.battle === undefined ? 99 : n.battle);
-  const ofWave = nemeses.filter(n => n.wave === wave)
+  const ofWave = nemeses.filter(n => selectedWaves.includes(n.wave))
     .map((n, i) => ({ n, i }))
-    .sort((a, b) => (!!a.n.miniExpansion - !!b.n.miniExpansion) || (byBattle(a.n) - byBattle(b.n)) || (a.i - b.i))
+    .sort((a, b) => (a.n.waveOrder - b.n.waveOrder) || (!!a.n.miniExpansion - !!b.n.miniExpansion) || (byBattle(a.n) - byBattle(b.n)) || (a.i - b.i))
     .map(x => x.n);
   const playable = ofWave.filter(isPlayable);
   const others = ofWave.filter(n => !isPlayable(n));
@@ -1507,7 +1708,7 @@ function renderBosses(wave) {
       }
       settings.nemesis = info.name;
       nemesisPreviewOpen = false;
-      renderBosses(wave);
+      renderBosses();
       const selected = list.querySelector('.nemesis-item.is-selected .nemesis-option');
       if (selected) selected.focus({ preventScroll: true });
     });
@@ -1554,17 +1755,15 @@ function renderStartChoices() {
   startOptions.waves = ownedWaves();
   ensureCollectionButton();
   renderPlayers();
-  const waveSelect = document.getElementById('wave-select');
   const current = nemeses.find(n => n.name === settings.nemesis);
-  waveSelect.replaceChildren(...startOptions.waves.map(wave => {
-    const option = el('option', '', wave);
-    option.value = wave;
-    return option;
-  }));
-  waveSelect.value = current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0];
+  // Wave scelte: quelle di prima ancora nella collezione; se nessuna, la wave della nemesi scelta (o la prima)
+  selectedWaves = selectedWaves.filter(w => startOptions.waves.includes(w));
+  if (!selectedWaves.length) {
+    selectedWaves = [current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0]].filter(Boolean);
+  }
   ensureWaveGroup();
   renderWavePills();
-  renderBosses(waveSelect.value);
+  renderBosses();
   // "Includi carte base potenziate" tolto (per ora non serve): le carte potenziate sono sempre incluse
   settings.includeUpgraded = true;
 }
@@ -1609,19 +1808,21 @@ function startHomeActions() {
   return box;
 }
 
-// Menu (tre linee) in alto a destra della pagina "Nuova partita"
-function startMenuButton() {
-  let b = document.getElementById('start-menu-btn');
-  if (b) return b;
-  b = el('button', 'ae-icon-button ae-menu-button start-menu-button');
-  b.id = 'start-menu-btn';
-  b.type = 'button';
-  b.setAttribute('aria-label', I18N_IT.menu);
-  b.setAttribute('aria-haspopup', 'dialog');
-  b.appendChild(el('span', 'ae-menu-lines'));
-  b.addEventListener('click', () => openStartMenu(b));
-  startLayer.appendChild(b);
-  return b;
+// Testata della pagina "Nuova partita": titolo e X (torna al menu iniziale). Resta ferma in alto mentre la pagina scorre
+// sotto, e sotto di lei il contenuto sfuma nel nero (style.css .start-setup-head)
+function startSetupHead() {
+  let head = document.getElementById('start-setup-head');
+  if (head) return head;
+  head = el('div', 'start-setup-head');
+  head.id = 'start-setup-head';
+  const x = el('button', 'ae-icon-button start-setup-close');
+  x.type = 'button';
+  x.setAttribute('aria-label', I18N_IT.backToMenu);
+  x.appendChild(icon('close'));
+  x.addEventListener('click', () => setStartMode('home', true));
+  head.append(el('h1', 'start-setup-title', I18N_IT.newGameTitle), x);
+  document.querySelector('.start-box').prepend(head);
+  return head;
 }
 
 function setStartMode(mode, focus) {
@@ -1632,7 +1833,10 @@ function setStartMode(mode, focus) {
   const isHome = startMode === 'home';
   panel.hidden = !isHome || !saved;
   home.hidden = !isHome;
-  startMenuButton().hidden = isHome;
+  startSetupHead().hidden = isHome;
+  // Il vecchio Menu della pagina Nuova partita (sostituito dalla X) si toglie anche da una pagina già aperta
+  const oldMenu = document.getElementById('start-menu-btn');
+  if (oldMenu) oldMenu.remove();
   startLayer.classList.toggle('is-setup', !isHome);
   panel.parentElement.classList.toggle('is-choosing', isHome);
   // Con una partita in corso "Nuova partita" è secondario (il principale è Riprendi partita)
@@ -1687,8 +1891,9 @@ function buildStartPage() {
   renderStartChoices();
 }
 
-// Wave: gruppo a sé ("Wave"), sopra la Nemesi, con pillole tonde una accanto all'altra (diverse dai riquadri delle
-// nemesi). Il vecchio menu a tendina resta nascosto e tiene il valore. Creato qui, così vale anche con un index.html vecchio.
+// Wave: gruppo a sé ("Wave"), sopra la Nemesi, con un menu a tendina in cui si spuntano una o più wave (in cifre
+// romane). Accanto al titolo "Nemesi" il dado sceglie una nemesi a caso. Creati qui, così valgono anche con un
+// index.html vecchio (il vecchio <select> della wave resta nascosto e non si usa più).
 function ensureWaveGroup() {
   let group = document.getElementById('wave-group');
   if (group) return group;
@@ -1698,14 +1903,49 @@ function ensureWaveGroup() {
   group.setAttribute('aria-labelledby', 'wave-label');
   const label = el('h2', 'start-label', I18N_IT.wave);
   label.id = 'wave-label';
-  const pills = el('div', 'wave-pills');
-  pills.id = 'wave-pills';
-  pills.setAttribute('role', 'group');
-  pills.setAttribute('aria-labelledby', 'wave-label');
-  group.append(label, pills);
+  const dropdown = el('div', 'wave-dropdown');
+  dropdown.id = 'wave-pills';
+  const toggle = el('button', 'wave-dropdown-toggle');
+  toggle.type = 'button';
+  toggle.setAttribute('aria-haspopup', 'true');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', 'wave-menu');
+  toggle.append(el('span', 'wave-dropdown-text'));
+  toggle.insertAdjacentHTML('beforeend', CHEVRON_SVG);
+  const menu = el('div', 'wave-menu');
+  menu.id = 'wave-menu';
+  menu.setAttribute('role', 'group');
+  menu.setAttribute('aria-label', I18N_IT.wavesLabel);
+  menu.hidden = true;
+  const setOpen = open => {
+    menu.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    dropdown.classList.toggle('is-open', open);
+  };
+  toggle.addEventListener('click', () => setOpen(menu.hidden));
+  // Un tocco fuori dal menu (o Esc) lo chiude
+  document.addEventListener('pointerdown', e => { if (!menu.hidden && !dropdown.contains(e.target)) setOpen(false); });
+  dropdown.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) { e.stopPropagation(); setOpen(false); toggle.focus(); } });
+  dropdown.append(toggle, menu);
+  group.append(label, dropdown);
   const nemesisGroup = document.getElementById('nemesis-list').closest('.start-group');
   nemesisGroup.before(group);
   nemesisGroup.classList.add('start-nemesis');
+  // Titolo "Nemesi" con a destra il dado (nemesi a caso tra tutte quelle della collezione)
+  const nemesisLabel = document.getElementById('nemesis-label');
+  if (nemesisLabel && !document.getElementById('nemesis-random')) {
+    const row = el('div', 'start-label-row');
+    nemesisLabel.before(row);
+    row.appendChild(nemesisLabel);
+    const dice = el('button', 'ae-icon-button nemesis-random');
+    dice.id = 'nemesis-random';
+    dice.type = 'button';
+    dice.setAttribute('aria-label', I18N_IT.randomNemesis);
+    dice.title = I18N_IT.randomNemesis;
+    dice.innerHTML = DICE_SVG;
+    dice.addEventListener('click', pickRandomNemesis);
+    row.appendChild(dice);
+  }
   if (select) {
     select.hidden = true;
     group.appendChild(select);
@@ -1715,22 +1955,53 @@ function ensureWaveGroup() {
   return group;
 }
 
+const DICE_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">'
+  + '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/>'
+  + '<circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/>'
+  + '<circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/>'
+  + '<circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/></svg>';
+
+// Menu a tendina delle wave: testo con le wave scelte e, aperto, una casella per wave. Resta sempre almeno una wave.
 function renderWavePills() {
-  const select = document.getElementById('wave-select');
-  const pills = document.getElementById('wave-pills');
-  pills.replaceChildren(...startOptions.waves.map(wave => {
-    const b = el('button', 'wave-pill', wave);
-    b.type = 'button';
-    b.setAttribute('aria-pressed', String(wave === select.value));
-    b.addEventListener('click', () => {
-      if (select.value === wave) return;
-      select.value = wave;
+  const dropdown = document.getElementById('wave-pills');
+  const text = dropdown.querySelector('.wave-dropdown-text');
+  const menu = dropdown.querySelector('.wave-menu');
+  const chosen = startOptions.waves.filter(w => selectedWaves.includes(w));
+  text.textContent = !chosen.length ? I18N_IT.wavesNone
+    : chosen.length === 1 ? waveLabel(chosen[0]) : I18N_IT.wavesMore(waveLabel(chosen[0]), chosen.length - 1);
+  menu.replaceChildren(...startOptions.waves.map(wave => {
+    const row = el('label', 'wave-option');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = selectedWaves.includes(wave);
+    input.addEventListener('change', () => {
+      if (input.checked) selectedWaves.push(wave);
+      else if (selectedWaves.length > 1) selectedWaves = selectedWaves.filter(w => w !== wave);
+      else input.checked = true;
+      nemesisPreviewOpen = false;
       renderWavePills();
-      renderBosses(wave);
-      pills.querySelector('[aria-pressed="true"]').focus({ preventScroll: true });
+      renderBosses();
     });
-    return b;
+    row.append(input, el('span', 'wave-option-box'), el('span', 'wave-option-name', waveLabel(wave)));
+    return row;
   }));
+}
+
+// Dado: una nemesi a caso tra tutte quelle giocabili della collezione (se possibile diversa da quella scelta); la sua
+// wave si aggiunge alle wave scelte e la pagina scorre fino a lei
+function pickRandomNemesis() {
+  const all = nemeses.filter(isPlayable);
+  if (!all.length) return;
+  const pool = all.length > 1 ? all.filter(n => n.name !== settings.nemesis) : all;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  if (!selectedWaves.includes(pick.wave)) selectedWaves.push(pick.wave);
+  settings.nemesis = pick.name;
+  nemesisPreviewOpen = false;
+  renderWavePills();
+  renderBosses();
+  const selected = document.querySelector('.nemesis-item.is-selected');
+  if (selected) selected.scrollIntoView({ block: 'center', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  showToast(pick.name);
 }
 
 // Il pulsante "La mia collezione" non è più nella pagina "Nuova partita" (sta in Opzioni e nel Menu): si toglie anche
@@ -1778,23 +2049,6 @@ function openOptions(trigger) {
   item.focus();
 }
 
-// Menu della pagina "Nuova partita": Esci (torna al menu iniziale) e La mia collezione
-function openStartMenu(trigger) {
-  let close = () => {};
-  const cancel = () => close();
-  const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
-  panel.classList.add('ae-side-menu');
-  const collectionItem = button(I18N_IT.myCollection, 'secondary', () => { close(); openCollection(trigger); });
-  collectionItem.classList.add('ae-button--full');
-  const exit = button(I18N_IT.exit, 'secondary', () => { close(); setStartMode('home', true); });
-  exit.classList.add('ae-button--full', 'ae-side-exit');
-  panel.append(collectionItem, exit);
-  close = openModal(panel, { onCancel: cancel, initialFocus: collectionItem });
-  panel.parentElement.classList.add('ae-modal-backdrop--side');
-  swipeToClose(panel, cancel);
-  menuCloseToggle(trigger, panel.parentElement, cancel);
-}
-
 // Schermata "La mia collezione": per ogni wave un interruttore (la wave, cioè la sua scatola base) e sotto le sue
 // mini espansioni. Togliendo una wave si tolgono anche le sue mini espansioni. Le scelte valgono solo con
 // "Salva collezione"; la X torna indietro senza salvare.
@@ -1836,7 +2090,7 @@ function openCollection(trigger, onSaved) {
   collectionCatalog().forEach(({ wave, products }) => {
     const block = el('section', 'collection-wave');
     const base = products[0];
-    const waveRow = toggle(wave, base.id, 'is-wave');
+    const waveRow = toggle(waveLabel(wave), base.id, 'is-wave');
     const minis = products.slice(1).map(m => toggle(m.name, m.id, 'is-mini'));
     const sync = () => {
       const on = draft.has(base.id);
@@ -2015,6 +2269,7 @@ function restore(s) {
   stats = Object.assign(emptyStats(deck.length + queue.length + discard.length), s.stats ? JSON.parse(JSON.stringify(s.stats)) : {});
   stats.minions = Array.isArray(stats.minions) ? stats.minions : [];
   stats.cards = Object.assign(emptyStats(0).cards, stats.cards || {});
+  stats.tierAt = Object.assign({}, stats.tierAt || {});
 
   if (s.resolving && queue.length > 0) {
     resolving = true;
@@ -2331,8 +2586,8 @@ function focusStatus(entry) {
   const status = el('p', 'ae-focus-status');
   if (hasHp(entry)) {
     status.classList.add('is-hp');
-    // Minion appena pescato: solo il valore della vita (senza /totale)
-    status.append(icon('heart'), el('span', '', entry.isNew ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.data.hp)));
+    // Solo la vita attuale: "x/X" si vede solo mentre si fa danno (box del turno giocatori e finestra della vita)
+    status.append(icon('heart'), el('span', '', String(entry.hp)));
   } else if (entry.data.type === 'Power') {
     status.classList.add('is-token');
     status.appendChild(tokenIcons(entry.tokens));
@@ -2655,7 +2910,12 @@ function drawNewCard() {
   // Carta pescata: vibrazione breve, doppia e più forte per un attacco (la scritta Tier, se c'è, ha la sua)
   buzz(data.type === 'Attack' ? [80, 60, 80] : 30);
   // Prima carta del Tier 2 o del Tier 3: scritta "Tier N" al centro (mostrata da render)
-  if (data.tier >= 2 && data.tier > maxTierDrawn) ui.tierBanner = data.tier;
+  if (data.tier >= 2 && data.tier > maxTierDrawn) {
+    ui.tierBanner = data.tier;
+    // Statistiche: da qui comincia il tempo del nuovo Tier
+    if (!stats.tierAt) stats.tierAt = {};
+    stats.tierAt[data.tier] = Date.now();
+  }
   if (data.tier > maxTierDrawn) maxTierDrawn = data.tier;
 }
 
@@ -3138,6 +3398,9 @@ function checkVictory() {
 // Schermata Vittoria: scritta "Vittoria" come il banner dei Tier, ma resta ferma sullo schermo; sotto Statistiche e
 // Menu iniziale; un tocco su una parte vuota torna alla partita com'era. Si apre da sola (checkVictory) o dal Menu ("Nemesi uccisa").
 function showVictory() {
+  // Fine del tempo di partita (statistiche): l'ultima volta che si arriva alla Vittoria
+  stats.endedAt = Date.now();
+  save();
   let close = () => {};
   const cancel = () => close();
   const screen = el('div', 'ae-victory-screen');
@@ -3191,6 +3454,11 @@ function openStats() {
     list.appendChild(row);
     if (cards) list.appendChild(statsCardStrip(cards, listLabel));
   });
+  // Tempi: partita intera e ogni Tier (dalla sua prima carta pescata alla prima del Tier dopo, o alla Vittoria)
+  const timeTitle = el('h3', 'ae-stats-subtitle', I18N_IT.statsTimeTitle);
+  const timeList = el('dl', 'ae-side-stats ae-stats-times');
+  statsTimes().forEach(([label, ms]) => timeList.append(el('dt', '', label),
+    el('dd', '', ms === null ? I18N_IT.statsTimeUnknown : formatDuration(ms))));
   // Turni in gioco di ogni minion: prima quelli uccisi, poi quelli ancora in gioco
   const minions = [
     ...stats.minions.map(m => ({ name: m.name, turns: m.turns, alive: false })),
@@ -3208,8 +3476,35 @@ function openStats() {
   }
   const footer = el('div', 'ae-modal-footer');
   footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
-  dialog.append(list, minionTitle, minionList, footer);
+  dialog.append(timeTitle, timeList, list, minionTitle, minionList, footer);
   close = openModal(dialog, { onCancel: cancel });
+}
+
+// Tempi delle statistiche: [etichetta, millisecondi o null]. La fine è la Vittoria (stats.endedAt) o adesso.
+// Il tempo è quello dell'orologio: comprende anche le pause con l'app chiusa.
+function statsTimes() {
+  const start = stats.startedAt;
+  const at = stats.tierAt || {};
+  const end = stats.endedAt || Date.now();
+  if (!start) return [[I18N_IT.statsTime, null], [I18N_IT.statsTierTime(1), null], [I18N_IT.statsTierTime(2), null], [I18N_IT.statsTierTime(3), null]];
+  const t2 = at[2] || null;
+  const t3 = at[3] || null;
+  const span = (from, to) => (from ? Math.max(0, (to || end) - from) : null);
+  return [
+    [I18N_IT.statsTime, Math.max(0, end - start)],
+    [I18N_IT.statsTierTime(1), span(start, t2 || t3)],
+    [I18N_IT.statsTierTime(2), span(t2, t3)],
+    [I18N_IT.statsTierTime(3), span(t3, null)]
+  ];
+}
+
+// Durata leggibile: "45 s", "12 min 05 s", "1 h 07 min"
+function formatDuration(ms) {
+  const s = Math.round(ms / 1000);
+  const pad = n => String(n).padStart(2, '0');
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ${pad(s % 60)} s`;
+  return `${Math.floor(s / 3600)} h ${pad(Math.floor((s % 3600) / 60))} min`;
 }
 
 // Box delle statistiche: miniature in fila (scorrono in orizzontale); i minion con la vita stampata sulla carta
@@ -3881,6 +4176,23 @@ function openSideMenu() {
   bgSelect.value = currentBackground().id;
   bgSelect.addEventListener('change', () => setBackground(bgSelect.value));
   bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), bgSelect);
+  // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
+  const backRow = el('div', 'ae-side-field');
+  const backBtn = el('button', 'ae-back-choice');
+  backBtn.type = 'button';
+  const backThumb = el('img', 'ae-back-choice-thumb');
+  backThumb.alt = '';
+  const syncBack = () => {
+    const b = currentCardBack();
+    backThumb.src = b.thumb;
+    backName.textContent = I18N_IT.cardBacks[b.id];
+    backBtn.setAttribute('aria-label', I18N_IT.cardBackChosen(I18N_IT.cardBacks[b.id]));
+  };
+  const backName = el('span', 'ae-back-choice-name');
+  backBtn.append(backThumb, backName);
+  backBtn.addEventListener('click', () => openCardBackPicker(syncBack));
+  syncBack();
+  backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), backBtn);
   const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
@@ -3903,11 +4215,44 @@ function openSideMenu() {
     restart.classList.add('ae-button--full');
     items.splice(1, 0, restart);
   }
-  panel.append(...items, bgRow, exit);
+  panel.append(...items, bgRow, backRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
   swipeToClose(panel, cancel);
   menuCloseToggle(menuBtn, panel.parentElement, cancel);
+}
+
+// Scelta del dorso delle carte: griglia di miniature; un tocco sceglie il dorso, lo applica subito e chiude
+function openCardBackPicker(onChosen) {
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(I18N_IT.cardBack, '', cancel, { displayTitle: false });
+  dialog.classList.add('ae-back-picker');
+  const grid = el('div', 'ae-back-grid');
+  const chosen = currentCardBack().id;
+  CARD_BACKS.forEach(b => {
+    const item = el('button', 'ae-back-item');
+    item.type = 'button';
+    item.setAttribute('aria-pressed', String(b.id === chosen));
+    const img = el('img');
+    img.alt = '';
+    img.loading = 'lazy';
+    img.src = b.thumb;
+    item.append(img, el('span', 'ae-back-item-name', I18N_IT.cardBacks[b.id]));
+    item.addEventListener('click', () => {
+      setCardBack(b.id);
+      close();
+      if (onChosen) onChosen();
+      // Il carosello si ridisegna anche se non è cambiato niente, così il dorso da pescare prende quello nuovo
+      focusSignature = '';
+      if (startLayer.hidden) render();
+    });
+    grid.appendChild(item);
+  });
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
+  dialog.append(grid, footer);
+  close = openModal(dialog, { onCancel: cancel, initialFocus: grid.querySelector('[aria-pressed="true"]') });
 }
 
 // Pulsante Menu aperto: sopra il menu, nello stesso punto del pulsante, le tre linee diventano una X (animazione
@@ -4038,7 +4383,6 @@ cancelDraftsBtn.addEventListener('click', () => {
 resolveBtn.addEventListener('click', onResolveClick);
 backBtn.addEventListener('click', backToActive);
 retryBtn.addEventListener('click', init);
-document.getElementById('wave-select').addEventListener('change', e => renderBosses(e.target.value));
 // Interruttore "Includi carte base potenziate" tolto: si toglie anche da un index.html vecchio in cache
 {
   const upgradedRow = document.getElementById('upgraded-switch');
