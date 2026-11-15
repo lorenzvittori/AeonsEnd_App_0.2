@@ -162,6 +162,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   Dalla v188 il turno nemesi ha anche lo stesso spazio tra le carte grandi (18px, `.ae-focus-track`; prima 12px):
   a parte la fase di pesca e i pulsanti, fascia, box vita/token e carte grandi hanno posizioni e misure identiche nei
   due turni (verificato con JS su 375×812).
+- **Spazi uguali** (v189, `stackLayout` / `applyStack` in script.js, `--ae-stack-gap` in style.css): su qualsiasi
+  schermo i 4 spazi fascia piccola → box vita/token → carta → comandi → pulsante sono uguali. Lo spazio tra la fascia e
+  il pulsante = box (37) + carta + comandi (44) + 4 spazi; gli spazi partono da 6px (`STACK_GAP`) e la carta prende il
+  resto; se la carta è limitata dalla larghezza (schermi alti e stretti) l'altezza che avanza si divide in parti uguali
+  tra i 4 spazi. Niente più centratura né spostamenti fissi (-14/-24px). Il turno nemesi usa la stessa regola (sotto la
+  carta resta vuoto il posto dei comandi). Verificato con JS: 360×640, 375×812, 412×915 (spazi 18px), 768×1024.
+  La carta da pescare / pescata resta centrata nell'area; la sua misura (90% della massima) ora è circa uguale alle
+  carte normali (su tablet un po' più piccola).
 - Sotto ogni carta grande i suoi comandi:
   - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza
