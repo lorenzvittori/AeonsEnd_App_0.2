@@ -1189,8 +1189,21 @@ body { overflow: hidden; }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
 /* v176: poteri con più di 3 token: token e spazi rimpiccioliti di 3/n (script.js tokenIcons), il box resta quello da 3 */
-.ae-tokens.is-many { gap: var(--ae-token-gap, 2px); }
 .ae-tokens.is-many .ae-token { zoom: var(--ae-token-zoom, 1); }
+/* v178: 4-5 token: il box ha la larghezza di quello con 3 token (padding laterale + 3 token + 2 spazi da 2px); lo spazio
+   libero (2 × padding + 4px) si divide in n + 1 parti uguali: tra un token e l'altro e tra i token e il bordo.
+   --ae-badge-px = padding laterale del box con 3 token in quel punto dell'app */
+.ae-status-badge.has-many-tokens { --ae-badge-px: 8px; padding-left: 0; padding-right: 0; }
+.ae-compact-rail .ae-status-badge.has-many-tokens { --ae-badge-px: 4px; }
+.queue-slot .ae-status-badge.has-many-tokens { --ae-badge-px: 0px; }
+.ae-status-badge.has-many-tokens .ae-tokens {
+  --ae-token-space: calc((2 * var(--ae-badge-px) + 4px) / (var(--ae-token-n, 3) + 1));
+  gap: var(--ae-token-space); padding: 0 var(--ae-token-space); max-width: none;
+}
+.ae-tokens.is-many { gap: calc(4px / (var(--ae-token-n, 3) - 1)); }
+/* v178: più di 5 token: un token e il numero */
+.ae-tokens.is-count { gap: .25em; }
+.ae-token-count { font-variant-numeric: tabular-nums; }
 /* v175: Statistiche maghi, tabella (una riga per giocatore, con il pallino del suo colore) */
 .ae-stats-mages { width: 100%; border-collapse: collapse; table-layout: fixed; font: 500 13px/17px var(--ae-font-ui); }
 .ae-stats-mages th, .ae-stats-mages td { padding: 6px 3px; text-align: center; vertical-align: middle; }

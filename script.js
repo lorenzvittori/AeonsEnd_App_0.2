@@ -108,7 +108,7 @@ const I18N_IT = {
   statsTimeTitle: 'Tempi',
   statsMinionsTitle: 'Turni in gioco dei minion',
   statsMagesTitle: 'Statistiche maghi',
-  statsMagesHead: ['Mago', 'Danni minion', 'Poteri scartati', 'Æ spesi', 'Minion uccisi'],
+  statsMagesHead: ['Mago', 'Danni minion', 'Minion uccisi', 'Poteri scartati', 'Æ spesi'],
   statsNoMinions: 'Nessun minion in gioco in questa partita',
   minionTurns: n => (n === 1 ? '1 turno' : `${n} turni`),
   stillInPlay: 'ancora in gioco',
@@ -666,13 +666,19 @@ function cardArt(data, { thumb = false, lazy = false, sync = false } = {}) {
 function tokenIcons(n) {
   const row = el('span', 'ae-tokens');
   row.setAttribute('aria-hidden', 'true');
+  // Più di 5 token (v178): un token e il numero, come la vita dei minion (cuore e numero)
+  if (n > 5) {
+    row.classList.add('is-count');
+    row.append(el('span', 'ae-token'), el('span', 'ae-token-count', String(n)));
+    return row;
+  }
   for (let i = 0; i < Math.max(0, n); i++) row.appendChild(el('span', 'ae-token'));
-  // Più di 3 token (v176): token e spazi si rimpiccioliscono di 3/n, così la fila (e il box) resta larga come con 3
+  // 4 o 5 token (v176): i token si rimpiccioliscono di 3/n, così la fila (e il box) resta larga come con 3.
+  // v178: lo spazio libero si divide in parti uguali tra token e tra token e bordo (style.css .has-many-tokens)
   if (n > 3) {
     row.classList.add('is-many');
     row.style.setProperty('--ae-token-zoom', String(3 / n));
-    // Gli spazi tra i token si dividono gli stessi 4px dei 2 spazi tra 3 token
-    row.style.setProperty('--ae-token-gap', `${4 / (n - 1)}px`);
+    row.style.setProperty('--ae-token-n', String(n));
   }
   return row;
 }
@@ -722,6 +728,7 @@ function statusBadge(entry) {
     badge.append(icon('heart'), el('span', '', hpText));
   } else if (entry.data.type === 'Power') {
     badge.classList.add('ae-status-badge--tokens');
+    if (entry.tokens > 3 && entry.tokens <= 5) badge.classList.add('has-many-tokens');
     badge.appendChild(tokenIcons(entry.tokens));
   } else {
     // Attacco: nessun badge, solo lo spazio per tenere allineate le carte
@@ -3774,8 +3781,8 @@ function openStats() {
     const dot = el('span', 'ae-stats-mage-dot');
     dot.dataset.kind = kind;
     name.append(dot, kind === 'wild' ? I18N_IT.trackWildName : I18N_IT.trackPlayerName(Number(kind.slice(1))));
-    tr.append(name, el('td', '', String(m.damage)), el('td', '', String(m.powers)), el('td', '', '—'),
-      el('td', '', String(m.kills)));
+    tr.append(name, el('td', '', String(m.damage)), el('td', '', String(m.kills)), el('td', '', String(m.powers)),
+      el('td', '', '—'));
     body.appendChild(tr);
   });
   const footer = el('div', 'ae-modal-footer');

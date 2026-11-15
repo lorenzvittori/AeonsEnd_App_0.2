@@ -149,8 +149,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     danno in corso si vede solo la vita. Lo stesso nella finestra della vita ("HP x / X") e, nel turno nemesi, la riga
     sopra la carta mostra solo la vita;
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
-  - **poteri con più di 3 token** (v176, ovunque si vedono i token): i token e gli spazi si rimpiccioliscono di 3/n
-    (`zoom`, `tokenIcons`), così il box resta largo come con 3 token;
+  - **poteri con 4 o 5 token** (v176, ovunque si vedono i token): i token si rimpiccioliscono di 3/n (`zoom`,
+    `tokenIcons`), così il box resta largo come con 3 token; dalla v178 lo spazio libero si divide in parti uguali tra
+    un token e l'altro e tra i token e il bordo (`.has-many-tokens`, `--ae-badge-px`);
+  - **poteri con più di 5 token** (v178): un token e il numero, come la vita dei minion (`.ae-tokens.is-count`; il
+    token che si spegne da solo nel turno nemesi qui non si anima);
   - **altri poteri:** la nota "! Non rimovibile". Nella fascia piccola (in tutti e due i turni) hanno in basso al
     centro un box uguale a quello di token e vita, simmetrico a quello in alto, con un **simbolo di divieto** rosso
     (v169, `.ae-ban-badge`).
@@ -208,8 +211,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   "Turni in gioco dei minion" ha una riga per minion con la miniatura della carta (toccandola si vede grande), il
   nome e i turni; i minion uccisi hanno l'id in `stats.minions` dalla v163 (prima si cerca la carta per nome).
   **Statistiche maghi** (v175, prima di "Turni in gioco dei minion"): tabella con una riga per giocatore (con 3
-  giocatori anche il Jolly), con il pallino del suo colore, e le colonne *Danni minion*, *Poteri scartati*, *Æ spesi*
-  (per ora vuota, "—") e *Minion uccisi*. I numeri sono in `stats.mages` (`p1`…`p4`, `wild`) e si contano in
+  giocatori anche il Jolly), con il pallino del suo colore, e le colonne, in quest'ordine (v178), *Danni minion*,
+  *Minion uccisi*, *Poteri scartati* e *Æ spesi* (per ora vuota, "—"). I numeri sono in `stats.mages` (`p1`…`p4`, `wild`) e si contano in
   `saveAllDrafts`, assegnati al giocatore del turno in corso (mazzo dei turni): danni = vita tolta ai minion (le cure
   nello stesso salvataggio la riducono), minion uccisi = minion portati a 0. Non si contano le modifiche alla vita fatte
   nel turno nemesi né le partite salvate prima della v175.
