@@ -159,6 +159,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   Dalla v187: **6px** tra la barra della fase e la fascia (margin-top della fascia) e 6px tra la fascia e il box
   vita/token (`CONTROLS_RESERVE` = 30). Su 375×812 le carte normali sono 308×431, la carta da pescare / pescata 311
   (il 90% della misura massima, `BIG_CARD_SCALE`).
+  Dalla v188 il turno nemesi ha anche lo stesso spazio tra le carte grandi (18px, `.ae-focus-track`; prima 12px):
+  a parte la fase di pesca e i pulsanti, fascia, box vita/token e carte grandi hanno posizioni e misure identiche nei
+  due turni (verificato con JS su 375×812).
 - Sotto ogni carta grande i suoi comandi:
   - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza

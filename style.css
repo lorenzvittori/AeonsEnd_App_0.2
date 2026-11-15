@@ -567,6 +567,8 @@ body { overflow: hidden; }
 /* v186: anche nel turno nemesi -24px, così riga vita/token e carta sono alla stessa altezza del turno giocatori (4px
    sotto la fascia). La carta da pescare / pescata (.is-big) annulla lo spostamento: translate 24px, vedi sotto */
 .ae-focus-track { transform: translateY(-24px); }
+/* v188: stesso spazio tra le carte grandi del turno giocatori (18px), così le vicine spuntano uguali nei due turni */
+.ae-focus-track { gap: 18px; }
 
 /* Turno giocatori: barra di scorrimento delle carte grandi nascosta (come nel turno nemesi); si scorre col dito */
 .ae-queue-viewport { scrollbar-width: none; }
