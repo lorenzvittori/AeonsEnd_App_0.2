@@ -4,7 +4,6 @@
 - Implementare biblioteca carte e assistente per la creazione del mercato
 
 # Generale:
-- il menu vittoria è rotto a destra
 - cambiare visualizzazione di VITTORIA
 - Fare una back senza la scritta da usare per i mazzi
 - non mettere il nome nemesi e le info al centro ma spostale attaccate a destra
@@ -17,6 +16,7 @@
 - dare feedback di danni come nella 0.3
 - le wave non numerarle con numeri arabi ma con numeri romani
 - Aggiungere la scelta del back delle carte come valore estetico e customizzabile in più (idea: mettere il back delle carte da briscola)
+- Mettere le regole dentro il Gioco, magari copiando la wiki o addirittura mettendo una parte di ai (chiamata API)
 
 # Menu Principale 
 - togliere il box dei pulsanti, mostra solo le scritte
