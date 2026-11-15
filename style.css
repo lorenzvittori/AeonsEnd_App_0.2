@@ -1051,7 +1051,9 @@ body { overflow: hidden; }
 .ae-turn-track-bar { display: flex; gap: 6px; align-items: center; height: 8px; }
 .ae-turn-seg {
   --ae-seg: var(--ae-turn-off);
-  flex: 1 1 0; min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
+  /* v172: larghezza esplicita (non flex: 1 1 0), così il passaggio a casella accesa si anima da 42px a 104px e non
+     da 0. 5 caselle normali + 1 accesa (doppia) + 5 spazi da 6px = 100% */
+  flex: 0 0 calc((100% - 30px) * 2 / 15); min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
   transition: height .3s ease-out, flex-basis .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
 }
 .ae-turn-seg[data-kind="p1"] { --ae-seg: var(--ae-turn-p1); }
