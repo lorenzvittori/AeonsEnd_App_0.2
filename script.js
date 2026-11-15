@@ -1135,10 +1135,15 @@ function cardControls(entry) {
 function sizeQueue() {
   if (queueView.hidden) return;
   sizeColumn(queueViewport);
-  // Stessa regola del carosello del turno nemesi (sizeFocus, stackLayout): box vita/token, carta e comandi con 4 spazi
-  // uguali fino al pulsante; ai lati si vede un pezzo delle vicine
-  const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
-  const width = applyStack(queueViewport, peekRoom);
+  const style = getComputedStyle(queueViewport);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const gap = parseFloat(getComputedStyle(queueList).columnGap) || 18;
+  // Stessa regola del carosello del turno nemesi (sizeFocus): la carta riempie l'altezza, ai lati si vede un pezzo delle vicine
+  const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0; // come nel carosello: stessa larghezza della carta
+  // Come sizeFocus: sopra la carta il box vita/token (41px) e 8px di spazio. I comandi stanno fuori dal flusso, sotto la
+  // carta, così la carta ha la stessa posizione e dimensione del turno nemesi; solo su schermi bassi la si rimpicciolisce
+  // quanto basta perché i comandi (52px) restino dentro l'area (il blocco è centrato in verticale).
+  const width = Math.max(100, sharedCardWidth(queueViewport.clientWidth, queueViewport.clientHeight, padY, peekRoom));
   queueViewport.style.setProperty('--ae-queue-card', width + 'px');
   // Margini ai lati: la prima e l'ultima carta si centrano come le altre
   const side = Math.max(0, (queueViewport.clientWidth - width) / 2) + 'px';
@@ -2952,47 +2957,11 @@ focusEl.addEventListener('scroll', () => {
 // si riserva lo spazio anche nel turno nemesi; il blocco è centrato in verticale.
 // Altezza della riga vita/token sopra la carta: deve restare uguale a style.css .ae-focus-status e .queue-slot
 const STATUS_H = 37;
-// v185: carte più grandi, così lo spazio tra la fascia piccola e il box vita/token è uguale a quello tra la barra della
-// fase e la fascia (4px su un telefono 375×812): riserva per i comandi 27px sopra e sotto (prima 52), 5px di margine
-// per lato (prima 8)
-// v187: 6px sopra e sotto la fascia.
-// v189: 4 spazi UGUALI su qualsiasi schermo, tra fascia piccola e box vita/token, box e carta, carta e comandi,
-// comandi e pulsante. Lo spazio tra la fascia (= cima dell'area delle carte grandi) e il pulsante si divide in:
-// box (STATUS_H) + carta + comandi (CONTROLS_H) + 4 spazi. Gli spazi partono da STACK_GAP e la carta prende il resto;
-// se la carta è limitata dalla larghezza, l'altezza che avanza si divide in parti uguali tra i 4 spazi.
-// Anche il turno nemesi (senza comandi) usa la stessa regola, così carta e box sono nella stessa posizione.
-const STACK_GAP = 6;
-const CONTROLS_H = 44;
-const SIDE_MARGIN = 5;
-// Cima del pulsante principale (in basso): .ae-dock + il suo padding
-function stackBottom() {
-  const dock = document.querySelector('.ae-dock');
-  if (!dock) return window.innerHeight;
-  return dock.getBoundingClientRect().top + (parseFloat(getComputedStyle(dock).paddingTop) || 0);
-}
-// v190: spazio tra il pulsante principale e il fondo dello schermo; uguale a quello tra i comandi e il pulsante
-function buttonBottomSpace() {
-  const btn = [...document.querySelectorAll('.ae-dock .ae-button')].find(b => b.getBoundingClientRect().height > 0);
-  if (!btn) return 12;
-  return Math.max(0, window.innerHeight - btn.getBoundingClientRect().bottom);
-}
-// { w: larghezza della carta, gap: spazio uguale } per un'area che comincia a `top` (px dall'alto dello schermo).
-// v190: i comandi finiscono sopra il pulsante a una distanza uguale a quella tra il pulsante e il fondo dello schermo;
-// gli altri 3 spazi (fascia → box, box → carta, carta → comandi) sono uguali tra loro
-function stackLayout(top, boxW, peekRoom) {
-  const room = stackBottom() - buttonBottomSpace() - top;
-  const fixed = STATUS_H + CONTROLS_H;
-  const byHeight = (room - fixed - 3 * STACK_GAP) / CARD_RATIO;
-  const byWidth = boxW - 2 * SIDE_MARGIN - peekRoom;
-  const w = Math.max(40, Math.floor(Math.min(byHeight, byWidth)));
-  const gap = Math.max(0, (room - fixed - w * CARD_RATIO) / 3);
-  return { w, gap };
-}
-// Applica la misura a un'area (queueViewport o focusEl): --ae-stack-gap è lo spazio uguale (style.css v189)
-function applyStack(box, peekRoom) {
-  const layout = stackLayout(box.getBoundingClientRect().top, box.clientWidth, peekRoom);
-  box.style.setProperty('--ae-stack-gap', layout.gap.toFixed(2) + 'px');
-  return layout.w;
+function sharedCardWidth(boxW, boxH, padY, peekRoom) {
+  const byWidth = boxW - 16 - peekRoom; // 8px di margine per lato
+  const byHeight = (boxH - padY - STATUS_H - 8) / CARD_RATIO;
+  const byControls = (boxH - 2 * 52 - STATUS_H - 8) / CARD_RATIO;
+  return Math.floor(Math.min(byWidth, byHeight, byControls));
 }
 
 // Tablet e desktop (da 768px): la partita sta in una colonna al centro (--ae-col su .ae-shell, style.css). La colonna
@@ -3002,7 +2971,9 @@ const COLUMN_MIN = 440;
 const COLUMN_PEEK = 42;
 function sizeColumn(box) {
   if (window.innerWidth < 768) { app.style.removeProperty('--ae-col'); return; }
-  const card = stackLayout(box.getBoundingClientRect().top, Infinity, 0).w;
+  const style = getComputedStyle(box);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const card = sharedCardWidth(Infinity, box.clientHeight, padY, 0);
   if (!isFinite(card) || card <= 0) return;
   const col = Math.min(window.innerWidth, Math.max(COLUMN_MIN, card + 2 * (COLUMN_PEEK + PEEK_GAP) + 16));
   const current = parseFloat(app.style.getPropertyValue('--ae-col')) || 0;
@@ -3017,8 +2988,10 @@ function sizeFocus(recentre = true) {
   const slide = focusTrack.querySelector('.ae-focus-slide');
   if (!slide) return;
   sizeColumn(focusEl);
+  const style = getComputedStyle(focusEl);
+  const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
   const peekRoom = queue.length > 1 ? 2 * (PEEK_VISIBLE + PEEK_GAP) : 0;
-  const width = applyStack(focusEl, peekRoom);
+  const width = Math.max(40, sharedCardWidth(focusEl.clientWidth, focusEl.clientHeight, padY, peekRoom));
   focusEl.style.setProperty('--ae-focus-w', width + 'px');
   focusEl.style.setProperty('--cw', width + 'px');
   focusTrack.style.paddingInline = Math.max(0, (focusEl.clientWidth - width) / 2) + 'px';

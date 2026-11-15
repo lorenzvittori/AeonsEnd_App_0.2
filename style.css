@@ -550,8 +550,7 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-next-card .ae-new-tag { top: 3px; right: 3px; }
 /* Carte grandi più grandi: meno spazio in alto e in basso (testata 48px, fascia più vicina, meno margini) */
 .ae-shell.clear-header > .ae-header { min-height: calc(48px + var(--ae-safe-top)); }
-/* v187: 6px tra la barra della fase e la fascia (uguale allo spazio sotto la fascia, vedi script.js CONTROLS_RESERVE) */
-.queue-view .queue-rail, .ae-rail-row { margin-top: 6px; }
+.queue-view .queue-rail, .ae-rail-row { margin-top: 4px; }
 .ae-dock { padding-top: 4px; }
 .ae-focus { padding-top: 6px; padding-bottom: 6px; }
 .queue-view .ae-queue-viewport { padding-top: 6px; padding-bottom: 6px; }
@@ -564,21 +563,6 @@ body { overflow: hidden; }
 /* Turno giocatori: il blocco vita/token + carta + comandi (questi fuori dal flusso, 52px sotto la carta) è centrato tra
    la fascia in alto e il pulsante principale (prima era -14px come nel turno nemesi, e restava 10px in basso) */
 .queue-view .ae-queue-list { transform: translateY(-24px); }
-/* v186: anche nel turno nemesi -24px, così riga vita/token e carta sono alla stessa altezza del turno giocatori (4px
-   sotto la fascia). La carta da pescare / pescata (.is-big) annulla lo spostamento: translate 24px, vedi sotto */
-.ae-focus-track { transform: translateY(-24px); }
-/* v188: stesso spazio tra le carte grandi del turno giocatori (18px), così le vicine spuntano uguali nei due turni */
-.ae-focus-track { gap: 18px; }
-/* v189: box vita/token, carta e comandi in colonna dall'alto, con 4 spazi uguali (--ae-stack-gap, calcolato da
-   script.js stackLayout): fascia → box, box → carta, carta → comandi, comandi → pulsante. Niente centratura né
-   spostamenti fissi. La carta da pescare / pescata (.is-big) resta centrata nell'area */
-.queue-view .ae-queue-viewport { align-items: flex-start; padding-top: var(--ae-stack-gap, 6px); padding-bottom: 0; }
-.queue-view .ae-queue-list { transform: none; margin-top: 0; margin-bottom: 0; }
-.queue-slot > .ae-queue-item { gap: var(--ae-stack-gap, 6px); }
-.queue-slot > .queue-controls { margin-top: var(--ae-stack-gap, 6px); }
-.ae-focus { padding-top: var(--ae-stack-gap, 6px); padding-bottom: 0; }
-.ae-focus-track { transform: none; }
-.ae-focus-slide:not(.is-big) { justify-content: flex-start; gap: var(--ae-stack-gap, 6px); }
 
 /* Turno giocatori: barra di scorrimento delle carte grandi nascosta (come nel turno nemesi); si scorre col dito */
 .ae-queue-viewport { scrollbar-width: none; }
@@ -750,8 +734,8 @@ body { overflow: hidden; }
 .queue-slot .ae-new-tag { top: 43px; }
 
 /* Carta da pescare e carta pescata: cresce solo la carta (larghezza --ae-big-w da sizeFocus), la riga vita/token resta
-   come nelle altre carte. Il blocco è centrato in verticale (annulla lo spostamento in su del carosello: 24px dalla v186) */
-.ae-focus-slide.is-big { scale: none; translate: 0 0; flex-basis: var(--ae-big-w, var(--ae-focus-w, 280px)); --cw: var(--ae-big-w, 300px); }
+   come nelle altre carte. Il blocco è centrato in verticale (annulla lo spostamento in su di 14px del carosello) */
+.ae-focus-slide.is-big { scale: none; translate: 0 14px; flex-basis: var(--ae-big-w, var(--ae-focus-w, 280px)); --cw: var(--ae-big-w, 300px); }
 .ae-focus-slide.is-big .ae-focus-stage {
   scale: none; width: var(--ae-big-w, var(--ae-focus-w, 280px)); height: calc(var(--ae-big-w, var(--ae-focus-w, 280px)) * 88 / 63);
 }

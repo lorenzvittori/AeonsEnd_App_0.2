@@ -150,28 +150,6 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 
 **Turno dei giocatori**
 - In alto la fascia piccola con tutte le carte in gioco; sotto le stesse carte, grandi, che si scorrono in orizzontale.
-- **Carte grandi più grandi** (v185, `sharedCardWidth`, vale per tutti e due i turni): riserva per i comandi 27px sopra
-  e sotto (prima 52) e 5px di margine per lato (prima 8). Su un telefono 375×812 la carta passa da 278×389 a 313×437
-  e lo spazio tra la fascia piccola e il box vita/token è di 4px, uguale a quello tra la barra della fase e la fascia;
-  le carte vicine spuntano di circa 13px. Dalla v186 anche il carosello del turno nemesi è spostato in su di 24px
-  (`.ae-focus-track`, prima 14px), così riga vita/token e carta sono alla stessa altezza nei due turni; la carta da
-  pescare / pescata (`.is-big`) annulla lo spostamento (translate 24px) e resta centrata.
-  Dalla v187: **6px** tra la barra della fase e la fascia (margin-top della fascia) e 6px tra la fascia e il box
-  vita/token (`CONTROLS_RESERVE` = 30). Su 375×812 le carte normali sono 308×431, la carta da pescare / pescata 311
-  (il 90% della misura massima, `BIG_CARD_SCALE`).
-  Dalla v188 il turno nemesi ha anche lo stesso spazio tra le carte grandi (18px, `.ae-focus-track`; prima 12px):
-  a parte la fase di pesca e i pulsanti, fascia, box vita/token e carte grandi hanno posizioni e misure identiche nei
-  due turni (verificato con JS su 375×812).
-- **Spazi uguali** (v189, `stackLayout` / `applyStack` in script.js, `--ae-stack-gap` in style.css): su qualsiasi
-  schermo i 4 spazi fascia piccola → box vita/token → carta → comandi → pulsante sono uguali. Lo spazio tra la fascia e
-  il pulsante = box (37) + carta + comandi (44) + 4 spazi; gli spazi partono da 6px (`STACK_GAP`) e la carta prende il
-  resto; se la carta è limitata dalla larghezza (schermi alti e stretti) l'altezza che avanza si divide in parti uguali
-  tra i 4 spazi. Niente più centratura né spostamenti fissi (-14/-24px). Il turno nemesi usa la stessa regola (sotto la
-  carta resta vuoto il posto dei comandi). Verificato con JS: 360×640, 375×812, 412×915 (spazi 18px), 768×1024.
-  Dalla v190 lo spazio **comandi → pulsante** è uguale a quello **pulsante → fondo dello schermo** (12px,
-  `buttonBottomSpace`); gli altri 3 spazi restano uguali tra loro (6px su 375×812, 20px su 412×915).
-  La carta da pescare / pescata resta centrata nell'area; la sua misura (90% della massima) ora è circa uguale alle
-  carte normali (su tablet un po' più piccola).
 - Sotto ogni carta grande i suoi comandi:
   - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza
