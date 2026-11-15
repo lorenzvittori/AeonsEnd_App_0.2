@@ -3522,15 +3522,15 @@ function renderTurnTrack() {
     mark.dataset.kind = turnCardPlayer(kind) || kind;
     if (kind === 'wild') mark.classList.add('is-wild');
     // Centro della casella i (prima di quella accesa: tutte strette)
-    mark.style.left = `calc(${i} * ((100% - 30px) * 2 / 15 + 6px) + (100% - 30px) / 15)`;
+    mark.style.left = `calc(${i} * ((100% - 152px) / 5 + 6px) + (100% - 152px) / 10)`;
     turnTrackLabels.appendChild(mark);
   });
   turnTrackLabel.classList.toggle('is-start', cur <= 0);
   turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
-  // Centro della casella accesa (v170, style.css .ae-turn-seg.is-current): accesa = (100% - 30px) / 3, le altre
-  // (100% - 30px) × 2 / 15, spazi da 6px
+  // Centro della casella accesa (v184, style.css .ae-turn-seg.is-current): accesa = 122px, le altre
+  // (100% - 152px) / 5, spazi da 6px
   turnTrackLabel.style.left = cur >= 0
-    ? `calc(${cur} * ((100% - 30px) * 2 / 15 + 6px) + (100% - 30px) / 6)` : '0%';
+    ? `calc(${cur} * ((100% - 152px) / 5 + 6px) + 61px)` : '0%';
   const card = currentTurnCard();
   const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
     : card === 'wild' ? (turnOrder.wild ? I18N_IT.trackWildOf(turnOrder.wild) : I18N_IT.trackWild)

@@ -1054,7 +1054,8 @@ body { overflow: hidden; }
   --ae-seg: var(--ae-turn-off);
   /* v172: larghezza esplicita (non flex: 1 1 0), così il passaggio a casella accesa si anima da 42px a 104px e non
      da 0. 5 caselle normali + 1 accesa (doppia) + 5 spazi da 6px = 100% */
-  flex: 0 0 calc((100% - 30px) * 2 / 15); min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
+  /* v184: le 5 caselle normali si dividono lo spazio lasciato dalla casella accesa (122px) e dai 5 spazi da 6px */
+  flex: 0 0 calc((100% - 152px) / 5); min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
   transition: height .3s ease-out, flex-basis .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
 }
 .ae-turn-seg[data-kind="p1"] { --ae-seg: var(--ae-turn-p1); }
@@ -1076,7 +1077,8 @@ body { overflow: hidden; }
 /* v170: la casella del turno in corso è lunga il doppio di una casella a misura fissa (6 caselle, 5 spazi da 6px:
    (100% - 30px) / 6 × 2); le altre 5 si stringono nello spazio che resta */
 .ae-turn-seg.is-current {
-  flex: 0 0 calc((100% - 30px) / 3); height: 8px; border-radius: 4px; background: var(--ae-seg);
+  /* v184: misura fissa 122px, abbastanza per la scritta più lunga ("Nemesi · Risolvi", circa 114px) */
+  flex: 0 0 122px; height: 8px; border-radius: 4px; background: var(--ae-seg);
   box-shadow: 0 0 12px color-mix(in srgb, var(--ae-seg) 60%, transparent);
 }
 /* Turno giocatori che passa a un altro giocatore: la casella accesa pulsa una volta */

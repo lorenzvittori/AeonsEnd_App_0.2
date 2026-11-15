@@ -131,8 +131,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: jolly a caso.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
   carta del mazzo dei turni, nell'ordine di estrazione.
-  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e **lunga il doppio** di una casella
-    a misura fissa (v170: circa 104px contro 52px su un telefono da 375px); le altre si stringono (circa 42px). Quelle dei turni già giocati nel giro
+  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e più lunga delle altre: dalla v184
+    **122px fissi**, abbastanza per la scritta più lunga ("Nemesi · Risolvi", circa 114px); le altre 5 si dividono lo
+    spazio che resta (circa 38px su un telefono da 375px). (v170: il doppio di una casella normale.) Quelle dei turni già giocati nel giro
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
   - Colori (palette dell'utente, v174): giocatore 1 **lime** `#BDD21C`, 2 **arancio** `#D78E1C`, 3 **blu**
     `#1C518D`, 4 **viola** `#7C158E` (le scritte "Giocatore N" di blu e viola sono schiarite per leggersi), nemesi **rosso
