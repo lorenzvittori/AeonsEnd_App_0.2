@@ -139,7 +139,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-red`). Jolly (v179): **strisce bianche e del colore** del
     giocatore che è jolly in quel giro (`data-owner`); le bianche sono spesse la metà delle colorate (v180: 3px e 6px).
   - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" nel colore del giocatore (v169); nel turno
-    del jolly "**Jolly · Giocatore N**" (v179); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+    del jolly "**Jolly · Giocatore N**" (v179; "Jolly" in bianco dalla v181); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
   - Prima: due metà Giocatori/Nemesi con i pallini (v162), e prima ancora 6 segmenti fissi (v161).
 - **Niente linee di separazione** tra testata, fascia piccola e carte grandi (v162): le zone sono separate solo dallo

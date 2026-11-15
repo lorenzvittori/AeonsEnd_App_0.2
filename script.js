@@ -3503,7 +3503,8 @@ function renderTurnTrack() {
     const kind = currentTurnCard();
     const owner = turnCardPlayer(kind);
     if (kind === 'wild' && owner) {
-      turnTrackLabel.replaceChildren(I18N_IT.trackWildName, el('span', 'ae-turn-label-dot'),
+      // "Jolly" bianco (v181), "Giocatore N" nel colore del giocatore
+      turnTrackLabel.replaceChildren(el('span', 'ae-turn-label-wild', I18N_IT.trackWildName), el('span', 'ae-turn-label-dot'),
         I18N_IT.trackPlayerName(Number(owner.slice(1))));
     } else {
       turnTrackLabel.replaceChildren(kind === 'wild' ? I18N_IT.trackWildName

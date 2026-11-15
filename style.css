@@ -1090,6 +1090,7 @@ body { overflow: hidden; }
 }
 .ae-turn-label.is-start { left: 0 !important; transform: none; }
 .ae-turn-label.is-end { left: auto !important; right: 0; transform: none; }
+.ae-turn-label-wild { color: #fff; }
 .ae-turn-label-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 @media (prefers-reduced-motion: reduce) {
   .ae-turn-seg { transition: none; }
