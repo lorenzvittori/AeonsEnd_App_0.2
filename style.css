@@ -1188,6 +1188,19 @@ body { overflow: hidden; }
 .ae-stats-minion-turns { flex: 0 0 auto; font: 700 15px/20px var(--ae-font-ui); font-variant-numeric: tabular-nums; }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
+/* v175: Statistiche maghi, tabella (una riga per giocatore, con il pallino del suo colore) */
+.ae-stats-mages { width: 100%; border-collapse: collapse; table-layout: fixed; font: 500 13px/17px var(--ae-font-ui); }
+.ae-stats-mages th, .ae-stats-mages td { padding: 6px 3px; text-align: center; vertical-align: middle; }
+.ae-stats-mages thead th { color: var(--ae-text-muted); font: 600 11px/14px var(--ae-font-ui); }
+.ae-stats-mages thead th:first-child, .ae-stats-mages tbody th { width: 36%; text-align: left; }
+.ae-stats-mages tbody tr { border-top: 1px solid rgba(236, 232, 222, .12); }
+.ae-stats-mages tbody th { font-weight: 600; white-space: nowrap; }
+.ae-stats-mages td { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ae-stats-mage-dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: 1px; background: var(--ae-turn-wild); }
+.ae-stats-mage-dot[data-kind="p1"] { background: var(--ae-turn-p1); }
+.ae-stats-mage-dot[data-kind="p2"] { background: var(--ae-turn-p2); }
+.ae-stats-mage-dot[data-kind="p3"] { background: var(--ae-turn-p3); }
+.ae-stats-mage-dot[data-kind="p4"] { background: var(--ae-turn-p4); }
 
 /* Statistiche: sotto alcune righe le carte in fila (si toccano per vederle grandi) */
 .ae-stats-list { display: flex; flex-direction: column; gap: 8px; }

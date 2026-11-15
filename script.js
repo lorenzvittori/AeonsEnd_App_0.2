@@ -107,6 +107,8 @@ const I18N_IT = {
   },
   statsTimeTitle: 'Tempi',
   statsMinionsTitle: 'Turni in gioco dei minion',
+  statsMagesTitle: 'Statistiche maghi',
+  statsMagesHead: ['Mago', 'Danni ai minion', 'Poteri scartati', 'Æ spesi', 'Minion uccisi'],
   statsNoMinions: 'Nessun minion in gioco in questa partita',
   minionTurns: n => (n === 1 ? '1 turno' : `${n} turni`),
   stillInPlay: 'ancora in gioco',
@@ -347,7 +349,9 @@ function emptyStats(deckSize) {
   // cards: id delle carte di ogni gruppo (elenchi delle Statistiche); i salvataggi vecchi non li hanno (elenchi vuoti)
   // startedAt / tierAt[2|3] / endedAt: istanti (Date.now) di inizio partita, prima carta del Tier 2 e del Tier 3 pescata,
   // prima Vittoria. Salvataggi vecchi: null (il tempo non si mostra)
-  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [],
+  // mages (v175): per ogni carta giocatore del mazzo dei turni ('p1'..'p4', 'wild') quello che è stato salvato nel suo
+  // turno: { damage, powers, kills } (danni ai minion, poteri scartati pagando, minion uccisi)
+  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [], mages: {},
     cards: { minionsKilled: [], powersPaid: [], powersResolved: [], attacksResolved: [] },
     startedAt: null, tierAt: {}, endedAt: null };
 }
@@ -1224,11 +1228,24 @@ function saveAllDrafts() {
   ui.drafts.clear();
   const gone = [];
   act(() => {
+    // Statistiche maghi: tutto va al giocatore del turno in corso (mazzo dei turni)
+    const kind = currentTurnCard();
+    const mage = kind && kind !== 'nemesis'
+      ? (stats.mages[kind] = stats.mages[kind] || { damage: 0, powers: 0, kills: 0 }) : null;
     drafts.forEach((d, uid) => {
       const entry = entryByUid(uid);
       if (!entry) return;
-      if (d.hp !== undefined) entry.hp = d.hp;
-      if (d.paid) entry.paid = true;
+      if (d.hp !== undefined) {
+        if (mage && entry.data.type === 'Minion') {
+          mage.damage += Math.max(0, entry.hp - d.hp);
+          if (d.hp <= 0 && entry.hp > 0) mage.kills++;
+        }
+        entry.hp = d.hp;
+      }
+      if (d.paid) {
+        if (mage && !entry.paid) mage.powers++;
+        entry.paid = true;
+      }
     });
     gone.push(...queue.filter(isGone));
     gone.forEach(discardGone);
@@ -2379,6 +2396,7 @@ function restore(s) {
   stats.minions = Array.isArray(stats.minions) ? stats.minions : [];
   stats.cards = Object.assign(emptyStats(0).cards, stats.cards || {});
   stats.tierAt = Object.assign({}, stats.tierAt || {});
+  stats.mages = stats.mages && typeof stats.mages === 'object' ? stats.mages : {};
 
   if (s.resolving && queue.length === 0 && deck.length > 0) {
     // Turno nemesi con la coda vuota (per esempio il primo turno, se il mazzo dei turni dà subito la nemesi):
@@ -3733,9 +3751,29 @@ function openStats() {
   } else {
     minionList = el('p', 'ae-stats-empty', I18N_IT.statsNoMinions);
   }
+  // Statistiche maghi (v175): una riga per carta giocatore del mazzo dei turni (con 3 giocatori anche il jolly).
+  // "Æ spesi" per ora è vuoto.
+  const magesTitle = el('h3', 'ae-stats-subtitle', I18N_IT.statsMagesTitle);
+  const magesTable = el('table', 'ae-stats-mages');
+  const head = el('tr');
+  I18N_IT.statsMagesHead.forEach(h => head.appendChild(el('th', '', h)));
+  magesTable.appendChild(el('thead')).appendChild(head);
+  const body = magesTable.appendChild(el('tbody'));
+  [...new Set(turnOrderCards(settings.players).filter(k => k !== 'nemesis'))].forEach(kind => {
+    const m = (stats.mages && stats.mages[kind]) || { damage: 0, powers: 0, kills: 0 };
+    const tr = el('tr');
+    const name = el('th', '');
+    name.scope = 'row';
+    const dot = el('span', 'ae-stats-mage-dot');
+    dot.dataset.kind = kind;
+    name.append(dot, kind === 'wild' ? I18N_IT.trackWildName : I18N_IT.trackPlayerName(Number(kind.slice(1))));
+    tr.append(name, el('td', '', String(m.damage)), el('td', '', String(m.powers)), el('td', '', '—'),
+      el('td', '', String(m.kills)));
+    body.appendChild(tr);
+  });
   const footer = el('div', 'ae-modal-footer');
   footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
-  dialog.append(timeTitle, timeList, list, minionTitle, minionList, footer);
+  dialog.append(timeTitle, timeList, list, magesTitle, magesTable, minionTitle, minionList, footer);
   close = openModal(dialog, { onCancel: cancel });
 }
 
