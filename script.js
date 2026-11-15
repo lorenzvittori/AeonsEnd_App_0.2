@@ -3720,7 +3720,7 @@ function renderTurnTrack() {
     renderPairChoice();
     return;
   }
-  // Scritta sotto la casella accesa (alle due estremità allineata al bordo, per non uscire dalla barra)
+  // Scritta sotto la casella accesa, centrata sotto di lei (v196, anche alle due estremità)
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
   const curKind = currentTurnCard();
   // Carta x/y senza giocatore: la scelta è nella finestra al centro (v193, renderPairChoice); sotto la casella "x / y"
@@ -3761,8 +3761,8 @@ function renderTurnTrack() {
     mark.style.left = `calc(${i} * ((100% - 152px) / 5 + 6px) + (100% - 152px) / 10)`;
     turnTrackLabels.appendChild(mark);
   });
-  turnTrackLabel.classList.toggle('is-start', cur <= 0);
-  turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
+  // v196: sempre centrata sotto la sua casella, anche alle due estremità (prima lì era allineata al bordo)
+  turnTrackLabel.classList.remove('is-start', 'is-end');
   // Centro della casella accesa (v184, style.css .ae-turn-seg.is-current): accesa = 122px, le altre
   // (100% - 152px) / 5, spazi da 6px
   turnTrackLabel.style.left = cur >= 0
