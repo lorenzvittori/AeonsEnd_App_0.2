@@ -173,7 +173,11 @@ const I18N_IT = {
   cardBacks: {
     logo: "Logo Aeon's End", owlRed: 'Gufo rosso', lily: 'Giglio', plaid: 'Tartan', owlGold: 'Gufo oro',
     crystals: 'Cristalli viola', veins: 'Venature', mask: 'Maschera spezzata', demon: 'Demone', tentacles: 'Tentacoli',
-    ruins: 'Rovine', runeCircle: 'Cerchio di rune', runesRed: 'Rune rosse'
+    ruins: 'Rovine', runeCircle: 'Cerchio di rune', runesRed: 'Rune rosse',
+    blueFlame: 'Fiamma blu', glassCrystal: 'Cristallo in vetrata', popCrystal: 'Cristallo pop', violetPortal: 'Portale viola',
+    blueCrystals: 'Cristalli azzurri', fireVortex: 'Vortice di fuoco', crackedStone: 'Pietra fessurata',
+    gothicGlass: 'Vetrata gotica', watercolor: 'Acquerello', popArt: 'Pop art', minimal: 'Minimalista',
+    impressionist: 'Impressionista', geometric: 'Geometrico', ink: 'Inchiostro', organic: 'Organico', arcane: 'Diagramma arcano'
   },
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
@@ -264,7 +268,11 @@ const CARD_BACK_KEY = 'aeonsend-app-0.2-card-back';
 const CARD_BACKS = [
   { id: 'logo', src: 'Assets/ui/decor/card-back-logo.webp', thumb: 'Assets/ui/backs/logo-thumb.webp' },
   ...['owlRed:owl-red', 'owlGold:owl-gold', 'lily:lily', 'plaid:plaid', 'crystals:crystals', 'veins:veins', 'mask:mask',
-    'demon:demon', 'tentacles:tentacles', 'ruins:ruins', 'runeCircle:rune-circle', 'runesRed:runes-red']
+    'demon:demon', 'tentacles:tentacles', 'ruins:ruins', 'runeCircle:rune-circle', 'runesRed:runes-red',
+    'blueFlame:blue-flame', 'glassCrystal:glass-crystal', 'popCrystal:pop-crystal', 'violetPortal:violet-portal',
+    'blueCrystals:blue-crystals', 'fireVortex:fire-vortex', 'crackedStone:cracked-stone', 'gothicGlass:gothic-glass',
+    'watercolor:watercolor', 'popArt:pop-art', 'minimal:minimal', 'impressionist:impressionist', 'geometric:geometric',
+    'ink:ink', 'organic:organic', 'arcane:arcane']
     .map(s => { const [id, file] = s.split(':'); return { id, src: `Assets/ui/backs/${file}.webp`, thumb: `Assets/ui/backs/${file}-thumb.webp` }; })
 ];
 function currentCardBack() {

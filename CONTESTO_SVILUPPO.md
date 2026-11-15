@@ -171,7 +171,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Nemesi uccisa:** per quando la nemesi muore al tavolo; apre la schermata Vittoria.
 - **Sfondo:** menu a tendina con tre sfondi (Nemesi mascherata, Demone cornuto, Bocca con tentacoli). Cambia subito e
   resta salvato nel browser; non entra nella partita né nell'undo.
-- **Dorso delle carte:** miniatura e nome del dorso scelto; toccandolo si apre la griglia dei 13 dorsi
+- **Dorso delle carte:** miniatura e nome del dorso scelto; toccandolo si apre la griglia dei 29 dorsi
   (`openCardBackPicker`) e un tocco sceglie. Vale per mazzo in testata, carta da pescare, Crea mazzo e il retro della
   carta che si gira; resta salvato nel browser (`CARD_BACKS`, `setCardBack`), non entra nella partita.
 - **Esci dalla partita:** rosso, va **tenuto premuto** (`holdToConfirm`, 0,9 s); un tocco breve avvisa "Tieni premuto
@@ -333,9 +333,11 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
   - `Assets/ui/decor/`: `card-back-logo.webp` (dorso predefinito), `battle-bg.webp`, `battle-bg-2.webp`,
     `battle-bg-3.webp` (sfondi scelti nel Menu).
-  - `Assets/ui/backs/`: gli altri 12 dorsi (`<nome>.webp`, 630 x 880, ritagliati al centro alle proporzioni 63:88) con
-    le miniature `<nome>-thumb.webp` (150 x 210) per la griglia di scelta; `logo-thumb.webp` è la miniatura del dorso
-    predefinito.
+  - `Assets/ui/backs/`: gli altri 28 dorsi (`<nome>.webp`, ritagliati al centro alle proporzioni 63:88) con le
+    miniature `<nome>-thumb.webp` (150 x 210) per la griglia di scelta; `logo-thumb.webp` è la miniatura del dorso
+    predefinito. I dorsi arrivati in alta risoluzione sono 630 x 880; i 10 della serie "back_nemesi_10" (pietra
+    fessurata, vetrata gotica, acquerello, pop art, minimalista, impressionista, geometrico, inchiostro, organico,
+    diagramma arcano) erano piccoli e restano a circa 289 x 404, senza ingrandirli.
   - `Assets/power-token-2.webp` (token), `Assets/ui/icons/`: `life-drop.webp` (goccia della vita), `alert.webp` ("!"),
     `flame.png` (battaglia), `players-1..4.png`, icone SVG usate come maschera (undo, eye, close, discard, empty-deck).
   - Immagini non più usate tolte in v148 (vecchi sfondi dei due turni, vecchi dorsi, gocce di vita, logo, icone del
