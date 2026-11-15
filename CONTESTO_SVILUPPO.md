@@ -129,6 +129,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **Jolly** (v179, solo con 3 giocatori): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
     caso, poi a ogni giro passa al giocatore dopo: (jolly mod 3) + 1, cioè 1→2→3→1. I turni del jolly valgono per quel
     giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: jolly a caso.
+  - **Carte 1/2 e 3/4** (v192, wave 4; solo con 4 giocatori): con l'opzione del Menu della partita "**Carte turno 1/2
+    e 3/4**" (interruttore, attivo di default; preferenza del browser `aeonsend-app-0.2-turn-pairs`, vale dal prossimo
+    giro) il mazzo è 1/2, 1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è **metà e metà
+    dei due colori** (anche il pulsante principale) e sotto compaiono due pulsantini "**Giocatore x**" / "**Giocatore
+    y**" (`chooseTurnPlayer`, con undo): scelto il giocatore, casella, scritta e pulsante prendono il suo colore.
+    L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
+    Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si
+    sceglie, quello che si salva non va nelle Statistiche maghi.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
   carta del mazzo dei turni, nell'ordine di estrazione.
   - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e più lunga delle altre: dalla v184

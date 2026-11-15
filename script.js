@@ -196,6 +196,10 @@ const I18N_IT = {
   endTurn: 'Fine turno · Pesca ordine turno',
   trackPlayerName: n => `Giocatore ${n}`,
   trackWildName: 'Jolly',
+  trackPairChoose: (a, b) => `Turno del giocatore ${a} o ${b}: scegliete chi gioca`,
+  trackPickLabel: n => `Gioca il giocatore ${n}`,
+  turnPairsOption: 'Carte turno 1/2 e 3/4',
+  turnPairsHint: 'Con 4 giocatori, dal prossimo giro',
   ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
@@ -526,11 +530,28 @@ function newGame() {
 
 // Carte del mazzo dei turni per il numero di giocatori (regole del gioco): 2 giocatori = due carte a testa,
 // 3 giocatori = una a testa più il jolly, 4 giocatori = una a testa; sempre due carte nemesi
+// Con 4 giocatori e l'opzione "Carte turno 1/2 e 3/4" (wave 4, v192, attiva di default): 1/2, 1/2, 3/4, 3/4
+// ('p12', 'p34'); quando esce una carta x/y i giocatori scelgono chi gioca e l'altra carta x/y va all'altro giocatore
 function turnOrderCards(players) {
   const n = Math.max(1, Math.min(4, Number(players) || 2));
   const mine = n === 1 ? ['p1', 'p1', 'p1', 'p1'] : n === 2 ? ['p1', 'p1', 'p2', 'p2']
-    : n === 3 ? ['p1', 'p2', 'p3', 'wild'] : ['p1', 'p2', 'p3', 'p4'];
+    : n === 3 ? ['p1', 'p2', 'p3', 'wild'] : turnPairsOn() ? ['p12', 'p12', 'p34', 'p34'] : ['p1', 'p2', 'p3', 'p4'];
   return mine.concat('nemesis', 'nemesis');
+}
+// Opzione del Menu (preferenza del browser, non della partita): vale dal prossimo giro del mazzo dei turni
+const TURN_PAIRS_KEY = 'aeonsend-app-0.2-turn-pairs';
+function turnPairsOn() {
+  try { return localStorage.getItem(TURN_PAIRS_KEY) !== 'off'; } catch (err) { return true; }
+}
+function setTurnPairs(on) {
+  try { localStorage.setItem(TURN_PAIRS_KEY, on ? 'on' : 'off'); } catch (err) { console.warn(err); }
+}
+function isPairCard(kind) { return kind === 'p12' || kind === 'p34'; }
+function pairOptions(kind) { return kind === 'p12' ? ['p1', 'p2'] : ['p3', 'p4']; }
+// Giocatori della partita: 'p1'..'pN' (righe delle Statistiche maghi)
+function playerKinds() {
+  const n = Math.max(1, Math.min(4, Number(settings.players) || 2));
+  return Array.from({ length: n }, (_, i) => 'p' + (i + 1));
 }
 // Estrae a caso una carta tra quelle rimaste (finite le 6 si rimescola). pick: solo le carte che lo soddisfano
 // (serve per i salvataggi vecchi, senza mazzo dei turni)
@@ -540,7 +561,7 @@ function drawTurnCard(pick) {
   if (!turnOrder.left.length) {
     const wild = Number(settings.players) === 3
       ? (turnOrder.wild ? (turnOrder.wild % 3) + 1 : 1 + Math.floor(Math.random() * 3)) : null;
-    turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild };
+    turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {} };
   }
   let choices = turnOrder.left.map((c, i) => i);
   if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
@@ -553,9 +574,27 @@ function currentTurnCard() {
 }
 // Giocatore a cui va una carta del mazzo dei turni: 'p1'..'p4'; il jolly va al giocatore che è jolly in questo giro
 // (null per la nemesi)
-function turnCardPlayer(kind) {
+// Carta x/y (v192): il giocatore scelto (picks, per posizione nel giro); se è stata scelta l'altra carta x/y del giro,
+// questa va all'altro giocatore; altrimenti null (ancora da scegliere). i: posizione della carta in turnOrder.drawn
+function turnCardPlayer(kind, i = turnOrder.drawn.length - 1) {
   if (kind === 'wild') return turnOrder.wild ? 'p' + turnOrder.wild : null;
+  if (isPairCard(kind)) {
+    const picks = turnOrder.picks || {};
+    if (picks[i]) return picks[i];
+    const j = turnOrder.drawn.findIndex((k, x) => x !== i && k === kind && picks[x]);
+    return j >= 0 ? pairOptions(kind).find(p => p !== picks[j]) : null;
+  }
   return kind && kind !== 'nemesis' ? kind : null;
+}
+// Scelta del giocatore per la carta x/y del turno in corso (si può annullare con Undo)
+function chooseTurnPlayer(player) {
+  const cur = turnOrder.drawn.length - 1;
+  if (resolving || ui.isTransitioning || !isPairCard(turnOrder.drawn[cur]) || turnCardPlayer(turnOrder.drawn[cur], cur)) return;
+  act(() => { turnOrder.picks = Object.assign({}, turnOrder.picks, { [cur]: player }); });
+  render();
+  turnTrack.classList.remove('is-changed');
+  void turnTrack.offsetWidth;
+  turnTrack.classList.add('is-changed');
 }
 
 // --- Statistiche: si aggiornano quando una carta esce dal gioco ---
@@ -2380,7 +2419,8 @@ function snapshot() {
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
     stats: JSON.parse(JSON.stringify(stats)),
-    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round, wild: turnOrder.wild || null }
+    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round, wild: turnOrder.wild || null,
+      picks: Object.assign({}, turnOrder.picks) }
   };
 }
 
@@ -2454,7 +2494,9 @@ function restore(s) {
       round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn),
       // Salvataggi prima della v179 con 3 giocatori: il jolly si sceglie a caso
       wild: Number(settings.players) === 3
-        ? (savedOrder.wild >= 1 && savedOrder.wild <= 3 ? savedOrder.wild : 1 + Math.floor(Math.random() * 3)) : null };
+        ? (savedOrder.wild >= 1 && savedOrder.wild <= 3 ? savedOrder.wild : 1 + Math.floor(Math.random() * 3)) : null,
+      // Giocatori scelti per le carte 1/2 e 3/4 (v192; prima non c'erano)
+      picks: savedOrder.picks && typeof savedOrder.picks === 'object' ? Object.assign({}, savedOrder.picks) : {} };
   } else {
     turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1 };
     drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
@@ -2616,7 +2658,8 @@ function render() {
   // Turno di un giocatore (o del jolly): niente illustrazione, fondo tenue del colore del giocatore (v169)
   const turnCard = currentTurnCard();
   // (jolly: il colore del giocatore che è jolly in questo giro)
-  const playerKind = turnCardPlayer(turnCard) || (turnCard === 'wild' ? 'wild' : null);
+  // (carta 1/2 o 3/4 non ancora scelta: metà e metà dei due colori, v192)
+  const playerKind = turnCardPlayer(turnCard) || (turnCard === 'wild' || isPairCard(turnCard) ? turnCard : null);
   nemesisBtn.classList.toggle('has-player-color', !!playerKind);
   if (playerKind) nemesisBtn.dataset.kind = playerKind;
   else delete nemesisBtn.dataset.kind;
@@ -3483,7 +3526,8 @@ function renderTurnTrack() {
   const drawn = turnOrder.drawn;
   const cur = drawn.length - 1;
   [...turnTrackBar.children].forEach((seg, i) => {
-    if (i < drawn.length) seg.dataset.kind = drawn[i];
+    // Carta 1/2 o 3/4 (v192): con il giocatore deciso prende il suo colore, prima metà e metà dei due colori
+    if (i < drawn.length) seg.dataset.kind = isPairCard(drawn[i]) ? (turnCardPlayer(drawn[i], i) || drawn[i]) : drawn[i];
     else delete seg.dataset.kind;
     // Jolly (v179): strisce bianche e del colore del giocatore che è jolly in questo giro
     const owner = drawn[i] === 'wild' ? turnCardPlayer('wild') : null;
@@ -3495,7 +3539,21 @@ function renderTurnTrack() {
   turnTrack.classList.toggle('is-nemesis', resolving);
   // Scritta sotto la casella accesa (alle due estremità allineata al bordo, per non uscire dalla barra)
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
-  if (resolving) {
+  const curKind = currentTurnCard();
+  // Carta x/y senza giocatore: sotto la casella i due pulsanti "Giocatore x" e "Giocatore y" (v192)
+  const choosing = !resolving && isPairCard(curKind) && !turnCardPlayer(curKind);
+  turnTrack.setAttribute('role', choosing ? 'group' : 'img');
+  turnTrackLabel.classList.toggle('is-choice', choosing);
+  if (choosing) {
+    turnTrackLabel.replaceChildren(...pairOptions(curKind).map(p => {
+      const b = el('button', 'ae-turn-pick', I18N_IT.trackPlayerName(Number(p.slice(1))));
+      b.type = 'button';
+      b.dataset.kind = p;
+      b.setAttribute('aria-label', I18N_IT.trackPickLabel(Number(p.slice(1))));
+      b.addEventListener('click', () => chooseTurnPlayer(p));
+      return b;
+    }));
+  } else if (resolving) {
     turnTrackLabel.replaceChildren(I18N_IT.trackNemesisName, el('span', 'ae-turn-label-dot'),
       drawStep ? I18N_IT.trackDraw : I18N_IT.trackResolve);
   } else {
@@ -3512,14 +3570,17 @@ function renderTurnTrack() {
     }
   }
   const labelKind = resolving ? 'nemesis' : (turnCardPlayer(currentTurnCard()) || currentTurnCard());
-  if (labelKind) turnTrackLabel.dataset.kind = labelKind;
+  if (labelKind && !choosing) turnTrackLabel.dataset.kind = labelKind;
   else delete turnTrackLabel.dataset.kind;
   // Sotto le caselle dei turni già passati nel giro (v182): N = nemesi, 1-4 = giocatore, J = jolly, nel loro colore
   turnTrackLabels.querySelectorAll('.ae-turn-mark').forEach(m => m.remove());
   drawn.slice(0, Math.max(0, cur)).forEach((kind, i) => {
-    const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J' : kind.slice(1));
+    // Carta x/y: il numero del giocatore che l'ha giocata (o "1/2" se non è stato scelto)
+    const who = turnCardPlayer(kind, i);
+    const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J'
+      : isPairCard(kind) ? (who ? who.slice(1) : kind.slice(1).split('').join('/')) : kind.slice(1));
     mark.setAttribute('aria-hidden', 'true');
-    mark.dataset.kind = turnCardPlayer(kind) || kind;
+    mark.dataset.kind = who || kind;
     if (kind === 'wild') mark.classList.add('is-wild');
     // Centro della casella i (prima di quella accesa: tutte strette)
     mark.style.left = `calc(${i} * ((100% - 152px) / 5 + 6px) + (100% - 152px) / 10)`;
@@ -3534,6 +3595,8 @@ function renderTurnTrack() {
   const card = currentTurnCard();
   const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
     : card === 'wild' ? (turnOrder.wild ? I18N_IT.trackWildOf(turnOrder.wild) : I18N_IT.trackWild)
+    : isPairCard(card) ? (turnCardPlayer(card) ? I18N_IT.trackPlayer(Number(turnCardPlayer(card).slice(1)))
+      : I18N_IT.trackPairChoose(...pairOptions(card).map(p => Number(p.slice(1)))))
     : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
   turnTrack.setAttribute('aria-label', [name, I18N_IT.trackPosition(cur + 1, total)].filter(Boolean).join(', '));
 }
@@ -3812,7 +3875,7 @@ function openStats() {
   magesTable.appendChild(el('thead')).appendChild(head);
   const body = magesTable.appendChild(el('tbody'));
   // Una riga per giocatore (il jolly non ha una riga sua: i suoi turni contano per il giocatore che era jolly)
-  [...new Set(turnOrderCards(settings.players).filter(k => k !== 'nemesis' && k !== 'wild'))].forEach(kind => {
+  playerKinds().forEach(kind => {
     const m = (stats.mages && stats.mages[kind]) || { damage: 0, powers: 0, kills: 0 };
     const tr = el('tr');
     const name = el('th', '');
@@ -4547,6 +4610,18 @@ function openSideMenu() {
   const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
+  // Carte turno 1/2 e 3/4 (wave 4, v192): interruttore, attivo di default
+  const pairsRow = el('label', 'ae-switch-row ae-side-field ae-side-switch');
+  const pairsInput = document.createElement('input');
+  pairsInput.type = 'checkbox';
+  pairsInput.setAttribute('role', 'switch');
+  pairsInput.checked = turnPairsOn();
+  pairsInput.addEventListener('change', () => setTurnPairs(pairsInput.checked));
+  const pairsSw = el('span', 'ae-switch');
+  pairsSw.setAttribute('aria-hidden', 'true');
+  const pairsText = el('span', 'ae-side-switch-text');
+  pairsText.append(el('span', 'ae-side-field-label', I18N_IT.turnPairsOption), el('span', 'ae-side-switch-hint', I18N_IT.turnPairsHint));
+  pairsRow.append(pairsText, pairsInput, pairsSw);
   const items = [statsList, undoItem, discardOpen, killed];
   // Durante "Crea mazzo": Ricomincia la partita (mazzo nuovo con la stessa nemesi e gli stessi giocatori)
   if (ui.deckBuilding) {
@@ -4554,7 +4629,7 @@ function openSideMenu() {
     restart.classList.add('ae-button--full');
     items.splice(1, 0, restart);
   }
-  panel.append(...items, bgRow, backRow, exit);
+  panel.append(...items, bgRow, backRow, pairsRow, exit);
   close = openModal(panel, { onCancel: cancel });
   panel.parentElement.classList.add('ae-modal-backdrop--side');
   swipeToClose(panel, cancel);
