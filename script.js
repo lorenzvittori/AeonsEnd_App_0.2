@@ -179,6 +179,9 @@ const I18N_IT = {
     gothicGlass: 'Vetrata gotica', watercolor: 'Acquerello', popArt: 'Pop art', minimal: 'Minimalista',
     impressionist: 'Impressionista', geometric: 'Geometrico', ink: 'Inchiostro', organic: 'Organico', arcane: 'Diagramma arcano'
   },
+  trackPlayers: 'Turno dei giocatori',
+  trackNemesisResolve: 'Turno nemesi, fase di risoluzione',
+  trackNemesisDraw: 'Turno nemesi, fase di pesca',
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
   statsTimeUnknown: '—',
@@ -2447,6 +2450,7 @@ function render() {
   }
   updateInfo();
   renderDockPiles();
+  renderTurnTrack();
   updateUndoBtn();
   if (ui.tierBanner) {
     ui.tierWaitUntil = performance.now() + TIER_BANNER_MS;
@@ -3203,6 +3207,57 @@ menuBtn.addEventListener('click', openSideMenu);
   if (spacer) spacer.replaceWith(menuBtn);
   infoRow.remove();
 })();
+
+// Barra dei turni sotto la testata (come le storie di Instagram): sempre 6 segmenti, i 4 turni dei giocatori e i 2 della
+// nemesi di un round. PER ORA DI PROVA: l'app non conosce l'ordine dei turni, quindi i segmenti alternano
+// giocatori / nemesi (G N G N G N) e ogni turno dell'app avanza di un segmento; dopo il sesto si ricomincia.
+// Il segmento del turno in corso è largo il 50% della barra (blu = giocatori, rosso scuro = nemesi); quelli già fatti
+// hanno il colore del loro turno, quelli ancora da fare sono grigi e larghi la metà di quelli fatti. Nel turno nemesi due
+// pallini sotto il segmento: acceso il primo = risoluzione, acceso il secondo = pesca. È ricavata dallo stato (turn,
+// resolving, isDrawStep): nessuno stato nuovo.
+const TURN_TRACK_SEGMENTS = 6;
+const turnTrack = el('div', 'ae-turn-track');
+turnTrack.setAttribute('role', 'img');
+const turnTrackBar = el('div', 'ae-turn-track-bar');
+for (let i = 0; i < TURN_TRACK_SEGMENTS; i++) {
+  const seg = el('span', 'ae-turn-seg ' + (i % 2 ? 'is-nemesis' : 'is-players'));
+  turnTrackBar.appendChild(seg);
+}
+const turnTrackDots = el('div', 'ae-turn-dots');
+turnTrackDots.append(el('span'), el('span'));
+turnTrack.append(turnTrackBar, turnTrackDots);
+mainEl.prepend(turnTrack);
+
+// Posizione nel giro dei 6 segmenti: il turno giocatori prima del turno nemesi N è il segmento 2·(N−1), il turno
+// nemesi N il segmento dopo (turn = turni nemesi iniziati)
+function turnTrackIndex() {
+  return resolving ? (((turn - 1) % 3) * 2 + 1) : ((turn % 3) * 2);
+}
+
+function renderTurnTrack() {
+  turnTrack.hidden = !!ui.deckBuilding;
+  if (ui.deckBuilding) return;
+  const now = turnTrackIndex();
+  const done = now;
+  const todo = TURN_TRACK_SEGMENTS - 1 - now;
+  // Il segmento attuale è il 50%; il resto si divide tra fatti (peso 1) e da fare (peso 0,5)
+  const unit = 50 / Math.max(0.5, done + todo * 0.5);
+  [...turnTrackBar.children].forEach((seg, i) => {
+    const state = i < now ? 'is-done' : i === now ? 'is-now' : 'is-todo';
+    seg.className = 'ae-turn-seg ' + (i % 2 ? 'is-nemesis' : 'is-players') + ' ' + state;
+    seg.style.flexBasis = (i === now ? 50 : i < now ? unit : unit / 2) + '%';
+  });
+  // Pallini solo nel turno nemesi, sotto il segmento attuale
+  const drawStep = resolving && (isDrawStep() || newIndex >= 0);
+  turnTrackDots.hidden = !resolving;
+  // Centro del segmento attuale (in proporzione alla barra, che ha 16px di margine per lato)
+  const centre = ((done * unit) + 25) / 100;
+  turnTrackDots.style.left = `calc(16px + (100% - 32px) * ${centre})`;
+  turnTrackDots.children[0].classList.toggle('is-on', resolving && !drawStep);
+  turnTrackDots.children[1].classList.toggle('is-on', resolving && drawStep);
+  turnTrack.setAttribute('aria-label', !resolving ? I18N_IT.trackPlayers
+    : drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve);
+}
 
 // In alto a sinistra, al posto di Undo (che è nel Menu), uno accanto all'altro e uguali nei due turni: il mazzo nemesi
 // (dorso con il numero di carte rimaste) e la pila degli scarti (ultima carta scartata con il numero; toccandola si apre).

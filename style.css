@@ -1044,6 +1044,28 @@ body { overflow: hidden; }
   -webkit-user-drag: none;
 }
 .nemesis-flip.is-zoomed { touch-action: none; }
+/* Barra dei turni sotto la testata (script.js renderTurnTrack): 6 segmenti come le storie di Instagram. Colori dei
+   turni desaturati del 10% (saturazione 80% → 72% il blu, 64% → 58% il rosso scuro) */
+:root { --ae-turn-blue: hsl(214 72% 52%); --ae-turn-red: hsl(356 58% 36%); --ae-turn-todo: #3a3d47; }
+.ae-turn-track { position: relative; flex: 0 0 auto; padding: 8px 16px 0; height: 24px; }
+.ae-turn-track[hidden] { display: none; }
+.ae-turn-track-bar { display: flex; gap: 4px; }
+.ae-turn-seg {
+  flex: 0 1 16%; min-width: 0; height: 6px; border-radius: 3px; background: var(--ae-turn-todo);
+  transition: flex-basis .35s cubic-bezier(.3, 0, .2, 1), background-color .35s ease-out;
+}
+.ae-turn-seg.is-players.is-done, .ae-turn-seg.is-players.is-now { background: var(--ae-turn-blue); }
+.ae-turn-seg.is-nemesis.is-done, .ae-turn-seg.is-nemesis.is-now { background: var(--ae-turn-red); }
+.ae-turn-seg.is-now { box-shadow: 0 0 8px rgba(0, 0, 0, .5); }
+/* Pallini del turno nemesi sotto il segmento attuale: risoluzione / pesca */
+.ae-turn-dots {
+  position: absolute; top: 18px; display: flex; gap: 6px; transform: translateX(-50%);
+  transition: left .35s cubic-bezier(.3, 0, .2, 1);
+}
+.ae-turn-dots[hidden] { display: none; }
+.ae-turn-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--ae-turn-todo); transition: background-color .2s ease-out; }
+.ae-turn-dots span.is-on { background: hsl(356 58% 52%); box-shadow: 0 0 6px hsl(356 58% 52% / .8); }
+@media (prefers-reduced-motion: reduce) { .ae-turn-seg, .ae-turn-dots, .ae-turn-dots span { transition: none; } }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
 

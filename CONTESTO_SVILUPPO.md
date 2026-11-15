@@ -115,6 +115,16 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     *Scarta* (va negli scarti, un passo di undo). Serve per gli effetti che fanno pescare o guardare la carta in cima.
 - Al centro il nome della nemesi e sotto: fiamma con il numero della battaglia | icona dei giocatori | Turno N.
 - A destra il **Menu**.
+- **Barra dei turni** (v161, `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata, in stile storie di
+  Instagram: sempre **6 segmenti** (i 4 turni dei giocatori e i 2 della nemesi di un round).
+  - **Per ora di prova:** l'app non conosce l'ordine dei turni, quindi i segmenti alternano giocatori / nemesi
+    (G N G N G N); ogni turno dell'app avanza di un segmento e dopo il sesto si ricomincia (`turnTrackIndex`, ricavato
+    da `turn` e `resolving`, nessuno stato nuovo).
+  - Il segmento del turno in corso è largo il 50% della barra: **blu** nel turno giocatori, **rosso scuro** nel turno
+    nemesi (colori desaturati del 10%: `--ae-turn-blue`, `--ae-turn-red`). I già fatti tengono il colore del loro
+    turno; quelli ancora da fare sono grigi e larghi la metà dei già fatti.
+  - Nel turno nemesi due **pallini** sotto il segmento attuale, senza scritte: acceso il primo = fase di risoluzione,
+    acceso il secondo = fase di pesca. Nascosta durante "Crea mazzo".
 
 **Turno dei giocatori**
 - In alto la fascia piccola con tutte le carte in gioco; sotto le stesse carte, grandi, che si scorrono in orizzontale.
