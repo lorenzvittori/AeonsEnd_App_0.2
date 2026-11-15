@@ -1064,6 +1064,14 @@ body { overflow: hidden; }
 .ae-turn-seg[data-kind="wild"] { --ae-seg: var(--ae-turn-wild); }
 .ae-turn-seg[data-kind="nemesis"] { --ae-seg: var(--ae-turn-red); }
 .ae-turn-seg.is-past { background: var(--ae-seg); opacity: .45; }
+/* v179: jolly = uno dei 3 giocatori, che cambia a ogni giro: strisce bianche e del suo colore */
+.ae-turn-seg[data-kind="wild"][data-owner="p1"] { --ae-seg: var(--ae-turn-p1); }
+.ae-turn-seg[data-kind="wild"][data-owner="p2"] { --ae-seg: var(--ae-turn-p2); }
+.ae-turn-seg[data-kind="wild"][data-owner="p3"] { --ae-seg: var(--ae-turn-p3); }
+.ae-turn-seg[data-kind="wild"][data-owner].is-past,
+.ae-turn-seg[data-kind="wild"][data-owner].is-current {
+  background: repeating-linear-gradient(135deg, #fff 0 4px, var(--ae-seg) 4px 8px);
+}
 /* v170: la casella del turno in corso è lunga il doppio di una casella a misura fissa (6 caselle, 5 spazi da 6px:
    (100% - 30px) / 6 × 2); le altre 5 si stringono nello spazio che resta */
 .ae-turn-seg.is-current {

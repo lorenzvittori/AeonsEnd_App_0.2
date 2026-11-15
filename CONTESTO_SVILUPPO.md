@@ -126,16 +126,20 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste; finite le 6 si
   rimescola. Il primo turno si estrae a inizio partita (`newGame`): se è la nemesi, finito "Crea mazzo" parte subito il
   turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
+  - **Jolly** (v179, solo con 3 giocatori): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
+    caso, poi a ogni giro passa al giocatore dopo: (jolly mod 3) + 1, cioè 1→2→3→1. I turni del jolly valgono per quel
+    giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: jolly a caso.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
   carta del mazzo dei turni, nell'ordine di estrazione.
   - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e **lunga il doppio** di una casella
     a misura fissa (v170: circa 104px contro 52px su un telefono da 375px); le altre si stringono (circa 42px). Quelle dei turni già giocati nel giro
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
   - Colori (palette dell'utente, v174): giocatore 1 **lime** `#BDD21C`, 2 **arancio** `#D78E1C`, 3 **blu**
-    `#1C518D`, 4 **viola** `#7C158E` (le scritte "Giocatore N" di blu e viola sono schiarite per leggersi), jolly **grigio chiaro**, nemesi **rosso
-    scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-wild`, `--ae-turn-red`).
-  - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" (o "**Jolly**") nel colore del giocatore
-    (v169); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+    `#1C518D`, 4 **viola** `#7C158E` (le scritte "Giocatore N" di blu e viola sono schiarite per leggersi), nemesi **rosso
+    scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-red`). Jolly (v179): **strisce bianche e del colore** del
+    giocatore che è jolly in quel giro (`data-owner`).
+  - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" nel colore del giocatore (v169); nel turno
+    del jolly "**Jolly · Giocatore N**" (v179); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
   - Prima: due metà Giocatori/Nemesi con i pallini (v162), e prima ancora 6 segmenti fissi (v161).
 - **Niente linee di separazione** tra testata, fascia piccola e carte grandi (v162): le zone sono separate solo dallo
@@ -167,7 +171,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   circa il 50% più veloci di quelli del browser: `fastScrollTo`, 260ms, con lo scroll-snap spento durante
   l'animazione; un dito sulle carte la interrompe.
 - Il pulsante **Fine turno · Pesca ordine turno** (v169; v168 "Fine turno", prima "Turno Nemesi") ha un fondo scuro
-  velato, molto tenue, del **colore del giocatore** di turno (grigio chiaro per il jolly; `.has-player-color`) al posto
+  velato, molto tenue, del **colore del giocatore** di turno (per il jolly il colore del giocatore che è jolly; `.has-player-color`) al posto
   dell'illustrazione della nemesi. Chiude il turno del
   giocatore (`endPlayerTurn`: vita di riferimento azzerata, poteri pagati negli scarti) ed estrae il turno dopo. Se
   esce la nemesi parte il turno nemesi: breve scossa dello schermo e vibrazione (urgenza, `shakeApp`) e lo sfondo
@@ -210,8 +214,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   fila; toccandone una la si vede grande. Gli elenchi sono in `stats.cards` (id); i salvataggi più vecchi non li hanno.
   "Turni in gioco dei minion" ha una riga per minion con la miniatura della carta (toccandola si vede grande), il
   nome e i turni; i minion uccisi hanno l'id in `stats.minions` dalla v163 (prima si cerca la carta per nome).
-  **Statistiche maghi** (v175, prima di "Turni in gioco dei minion"): tabella con una riga per giocatore (con 3
-  giocatori anche il Jolly), con il pallino del suo colore, e le colonne, in quest'ordine (v178), *Danni minion*,
+  **Statistiche maghi** (v175, prima di "Turni in gioco dei minion"): tabella con una riga per giocatore (dalla v179
+  niente riga Jolly: i turni del jolly contano per il giocatore che era jolly), con il pallino del suo colore, e le colonne, in quest'ordine (v178), *Danni minion*,
   *Minion uccisi*, *Poteri scartati* e *Æ spesi* (per ora vuota, "—"). I numeri sono in `stats.mages` (`p1`…`p4`, `wild`) e si contano in
   `saveAllDrafts`, assegnati al giocatore del turno in corso (mazzo dei turni): danni = vita tolta ai minion (le cure
   nello stesso salvataggio la riducono), minion uccisi = minion portati a 0. Non si contano le modifiche alla vita fatte

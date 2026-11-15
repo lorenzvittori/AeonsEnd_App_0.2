@@ -186,6 +186,7 @@ const I18N_IT = {
   deselectAll: 'Deseleziona tutto',
   trackPlayer: n => `Turno del giocatore ${n}`,
   trackWild: 'Turno jolly: sceglie il gruppo',
+  trackWildOf: n => `Turno jolly del giocatore ${n}`,
   trackNemesisName: 'Nemesi',
   trackResolve: 'Risolvi',
   trackDraw: 'Pesca',
@@ -534,8 +535,13 @@ function turnOrderCards(players) {
 // Estrae a caso una carta tra quelle rimaste (finite le 6 si rimescola). pick: solo le carte che lo soddisfano
 // (serve per i salvataggi vecchi, senza mazzo dei turni)
 function drawTurnCard(pick) {
-  // Giro nuovo: si rimescola e il contatore dei giri ("Turno N" nella testata) sale
-  if (!turnOrder.left.length) turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1 };
+  // Giro nuovo: si rimescola e il contatore dei giri ("Turno N" nella testata) sale.
+  // Con 3 giocatori il jolly è uno dei giocatori (v179): al primo giro a caso, poi a ogni giro il successivo (1→2→3→1)
+  if (!turnOrder.left.length) {
+    const wild = Number(settings.players) === 3
+      ? (turnOrder.wild ? (turnOrder.wild % 3) + 1 : 1 + Math.floor(Math.random() * 3)) : null;
+    turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild };
+  }
   let choices = turnOrder.left.map((c, i) => i);
   if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
   const card = turnOrder.left.splice(choices[Math.floor(Math.random() * choices.length)], 1)[0];
@@ -544,6 +550,12 @@ function drawTurnCard(pick) {
 }
 function currentTurnCard() {
   return turnOrder.drawn[turnOrder.drawn.length - 1] || null;
+}
+// Giocatore a cui va una carta del mazzo dei turni: 'p1'..'p4'; il jolly va al giocatore che è jolly in questo giro
+// (null per la nemesi)
+function turnCardPlayer(kind) {
+  if (kind === 'wild') return turnOrder.wild ? 'p' + turnOrder.wild : null;
+  return kind && kind !== 'nemesis' ? kind : null;
 }
 
 // --- Statistiche: si aggiornano quando una carta esce dal gioco ---
@@ -1243,9 +1255,9 @@ function saveAllDrafts() {
   const gone = [];
   act(() => {
     // Statistiche maghi: tutto va al giocatore del turno in corso (mazzo dei turni)
-    const kind = currentTurnCard();
-    const mage = kind && kind !== 'nemesis'
-      ? (stats.mages[kind] = stats.mages[kind] || { damage: 0, powers: 0, kills: 0 }) : null;
+    // (il jolly conta per il giocatore che è jolly in questo giro)
+    const kind = turnCardPlayer(currentTurnCard());
+    const mage = kind ? (stats.mages[kind] = stats.mages[kind] || { damage: 0, powers: 0, kills: 0 }) : null;
     drafts.forEach((d, uid) => {
       const entry = entryByUid(uid);
       if (!entry) return;
@@ -2368,7 +2380,7 @@ function snapshot() {
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
     stats: JSON.parse(JSON.stringify(stats)),
-    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round }
+    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round, wild: turnOrder.wild || null }
   };
 }
 
@@ -2439,7 +2451,10 @@ function restore(s) {
   if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn) && savedOrder.drawn.length) {
     // Salvataggi della v168 senza il contatore dei giri: si parte dai turni nemesi giocati
     turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice(),
-      round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn) };
+      round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn),
+      // Salvataggi prima della v179 con 3 giocatori: il jolly si sceglie a caso
+      wild: Number(settings.players) === 3
+        ? (savedOrder.wild >= 1 && savedOrder.wild <= 3 ? savedOrder.wild : 1 + Math.floor(Math.random() * 3)) : null };
   } else {
     turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1 };
     drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
@@ -2600,7 +2615,8 @@ function render() {
   // "Turno Nemesi" con l'illustrazione della nemesi della partita (come nel menu iniziale), velata per leggere la scritta
   // Turno di un giocatore (o del jolly): niente illustrazione, fondo tenue del colore del giocatore (v169)
   const turnCard = currentTurnCard();
-  const playerKind = turnCard && turnCard !== 'nemesis' ? turnCard : null;
+  // (jolly: il colore del giocatore che è jolly in questo giro)
+  const playerKind = turnCardPlayer(turnCard) || (turnCard === 'wild' ? 'wild' : null);
   nemesisBtn.classList.toggle('has-player-color', !!playerKind);
   if (playerKind) nemesisBtn.dataset.kind = playerKind;
   else delete nemesisBtn.dataset.kind;
@@ -3469,6 +3485,10 @@ function renderTurnTrack() {
   [...turnTrackBar.children].forEach((seg, i) => {
     if (i < drawn.length) seg.dataset.kind = drawn[i];
     else delete seg.dataset.kind;
+    // Jolly (v179): strisce bianche e del colore del giocatore che è jolly in questo giro
+    const owner = drawn[i] === 'wild' ? turnCardPlayer('wild') : null;
+    if (owner) seg.dataset.owner = owner;
+    else delete seg.dataset.owner;
     seg.classList.toggle('is-current', i === cur);
     seg.classList.toggle('is-past', i < cur);
   });
@@ -3479,12 +3499,18 @@ function renderTurnTrack() {
     turnTrackLabel.replaceChildren(I18N_IT.trackNemesisName, el('span', 'ae-turn-label-dot'),
       drawStep ? I18N_IT.trackDraw : I18N_IT.trackResolve);
   } else {
-    // Turno di un giocatore: "Giocatore N" (o "Jolly") nel colore del giocatore (v169)
+    // Turno di un giocatore: "Giocatore N" nel colore del giocatore (v169); jolly: "Jolly · Giocatore N" (v179)
     const kind = currentTurnCard();
-    turnTrackLabel.replaceChildren(kind === 'wild' ? I18N_IT.trackWildName
-      : kind && kind !== 'nemesis' ? I18N_IT.trackPlayerName(Number(kind.slice(1))) : '');
+    const owner = turnCardPlayer(kind);
+    if (kind === 'wild' && owner) {
+      turnTrackLabel.replaceChildren(I18N_IT.trackWildName, el('span', 'ae-turn-label-dot'),
+        I18N_IT.trackPlayerName(Number(owner.slice(1))));
+    } else {
+      turnTrackLabel.replaceChildren(kind === 'wild' ? I18N_IT.trackWildName
+        : owner ? I18N_IT.trackPlayerName(Number(owner.slice(1))) : '');
+    }
   }
-  const labelKind = resolving ? 'nemesis' : currentTurnCard();
+  const labelKind = resolving ? 'nemesis' : (turnCardPlayer(currentTurnCard()) || currentTurnCard());
   if (labelKind) turnTrackLabel.dataset.kind = labelKind;
   else delete turnTrackLabel.dataset.kind;
   turnTrackLabel.classList.toggle('is-start', cur <= 0);
@@ -3495,7 +3521,7 @@ function renderTurnTrack() {
     ? `calc(${cur} * ((100% - 30px) * 2 / 15 + 6px) + (100% - 30px) / 6)` : '0%';
   const card = currentTurnCard();
   const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
-    : card === 'wild' ? I18N_IT.trackWild
+    : card === 'wild' ? (turnOrder.wild ? I18N_IT.trackWildOf(turnOrder.wild) : I18N_IT.trackWild)
     : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
   turnTrack.setAttribute('aria-label', [name, I18N_IT.trackPosition(cur + 1, total)].filter(Boolean).join(', '));
 }
@@ -3765,7 +3791,7 @@ function openStats() {
   } else {
     minionList = el('p', 'ae-stats-empty', I18N_IT.statsNoMinions);
   }
-  // Statistiche maghi (v175): una riga per carta giocatore del mazzo dei turni (con 3 giocatori anche il jolly).
+  // Statistiche maghi (v175): una riga per giocatore.
   // "Æ spesi" per ora è vuoto.
   const magesTitle = el('h3', 'ae-stats-subtitle', I18N_IT.statsMagesTitle);
   const magesTable = el('table', 'ae-stats-mages');
@@ -3773,7 +3799,8 @@ function openStats() {
   I18N_IT.statsMagesHead.forEach(h => head.appendChild(el('th', '', h)));
   magesTable.appendChild(el('thead')).appendChild(head);
   const body = magesTable.appendChild(el('tbody'));
-  [...new Set(turnOrderCards(settings.players).filter(k => k !== 'nemesis'))].forEach(kind => {
+  // Una riga per giocatore (il jolly non ha una riga sua: i suoi turni contano per il giocatore che era jolly)
+  [...new Set(turnOrderCards(settings.players).filter(k => k !== 'nemesis' && k !== 'wild'))].forEach(kind => {
     const m = (stats.mages && stats.mages[kind]) || { damage: 0, powers: 0, kills: 0 };
     const tr = el('tr');
     const name = el('th', '');
