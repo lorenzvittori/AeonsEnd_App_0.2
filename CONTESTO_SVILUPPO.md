@@ -150,8 +150,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     (v194, strato `::after`; scelto il giocatore svanisce in 0,45 s e resta il suo colore), sotto
     c'è "x / y" e al centro compare la finestra "**Chi gioca questo turno?**" (v193, `renderPairChoice`): due carte
     grandi come quelle della fascia piccola, bordo nero, colore del giocatore scurito e numero nero al centro. Finché
-    non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu (la testata resta sopra
-    l'oscuramento; mazzo e scarti velati). La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
+    non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu. Dalla v195 è **tutto oscurato
+    tranne la barra della fase** in alto: velo `::before` della shell sullo sfondo e filtro `brightness(.28)` su
+    testata (Menu compreso, che resta toccabile), parte centrale e pulsante. La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
     casella, scritta e pulsante prendono il suo colore.
     L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si

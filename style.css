@@ -1123,7 +1123,14 @@ body { overflow: hidden; }
   background: rgba(8, 9, 12, .72);
 }
 .ae-pair-choice[hidden] { display: none; }
-.ae-shell.is-pair-choice .ae-header-piles { opacity: .35; }
+/* v195: oscurato tutto tranne la barra della fase: lo sfondo con il velo ::before della shell (sotto .ae-main), testata,
+   pulsante e contenuto della parte centrale con un filtro; la barra (.ae-turn-track) resta accesa. La finestra non ha
+   più un fondo scuro suo (copriva anche la barra). Il Menu resta toccabile anche se scurito. */
+.ae-shell.is-pair-choice .ae-pair-choice { background: transparent; }
+.ae-shell.is-pair-choice::before { opacity: .72; transition: opacity .25s ease-out; }
+.ae-shell > .ae-header, .ae-shell > .ae-dock, .ae-shell > .ae-main > * { transition: filter .25s ease-out; }
+.ae-shell.is-pair-choice > .ae-header, .ae-shell.is-pair-choice > .ae-dock,
+.ae-shell.is-pair-choice > .ae-main > :not(.ae-turn-track) { filter: brightness(.28); }
 .ae-pair-choice-panel {
   display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px 24px 24px;
   border-radius: 16px; background: rgba(21, 22, 28, .96); border: 1px solid rgba(236, 232, 222, .14);
