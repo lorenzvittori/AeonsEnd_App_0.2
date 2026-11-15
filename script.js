@@ -167,6 +167,7 @@ const I18N_IT = {
   menuTurn: 'Turno nemesi',
   menuDeck: 'Carte nel mazzo',
   background: 'Sfondo',
+  backgroundChosen: name => `Sfondo: ${name}`,
   backgrounds: { masked: 'Nemesi mascherata', horned: 'Demone cornuto', maw: 'Bocca con tentacoli' },
   cardBack: 'Dorso delle carte',
   cardBackChosen: name => `Dorso: ${name}`,
@@ -2076,12 +2077,10 @@ function openOptions(trigger) {
     // Chiusa la griglia, la pagina iniziale resta coperta dalle Opzioni
     () => { if (layer.isConnected) startLayer.inert = true; }));
   // Sfondo (lo stesso menu a tendina del Menu della partita)
-  const bgItem = el('label', 'options-item options-item--field');
-  const bgSelect = el('select', 'ae-select');
-  bgSelect.append(...BACKGROUNDS.map(b => Object.assign(el('option', '', I18N_IT.backgrounds[b.id]), { value: b.id })));
-  bgSelect.value = currentBackground().id;
-  bgSelect.addEventListener('change', () => setBackground(bgSelect.value));
-  bgItem.append(el('span', 'options-item-label', I18N_IT.background), bgSelect);
+  // Sfondo: anteprima e nome dello sfondo scelto; si tocca per le anteprime di tutti gli sfondi
+  const bgItem = el('div', 'options-item options-item--field');
+  bgItem.append(el('span', 'options-item-label', I18N_IT.background),
+    backgroundChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }));
   body.append(item, backItem, bgItem);
   layer.append(head, body);
   layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
@@ -4281,13 +4280,9 @@ function openSideMenu() {
   const statsList = el('dl', 'ae-side-stats');
   statsList.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
     el('dt', '', I18N_IT.menuDeck), el('dd', '', String(deck.length)));
-  // Menu a tendina dello sfondo: cambia subito, si vede dietro al pannello
-  const bgRow = el('label', 'ae-side-field');
-  const bgSelect = el('select', 'ae-select');
-  bgSelect.append(...BACKGROUNDS.map(b => Object.assign(el('option', '', I18N_IT.backgrounds[b.id]), { value: b.id })));
-  bgSelect.value = currentBackground().id;
-  bgSelect.addEventListener('change', () => setBackground(bgSelect.value));
-  bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), bgSelect);
+  // Sfondo: anteprima dello sfondo scelto con il nome; si tocca per scegliere tra le anteprime di tutti gli sfondi
+  const bgRow = el('div', 'ae-side-field');
+  bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), backgroundChoiceButton());
   // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
   const backRow = el('div', 'ae-side-field');
   const backBtn = el('button', 'ae-back-choice');
@@ -4335,6 +4330,54 @@ function openSideMenu() {
 }
 
 // Scelta del dorso delle carte: griglia di miniature; un tocco sceglie il dorso, lo applica subito e chiude
+// Pulsante con l'anteprima e il nome dello sfondo scelto: apre la scelta con le anteprime (Menu della partita e Opzioni)
+function backgroundChoiceButton(onClosed) {
+  const btn = el('button', 'ae-bg-choice');
+  btn.type = 'button';
+  const thumb = el('img', 'ae-bg-choice-thumb');
+  thumb.alt = '';
+  const name = el('span', 'ae-bg-choice-name');
+  const sync = () => {
+    const b = currentBackground();
+    thumb.src = b.src;
+    name.textContent = I18N_IT.backgrounds[b.id];
+    btn.setAttribute('aria-label', I18N_IT.backgroundChosen(I18N_IT.backgrounds[b.id]));
+  };
+  btn.append(thumb, name);
+  btn.addEventListener('click', () => openBackgroundPicker(sync, onClosed));
+  sync();
+  return btn;
+}
+
+// Scelta dello sfondo: le anteprime di tutti gli sfondi una sotto l'altra; un tocco lo applica subito e chiude
+function openBackgroundPicker(onChosen, onClosed) {
+  let closeModalFn = () => {};
+  const close = () => { closeModalFn(); if (onClosed) onClosed(); };
+  const dialog = dialogShell(I18N_IT.background, '', close, { displayTitle: false });
+  dialog.classList.add('ae-bg-picker');
+  const list = el('div', 'ae-bg-grid');
+  const chosen = currentBackground().id;
+  BACKGROUNDS.forEach(b => {
+    const item = el('button', 'ae-bg-item');
+    item.type = 'button';
+    item.setAttribute('aria-pressed', String(b.id === chosen));
+    const img = el('img');
+    img.alt = '';
+    img.src = b.src;
+    item.append(img, el('span', 'ae-bg-item-name', I18N_IT.backgrounds[b.id]));
+    item.addEventListener('click', () => {
+      setBackground(b.id);
+      close();
+      if (onChosen) onChosen();
+    });
+    list.appendChild(item);
+  });
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', close));
+  dialog.append(list, footer);
+  closeModalFn = openModal(dialog, { onCancel: close, initialFocus: list.querySelector('[aria-pressed="true"]') });
+}
+
 // onClosed: dopo la chiusura, in ogni caso (le Opzioni lo usano per tenere la pagina iniziale coperta)
 function openCardBackPicker(onChosen, onClosed) {
   let closeModalFn = () => {};

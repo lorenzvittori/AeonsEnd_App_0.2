@@ -61,7 +61,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   partita*. Sotto, sempre: **Nuova partita** (secondario se c'è una partita in corso) e **Opzioni**.
 - I pulsanti del menu iniziale sono **solo scritte** (Cinzel 22px, oro la voce principale), senza box (v163).
 - **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (la stessa griglia del
-  Menu della partita, con il nome del dorso scelto) e *Sfondo* (menu a tendina).
+  Menu della partita, con il nome del dorso scelto) e *Sfondo* (con le anteprime, come nel Menu della partita).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
@@ -193,8 +193,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.
 - Scarti.
 - **Nemesi uccisa:** per quando la nemesi muore al tavolo; apre la schermata Vittoria.
-- **Sfondo:** menu a tendina con tre sfondi (Nemesi mascherata, Demone cornuto, Bocca con tentacoli). Cambia subito e
-  resta salvato nel browser; non entra nella partita né nell'undo.
+- **Sfondo:** anteprima e nome dello sfondo scelto (`backgroundChoiceButton`); toccandola si apre la scelta con
+  l'**anteprima** di ogni sfondo (`openBackgroundPicker`: Nemesi mascherata, Demone cornuto, Bocca con tentacoli) e un
+  tocco lo applica. Resta salvato nel browser; non entra nella partita né nell'undo. Uguale in Opzioni (v164; prima era
+  un menu a tendina con i soli nomi).
 - **Dorso delle carte:** miniatura e nome del dorso scelto; toccandolo si apre la griglia dei 29 dorsi
   (`openCardBackPicker`) e un tocco sceglie. Vale per mazzo in testata, carta da pescare, Crea mazzo e il retro della
   carta che si gira; resta salvato nel browser (`CARD_BACKS`, `setCardBack`), non entra nella partita.

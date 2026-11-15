@@ -1083,9 +1083,26 @@ body { overflow: hidden; }
 /* Carte grandi del turno giocatori: i comandi si vedono solo sulla carta al centro */
 .queue-slot > .queue-controls { transition: opacity .15s ease-out; }
 .queue-slot:not(.is-centred) > .queue-controls { opacity: 0; visibility: hidden; pointer-events: none; }
-/* Opzioni: voce con il menu a tendina (Sfondo) */
-.options-item--field { cursor: default; gap: 8px; }
-.options-item--field .ae-select { margin-bottom: 0; }
+/* Opzioni: voce con dentro il pulsante dello sfondo */
+.options-item--field { cursor: default; gap: 8px; align-items: stretch; }
+/* Sfondo: anteprima dello sfondo scelto (Menu della partita e Opzioni) e scelta con le anteprime di tutti */
+.ae-bg-choice {
+  min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 6px 12px 6px 6px; text-align: left;
+  border: 1px solid var(--ae-border); border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); color: var(--ae-text);
+  font: 500 15px/20px var(--ae-font-ui);
+}
+.ae-bg-choice-thumb { width: 89px; height: 50px; object-fit: cover; border-radius: 4px; flex: 0 0 auto; }
+.ae-bg-grid { display: flex; flex-direction: column; gap: 14px; }
+.ae-bg-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0; border: 0; background: none;
+  color: var(--ae-text-muted); font: 600 13px/18px var(--ae-font-ui); text-align: left;
+}
+.ae-bg-item img {
+  display: block; width: 100%; aspect-ratio: 1672 / 941; object-fit: cover; border-radius: var(--ae-radius-md);
+  border: 2px solid transparent; box-shadow: 0 2px 8px rgba(0, 0, 0, .6);
+}
+.ae-bg-item[aria-pressed='true'] { color: var(--ae-gold); }
+.ae-bg-item[aria-pressed='true'] img { border-color: var(--ae-gold); box-shadow: 0 0 12px rgba(223, 174, 89, .6); }
 /* Statistiche: turni in gioco dei minion con la miniatura della carta */
 .ae-stats-minions { display: flex; flex-direction: column; gap: 8px; }
 .ae-stats-minion { display: flex; align-items: center; gap: 12px; }
