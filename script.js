@@ -182,11 +182,16 @@ const I18N_IT = {
   },
   selectAll: 'Seleziona tutto',
   deselectAll: 'Deseleziona tutto',
-  trackPlayers: 'Turno dei giocatori',
-  trackPlayersName: 'Giocatori',
+  trackPlayer: n => `Turno del giocatore ${n}`,
+  trackWild: 'Turno jolly: sceglie il gruppo',
   trackNemesisName: 'Nemesi',
+  trackResolve: 'Risolvi',
+  trackDraw: 'Pesca',
   trackNemesisResolve: 'Turno nemesi, fase di risoluzione',
   trackNemesisDraw: 'Turno nemesi, fase di pesca',
+  trackPosition: (i, n) => `turno ${i} di ${n} del mazzo dei turni`,
+  endTurn: 'Fine turno',
+  ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
   statsTimeUnknown: '—',
@@ -326,6 +331,10 @@ let newIndex = -1;
 let deck = [];
 let discard = [];
 let turn = 0;
+// Mazzo dei turni (v168): 6 carte come nel gioco, estratte a caso alla fine di ogni turno; finite le 6 si rimescola.
+// 'p1'..'p4' = giocatori, 'wild' = jolly (con 3 giocatori, sceglie il gruppo), 'nemesis' = nemesi.
+// left: carte ancora da estrarre in questo giro; drawn: carte estratte in ordine (l'ultima è il turno in corso).
+let turnOrder = { left: [], drawn: [] };
 // Tier più alto pescato finora: alla prima carta del Tier 2 e del Tier 3 compare la scritta "Tier N"
 let maxTierDrawn = 0;
 // Statistiche della partita (finestra Statistiche della Vittoria). Fanno parte della partita: entrano nel salvataggio e
@@ -502,6 +511,31 @@ function newGame() {
   maxTierDrawn = 0;
   stats = emptyStats(deck.length);
   stats.startedAt = Date.now();
+  // Primo turno: estratto subito dal mazzo dei turni (può essere anche la nemesi, vedi finishDeckBuild)
+  turnOrder = { left: [], drawn: [] };
+  drawTurnCard();
+}
+
+// Carte del mazzo dei turni per il numero di giocatori (regole del gioco): 2 giocatori = due carte a testa,
+// 3 giocatori = una a testa più il jolly, 4 giocatori = una a testa; sempre due carte nemesi
+function turnOrderCards(players) {
+  const n = Math.max(1, Math.min(4, Number(players) || 2));
+  const mine = n === 1 ? ['p1', 'p1', 'p1', 'p1'] : n === 2 ? ['p1', 'p1', 'p2', 'p2']
+    : n === 3 ? ['p1', 'p2', 'p3', 'wild'] : ['p1', 'p2', 'p3', 'p4'];
+  return mine.concat('nemesis', 'nemesis');
+}
+// Estrae a caso una carta tra quelle rimaste (finite le 6 si rimescola). pick: solo le carte che lo soddisfano
+// (serve per i salvataggi vecchi, senza mazzo dei turni)
+function drawTurnCard(pick) {
+  if (!turnOrder.left.length) turnOrder = { left: turnOrderCards(settings.players), drawn: [] };
+  let choices = turnOrder.left.map((c, i) => i);
+  if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
+  const card = turnOrder.left.splice(choices[Math.floor(Math.random() * choices.length)], 1)[0];
+  turnOrder.drawn.push(card);
+  return card;
+}
+function currentTurnCard() {
+  return turnOrder.drawn[turnOrder.drawn.length - 1] || null;
 }
 
 // --- Statistiche: si aggiornano quando una carta esce dal gioco ---
@@ -717,6 +751,16 @@ function queueItem(entry, opts) {
     button.appendChild(tag);
   }
   return button;
+}
+
+// Posto della carta che si pescherà, nella fascia durante la risoluzione: solo il bordo tratteggiato (v168).
+// Non è cliccabile e i lettori di schermo lo saltano.
+function nextSlotItem() {
+  const item = el('div', 'ae-queue-item ae-next-slot');
+  item.setAttribute('aria-hidden', 'true');
+  const badge = el('span', 'ae-status-badge ae-status-badge--empty', '·');
+  item.append(badge, el('span', 'ae-card-art'));
+  return item;
 }
 
 // Prossima carta da pescare nella fascia della VistaRisoluzione: solo il retro (non si vede quale carta è) e NUOVA.
@@ -2276,7 +2320,8 @@ function snapshot() {
     newIndex,
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
-    stats: JSON.parse(JSON.stringify(stats))
+    stats: JSON.parse(JSON.stringify(stats)),
+    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice() }
   };
 }
 
@@ -2319,7 +2364,14 @@ function restore(s) {
   stats.cards = Object.assign(emptyStats(0).cards, stats.cards || {});
   stats.tierAt = Object.assign({}, stats.tierAt || {});
 
-  if (s.resolving && queue.length > 0) {
+  if (s.resolving && queue.length === 0 && deck.length > 0) {
+    // Turno nemesi con la coda vuota (per esempio il primo turno, se il mazzo dei turni dà subito la nemesi):
+    // si torna alla carta da pescare
+    resolving = true;
+    currentIndex = 0;
+    newIndex = -1;
+    ui.viewedUid = DRAW_UID;
+  } else if (s.resolving && queue.length > 0) {
     resolving = true;
     currentIndex = Math.max(0, Math.min(s.currentIndex, queue.length - 1));
     newIndex = s.newIndex >= 0 ? Math.min(s.newIndex, queue.length - 1) : -1;
@@ -2333,6 +2385,14 @@ function restore(s) {
     ui.viewedUid = null;
     // Si mostra la carta più recente
     if (queue.length) ui.queueAnchor = { uid: queue[queue.length - 1].uid, align: queue.length === 1 ? 'center' : 'anchor' };
+  }
+  // Mazzo dei turni. Salvataggi senza (prima della v168): giro nuovo con il turno in corso già estratto
+  const savedOrder = s.turnOrder;
+  if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn) && savedOrder.drawn.length) {
+    turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice() };
+  } else {
+    turnOrder = { left: [], drawn: [] };
+    drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
   }
 }
 
@@ -2494,7 +2554,7 @@ function render() {
   nemesisBtn.setAttribute('aria-disabled', String(ui.isTransitioning));
   // Turno giocatori con modifiche non salvate: il pulsante principale le salva
   const saving = !resolving && ui.drafts.size > 0;
-  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : I18N_IT.nemesisButton;
+  nemesisBtn.textContent = saving ? I18N_IT.saveChanges : I18N_IT.endTurn;
   nemesisBtn.classList.toggle('is-save', saving);
   // "Crea mazzo": al posto del pulsante lo slider; sfondo nero fino alla fine del banner "Partita iniziata"
   if (ui.deckBuilding) nemesisBtn.hidden = true;
@@ -2551,7 +2611,7 @@ function canDraw() {
 // un passo a parte, con il pulsante "Pesca".
 function actionText(entry, isNew) {
   const { data, tokens } = entry;
-  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved : I18N_IT.ctaPutInPlay;
+  if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved : I18N_IT.ctaPutInPlayEnd;
   // Potere: il token se ne va da solo; il pulsante dice solo cosa succede dopo
   if (data.type === 'Power') return tokens > 1 ? I18N_IT.ctaPowerNext : I18N_IT.ctaPowerLast;
   // Minion (resta in gioco) e attacco (va negli scarti)
@@ -2603,6 +2663,8 @@ function renderResolve() {
   // In fondo alla fascia, finché non si pesca: la prossima carta del mazzo, coperta (retro) con NUOVA
   // Il dorso compare nella fascia solo al passo Pesca (non dall'inizio del turno nemesi)
   if (drawStep && canDraw()) railItems.push(nextCardItem({ current: drawStep, viewed: viewingDraw }));
+  // Fase di risoluzione: al posto della carta da pescare solo una cornice tratteggiata grigia (come mazzo e scarti vuoti)
+  else if (!drawStep && newIndex < 0 && canDraw()) railItems.push(nextSlotItem());
   rail.replaceChildren(...railItems);
   rail.scrollLeft = railScroll;
   rail.scrollTop = railScrollTop;
@@ -2978,12 +3040,24 @@ function endResolution() {
 
 function nemesisTurn() {
   turn++;
-  // Finisce il turno dei giocatori: danno e cura del turno si azzerano (la vita attuale diventa il riferimento)
+  startResolution();
+}
+
+// "Fine turno" nel turno di un giocatore: finisce il turno e si estrae il turno dopo dal mazzo dei turni.
+// Nemesi: parte il turno nemesi; giocatore o jolly: resta il turno giocatori, con il colore nuovo nella barra.
+function endPlayerTurn() {
+  // Danno e cura del turno si azzerano (la vita attuale diventa il riferimento)
   queue.forEach(e => { e.turnHp = e.hp; });
   // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
   ui.drafts.clear();
   queue.filter(isGone).forEach(discardGone);
-  startResolution();
+  if (drawTurnCard() === 'nemesis') nemesisTurn();
+}
+
+// Fine del turno nemesi ("Metti in gioco · Fine turno nemesi"): si estrae il turno dopo; se è di nuovo la nemesi, il
+// turno nemesi riparte subito
+function afterNemesisTurn() {
+  if (drawTurnCard() === 'nemesis') nemesisTurn();
 }
 
 // Logica del pulsante principale (come nella v48): agisce sulla carta da risolvere in base al suo tipo.
@@ -3038,7 +3112,11 @@ function onResolveClick() {
   if (isDrawStep()) {
     // "Pesca": la carta coperta diventa la carta pescata, che si gira
     if (ui.viewedUid !== DRAW_UID) return;
-    act(drawNewCard);
+    act(() => {
+      drawNewCard();
+      // Mazzo vuoto: il turno nemesi finisce e si estrae il turno dopo
+      if (!resolving) afterNemesisTurn();
+    });
     if (resolving) {
       showActive(activeEntry());
       lockFor(duration('focus'));
@@ -3050,7 +3128,18 @@ function onResolveClick() {
   if (!active || ui.viewedUid !== active.uid) return;
   const ghostSource = focusEl.querySelector(`.ae-focus-slide[data-uid="${active.uid}"] .ae-focus-stage`);
   const wasNewStep = newIndex >= 0;
-  const effect = act(resolveCurrent);
+  const turnBefore = turn;
+  const effect = act(() => {
+    const result = resolveCurrent();
+    // Fine del turno nemesi: si estrae il turno dopo dal mazzo dei turni
+    if (!resolving) afterNemesisTurn();
+    return result;
+  });
+  // Dal mazzo dei turni è uscita di nuovo la nemesi: il turno nemesi riparte (scossa e annuncio)
+  if (resolving && turn !== turnBefore) {
+    shakeApp();
+    announce(I18N_IT.trackNemesisResolve);
+  }
 
   if (!resolving) {
     // Fine del turno nemesi: si torna alla VistaCoda con la carta pescata in vista
@@ -3109,7 +3198,21 @@ function onNemesisClick(e) {
     saveAllDrafts();
     return;
   }
-  act(nemesisTurn);
+  act(endPlayerTurn);
+  if (!resolving) {
+    // Dal mazzo dei turni è uscito un giocatore (o il jolly): si resta nel turno giocatori, cambia il colore della barra
+    render();
+    announce(turnTrack.getAttribute('aria-label'));
+    turnTrack.classList.remove('is-changed');
+    void turnTrack.offsetWidth;
+    turnTrack.classList.add('is-changed');
+    return;
+  }
+  enterNemesisTurnView();
+}
+
+// Inizio del turno nemesi a schermo (dopo che lo stato è già passato al turno nemesi)
+function enterNemesisTurnView() {
   // Urgenza: una breve scossa dello schermo e una vibrazione
   shakeApp();
   // Lo sfondo scorre verso il lato della nemesi (0,8 s, style.css .ae-shell): il token della prima carta aspetta
@@ -3283,37 +3386,52 @@ menuBtn.addEventListener('click', openSideMenu);
   infoRow.remove();
 })();
 
-// Barra della fase sotto la testata (proposta A, v162): due metà uguali, Giocatori e Nemesi, con il nome sotto.
-// La metà della fase in corso è accesa (8px, colore pieno e bagliore: blu = giocatori, rosso scuro = nemesi, colori
-// desaturati del 10%) e il suo nome ha lo stesso colore; l'altra è una linea sottile quasi spenta, con il nome spento.
-// Nel turno nemesi due pallini accanto a "Nemesi": acceso il primo = risoluzione, acceso il secondo = pesca.
-// È ricavata dallo stato (resolving, isDrawStep): nessuno stato nuovo.
+// Barra della fase sotto la testata (v168): 6 caselle, una per carta del mazzo dei turni (turnOrder), nell'ordine in
+// cui sono state estratte. La casella del turno in corso è accesa (8px, colore pieno e bagliore), quelle dei turni già
+// giocati in questo giro sono linee sottili colorate e velate, quelle ancora da estrarre linee grigie.
+// Colori: giocatori 1-4 verde, giallo, blu, viola; jolly grigio chiaro; nemesi rosso scuro (style.css).
+// Nel turno nemesi sotto la casella accesa c'è la scritta "Nemesi · Risolvi" o "Nemesi · Pesca"; nel turno di un
+// giocatore niente scritta (basta il colore; il turno è detto nell'aria-label).
 const turnTrack = el('div', 'ae-turn-track');
 turnTrack.setAttribute('role', 'img');
 const turnTrackBar = el('div', 'ae-turn-track-bar');
-turnTrackBar.append(el('span', 'ae-turn-seg is-players'), el('span', 'ae-turn-seg is-nemesis'));
-const turnTrackDots = el('span', 'ae-turn-dots');
-turnTrackDots.append(el('span'), el('span'));
 const turnTrackLabels = el('div', 'ae-turn-labels');
-const nemesisLabel = el('span', 'ae-turn-label is-nemesis', I18N_IT.trackNemesisName);
-nemesisLabel.appendChild(turnTrackDots);
-turnTrackLabels.append(el('span', 'ae-turn-label is-players', I18N_IT.trackPlayersName), nemesisLabel);
+const turnTrackLabel = el('span', 'ae-turn-label');
+turnTrackLabels.appendChild(turnTrackLabel);
 turnTrack.append(turnTrackBar, turnTrackLabels);
 mainEl.prepend(turnTrack);
 
 function renderTurnTrack() {
   turnTrack.hidden = !!ui.deckBuilding;
   if (ui.deckBuilding) return;
-  // La classe sulla barra intera accende una metà e il suo nome (style.css .ae-turn-track.is-players / .is-nemesis)
-  turnTrack.classList.toggle('is-players', !resolving);
+  const total = turnOrderCards(settings.players).length;
+  while (turnTrackBar.children.length < total) turnTrackBar.appendChild(el('span', 'ae-turn-seg'));
+  while (turnTrackBar.children.length > total) turnTrackBar.lastChild.remove();
+  const drawn = turnOrder.drawn;
+  const cur = drawn.length - 1;
+  [...turnTrackBar.children].forEach((seg, i) => {
+    if (i < drawn.length) seg.dataset.kind = drawn[i];
+    else delete seg.dataset.kind;
+    seg.classList.toggle('is-current', i === cur);
+    seg.classList.toggle('is-past', i < cur);
+  });
   turnTrack.classList.toggle('is-nemesis', resolving);
-  // Pallini solo nel turno nemesi, accanto a "Nemesi"
+  // Scritta sotto la casella accesa (alle due estremità allineata al bordo, per non uscire dalla barra)
   const drawStep = resolving && (isDrawStep() || newIndex >= 0);
-  turnTrackDots.hidden = !resolving;
-  turnTrackDots.children[0].classList.toggle('is-on', resolving && !drawStep);
-  turnTrackDots.children[1].classList.toggle('is-on', resolving && drawStep);
-  turnTrack.setAttribute('aria-label', !resolving ? I18N_IT.trackPlayers
-    : drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve);
+  if (resolving) {
+    turnTrackLabel.replaceChildren(I18N_IT.trackNemesisName, el('span', 'ae-turn-label-dot'),
+      drawStep ? I18N_IT.trackDraw : I18N_IT.trackResolve);
+  } else {
+    turnTrackLabel.replaceChildren();
+  }
+  turnTrackLabel.classList.toggle('is-start', cur <= 0);
+  turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
+  turnTrackLabel.style.left = `${((Math.max(0, cur) + 0.5) / total) * 100}%`;
+  const card = currentTurnCard();
+  const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
+    : card === 'wild' ? I18N_IT.trackWild
+    : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
+  turnTrack.setAttribute('aria-label', [name, I18N_IT.trackPosition(cur + 1, total)].filter(Boolean).join(', '));
 }
 
 // In alto a sinistra, al posto di Undo (che è nel Menu), uno accanto all'altro e uguali nei due turni: il mazzo nemesi
@@ -3972,8 +4090,15 @@ function finishDeckBuild() {
   } else if (layer) {
     layer.remove();
   }
-  render();
-  nemesisBtn.focus({ preventScroll: true });
+  // Il mazzo dei turni ha dato subito la nemesi (newGame): la partita comincia con il turno nemesi
+  if (currentTurnCard() === 'nemesis' && !resolving) {
+    nemesisTurn();
+    save();
+    enterNemesisTurnView();
+  } else {
+    render();
+    nemesisBtn.focus({ preventScroll: true });
+  }
   // Banner "Partita iniziata", uguale a quello dei Tier; finito il banner lo sfondo si accende
   showBanner(I18N_IT.gameStarted);
   setTimeout(() => {

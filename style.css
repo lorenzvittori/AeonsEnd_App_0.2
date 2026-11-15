@@ -1037,32 +1037,58 @@ body { overflow: hidden; }
   -webkit-user-drag: none;
 }
 .nemesis-flip.is-zoomed { touch-action: none; }
-/* Barra della fase sotto la testata (script.js renderTurnTrack, proposta A): due metà uguali con il nome sotto. Accesa
-   (8px, colore e bagliore) la metà della fase in corso, l'altra è una linea sottile quasi spenta. Colori dei turni
-   desaturati del 10% (blu: saturazione 80% → 72%; rosso scuro: 64% → 58%) */
+/* Barra della fase sotto la testata (script.js renderTurnTrack, v168): 6 caselle, una per carta del mazzo dei turni,
+   nell'ordine di estrazione. Accesa (8px, colore e bagliore) la casella del turno in corso; velate le caselle dei turni
+   già giocati nel giro; grigie quelle da estrarre. Colori: giocatori 1-4 verde, giallo, blu, viola; jolly grigio
+   chiaro; nemesi rosso scuro. Sotto la casella accesa, solo nel turno nemesi, "Nemesi · Risolvi" / "Nemesi · Pesca" */
 :root {
-  --ae-turn-blue: hsl(214 72% 52%); --ae-turn-red: hsl(356 58% 42%);
-  --ae-turn-blue-text: hsl(214 72% 72%); --ae-turn-red-text: hsl(356 62% 70%); --ae-turn-off: rgba(236, 232, 222, .14);
+  --ae-turn-p1: hsl(150 48% 46%); --ae-turn-p2: hsl(46 86% 54%); --ae-turn-p3: hsl(214 72% 52%);
+  --ae-turn-p4: hsl(272 52% 60%); --ae-turn-wild: hsl(40 14% 84%); --ae-turn-red: hsl(356 58% 42%);
+  --ae-turn-red-text: hsl(356 62% 70%); --ae-turn-off: rgba(236, 232, 222, .14);
 }
 .ae-turn-track { flex: 0 0 auto; padding: 10px 16px 0; }
 .ae-turn-track[hidden] { display: none; }
 .ae-turn-track-bar { display: flex; gap: 6px; align-items: center; height: 8px; }
 .ae-turn-seg {
+  --ae-seg: var(--ae-turn-off);
   flex: 1 1 0; min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
-  transition: height .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out;
+  transition: height .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
 }
-.ae-turn-track.is-players .ae-turn-seg.is-players { height: 8px; border-radius: 4px; background: var(--ae-turn-blue); box-shadow: 0 0 12px hsl(214 72% 52% / .55); }
-.ae-turn-track.is-nemesis .ae-turn-seg.is-nemesis { height: 8px; border-radius: 4px; background: var(--ae-turn-red); box-shadow: 0 0 12px hsl(356 58% 45% / .6); }
-.ae-turn-labels { display: flex; gap: 6px; margin-top: 6px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-.ae-turn-label { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: rgba(236, 232, 222, .32); transition: color .3s ease-out; }
-.ae-turn-track.is-players .ae-turn-label.is-players { color: var(--ae-turn-blue-text); }
-.ae-turn-track.is-nemesis .ae-turn-label.is-nemesis { color: var(--ae-turn-red-text); }
-/* Pallini del turno nemesi accanto a "Nemesi": risoluzione / pesca */
-.ae-turn-dots { display: flex; gap: 6px; }
-.ae-turn-dots[hidden] { display: none; }
-.ae-turn-dots span { width: 7px; height: 7px; border-radius: 50%; background: #3a3d47; transition: background-color .2s ease-out; }
-.ae-turn-dots span.is-on { background: hsl(356 70% 62%); box-shadow: 0 0 6px hsl(356 70% 62% / .8); }
-@media (prefers-reduced-motion: reduce) { .ae-turn-seg, .ae-turn-label, .ae-turn-dots span { transition: none; } }
+.ae-turn-seg[data-kind="p1"] { --ae-seg: var(--ae-turn-p1); }
+.ae-turn-seg[data-kind="p2"] { --ae-seg: var(--ae-turn-p2); }
+.ae-turn-seg[data-kind="p3"] { --ae-seg: var(--ae-turn-p3); }
+.ae-turn-seg[data-kind="p4"] { --ae-seg: var(--ae-turn-p4); }
+.ae-turn-seg[data-kind="wild"] { --ae-seg: var(--ae-turn-wild); }
+.ae-turn-seg[data-kind="nemesis"] { --ae-seg: var(--ae-turn-red); }
+.ae-turn-seg.is-past { background: var(--ae-seg); opacity: .45; }
+.ae-turn-seg.is-current {
+  height: 8px; border-radius: 4px; background: var(--ae-seg);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ae-seg) 60%, transparent);
+}
+/* Turno giocatori che passa a un altro giocatore: la casella accesa pulsa una volta */
+.ae-turn-track.is-changed .ae-turn-seg.is-current { animation: ae-turn-pulse .5s ease-out; }
+@keyframes ae-turn-pulse { 0% { transform: scaleY(.4); } 60% { transform: scaleY(1.35); } 100% { transform: none; } }
+/* Altezza fissa: la riga c'è anche quando è vuota (turno giocatori), così le carte sotto non si spostano */
+.ae-turn-labels { position: relative; height: 14px; margin-top: 6px; font: 700 11px/14px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.ae-turn-label {
+  position: absolute; top: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 7px;
+  white-space: nowrap; color: var(--ae-turn-red-text);
+}
+.ae-turn-label.is-start { left: 0 !important; transform: none; }
+.ae-turn-label.is-end { left: auto !important; right: 0; transform: none; }
+.ae-turn-label-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+@media (prefers-reduced-motion: reduce) {
+  .ae-turn-seg { transition: none; }
+  .ae-turn-track.is-changed .ae-turn-seg.is-current { animation: none; }
+}
+/* Fascia del turno nemesi, fase di risoluzione: il posto della carta da pescare è solo un bordo tratteggiato grigio,
+   come il mazzo e gli scarti vuoti (script.js nextSlotItem) */
+.ae-next-slot { pointer-events: none; }
+.ae-next-slot .ae-card-art,
+.ae-compact-rail .ae-queue-item.ae-next-slot .ae-card-art {
+  display: block; aspect-ratio: 5 / 7; box-sizing: border-box; background: none; box-shadow: none;
+  border: 1px dashed rgba(236, 232, 222, .35); border-radius: 5% / 3.58%;
+}
 /* --- v163 --- */
 /* Testata: a sinistra nome della nemesi e, sotto, battaglia | giocatori | turno; a destra mazzo e scarti, poi il Menu */
 .ae-shell.clear-header > .ae-header { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 10px; padding-left: 16px; }

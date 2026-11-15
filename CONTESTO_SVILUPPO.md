@@ -119,14 +119,21 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Dalla v163: **a sinistra** il nome della nemesi e sotto fiamma con il numero della battaglia | icona dei giocatori |
   Turno N (allineati a sinistra); **a destra** mazzo e scarti e, ancora a destra, il **Menu**. (Prima: mazzi a
   sinistra, nome al centro.)
-- **Barra della fase** (v162, proposta A della tavola di progetto "Indicatore fase di gioco"; `renderTurnTrack`,
-  `.ae-turn-track`), subito sotto la testata: **due metà uguali**, Giocatori e Nemesi, con il nome sotto.
-  - La metà della fase in corso è **accesa**: alta 8px, colore pieno con bagliore (**blu** nel turno giocatori,
-    **rosso scuro** nel turno nemesi; colori desaturati del 10%, `--ae-turn-blue`, `--ae-turn-red`) e il nome dello
-    stesso colore. L'altra è una linea sottile quasi spenta, con il nome spento.
-  - Nel turno nemesi due **pallini** accanto a "Nemesi": acceso il primo = fase di risoluzione, acceso il secondo =
-    fase di pesca. Ricavata da `resolving` e `isDrawStep`, nessuno stato nuovo. Nascosta durante "Crea mazzo".
-  - La versione a 6 segmenti in stile storie di Instagram (v161) è stata sostituita.
+- **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
+  gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
+  sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste; finite le 6 si
+  rimescola. Il primo turno si estrae a inizio partita (`newGame`): se è la nemesi, finito "Crea mazzo" parte subito il
+  turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
+- **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
+  carta del mazzo dei turni, nell'ordine di estrazione.
+  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore); quelle dei turni già giocati nel giro
+    sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
+  - Colori: giocatore 1 **verde**, 2 **giallo**, 3 **blu**, 4 **viola**, jolly **grigio chiaro**, nemesi **rosso
+    scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-wild`, `--ae-turn-red`).
+  - Nessuna scritta nel turno di un giocatore (il turno è detto nell'aria-label). Nel turno nemesi sotto la casella
+    accesa "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+  - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
+  - Prima: due metà Giocatori/Nemesi con i pallini (v162), e prima ancora 6 segmenti fissi (v161).
 - **Niente linee di separazione** tra testata, fascia piccola e carte grandi (v162): le zone sono separate solo dallo
   spazio.
 
@@ -148,14 +155,16 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Gli scorrimenti animati verso una carta (tocco sulla fascia piccola o su una carta di lato, Turno Nemesi) sono
   circa il 50% più veloci di quelli del browser: `fastScrollTo`, 260ms, con lo scroll-snap spento durante
   l'animazione; un dito sulle carte la interrompe.
-- Il pulsante **Turno Nemesi**, con l'illustrazione della nemesi, avvia il turno della nemesi: breve scossa dello
-  schermo e vibrazione (urgenza, `shakeApp`). Lo sfondo (maga a sinistra, nemesi a destra) scorre verso il lato della
-  nemesi.
+- Il pulsante **Fine turno** (v168, prima "Turno Nemesi"), con l'illustrazione della nemesi, chiude il turno del
+  giocatore (`endPlayerTurn`: vita di riferimento azzerata, poteri pagati negli scarti) ed estrae il turno dopo. Se
+  esce la nemesi parte il turno nemesi: breve scossa dello schermo e vibrazione (urgenza, `shakeApp`) e lo sfondo
+  (maga a sinistra, nemesi a destra) scorre verso il lato della nemesi. Se esce un giocatore si resta nel turno
+  giocatori e cambia solo il colore nella barra della fase.
 
 **Turno nemesi**
 - Le carte in gioco si risolvono dalla più vecchia, una alla volta, in un carosello che si scorre con il dito; la fascia
   in alto indica la carta guardata. Guardando un'altra carta compare "Torna alla carta da risolvere".
-- Toccando "Turno Nemesi" il carosello parte dalla carta che si stava guardando e scorre (animato) fino alla carta da
+- Toccando "Fine turno" (quando esce la nemesi) il carosello parte dalla carta che si stava guardando e scorre (animato) fino alla carta da
   risolvere; anche un tocco sulla fascia in alto fa scorrere il carosello, come nel turno giocatori.
 - La carta da risolvere lampeggia di rosso, come l'attacco appena pescato; non lampeggiano i poteri con più di un token.
 - Pulsante in basso:
@@ -166,8 +175,13 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Passo Pesca:** dopo l'ultima carta un dorso vola dal mazzo al centro, con il pulsante dorato **Pesca** (o tocco sul
   dorso). La carta si gira e mostra NUOVA e un bagliore dorato; un attacco lampeggia di rosso. Dorso e carta pescata
   sono più grandi delle altre carte: il 90% (`BIG_CARD_SCALE`) della misura massima calcolata da `sizeFocus`.
-  - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "Metti in gioco". Poi si torna al turno
-    giocatori: la carta messa in gioco si rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra.
+  - Attacco pescato: "Effetto risolto", vola negli scarti. Altre carte: "**Metti in gioco · Fine turno nemesi**"
+    (v168). Poi si estrae il turno dopo: se è un giocatore si torna al turno giocatori (la carta messa in gioco si
+    rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra); se è di nuovo la nemesi il turno
+    nemesi riparte subito (scossa e vibrazione).
+- Nella **fascia piccola**, durante la risoluzione, dopo l'ultima carta c'è il posto della carta da pescare: solo un
+  **bordo tratteggiato grigio**, come mazzo e scarti vuoti (v168, `nextSlotItem`). Al passo Pesca al suo posto compare
+  il dorso.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
 - **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
 - **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi), oppure "Nemesi uccisa" nel
