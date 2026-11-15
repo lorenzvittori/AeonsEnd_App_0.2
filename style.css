@@ -1042,8 +1042,9 @@ body { overflow: hidden; }
    già giocati nel giro; grigie quelle da estrarre. Colori: giocatori 1-4 verde, giallo, blu, viola; jolly grigio
    chiaro; nemesi rosso scuro. Sotto la casella accesa, solo nel turno nemesi, "Nemesi · Risolvi" / "Nemesi · Pesca" */
 :root {
-  --ae-turn-p1: hsl(150 48% 46%); --ae-turn-p2: hsl(46 86% 54%); --ae-turn-p3: hsl(214 72% 52%);
-  --ae-turn-p4: hsl(272 52% 60%); --ae-turn-wild: hsl(40 14% 84%); --ae-turn-red: hsl(356 58% 42%);
+  /* v174: palette dell'utente (giocatori 1-4: lime, arancio, blu, viola) */
+  --ae-turn-p1: #BDD21C; --ae-turn-p2: #D78E1C; --ae-turn-p3: #1C518D;
+  --ae-turn-p4: #7C158E; --ae-turn-wild: hsl(40 14% 84%); --ae-turn-red: hsl(356 58% 42%);
   --ae-turn-red-text: hsl(356 62% 70%); --ae-turn-off: rgba(236, 232, 222, .14);
 }
 .ae-turn-track { flex: 0 0 auto; padding: 10px 16px 0; }
@@ -1086,10 +1087,11 @@ body { overflow: hidden; }
   .ae-turn-track.is-changed .ae-turn-seg.is-current { animation: none; }
 }
 /* v169: scritta "Giocatore N" / "Jolly" nel colore del giocatore */
-.ae-turn-label[data-kind="p1"] { color: color-mix(in srgb, var(--ae-turn-p1) 75%, white); }
-.ae-turn-label[data-kind="p2"] { color: color-mix(in srgb, var(--ae-turn-p2) 80%, white); }
-.ae-turn-label[data-kind="p3"] { color: color-mix(in srgb, var(--ae-turn-p3) 65%, white); }
-.ae-turn-label[data-kind="p4"] { color: color-mix(in srgb, var(--ae-turn-p4) 75%, white); }
+/* Testo schiarito quanto basta per leggersi sul fondo scuro (blu e viola sono scuri) */
+.ae-turn-label[data-kind="p1"] { color: var(--ae-turn-p1); }
+.ae-turn-label[data-kind="p2"] { color: color-mix(in srgb, var(--ae-turn-p2) 85%, white); }
+.ae-turn-label[data-kind="p3"] { color: color-mix(in srgb, var(--ae-turn-p3) 45%, white); }
+.ae-turn-label[data-kind="p4"] { color: color-mix(in srgb, var(--ae-turn-p4) 50%, white); }
 .ae-turn-label[data-kind="wild"] { color: var(--ae-turn-wild); }
 /* v169: pulsante "Fine turno" nel turno di un giocatore: fondo scuro velato del colore del giocatore, molto tenue */
 .ae-button.has-player-color {

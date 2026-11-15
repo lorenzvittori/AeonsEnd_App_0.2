@@ -131,7 +131,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e **lunga il doppio** di una casella
     a misura fissa (v170: circa 104px contro 52px su un telefono da 375px); le altre si stringono (circa 42px). Quelle dei turni già giocati nel giro
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
-  - Colori: giocatore 1 **verde**, 2 **giallo**, 3 **blu**, 4 **viola**, jolly **grigio chiaro**, nemesi **rosso
+  - Colori (palette dell'utente, v174): giocatore 1 **lime** `#BDD21C`, 2 **arancio** `#D78E1C`, 3 **blu**
+    `#1C518D`, 4 **viola** `#7C158E` (le scritte "Giocatore N" di blu e viola sono schiarite per leggersi), jolly **grigio chiaro**, nemesi **rosso
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-wild`, `--ae-turn-red`).
   - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" (o "**Jolly**") nel colore del giocatore
     (v169); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
