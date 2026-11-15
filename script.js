@@ -2067,16 +2067,11 @@ function openOptions(trigger) {
   const summary = el('span', 'options-item-note', collectionSummaryText());
   item.append(el('span', 'options-item-label', I18N_IT.myCollection), summary);
   item.addEventListener('click', () => openCollection(item, () => { summary.textContent = collectionSummaryText(); }));
-  // Dorso delle carte (la stessa griglia del Menu della partita): il nome del dorso scelto sotto la voce
-  const backItem = el('button', 'options-item');
-  backItem.type = 'button';
-  const backNote = el('span', 'options-item-note', I18N_IT.cardBacks[currentCardBack().id]);
-  backItem.append(el('span', 'options-item-label', I18N_IT.cardBack), backNote);
-  backItem.addEventListener('click', () => openCardBackPicker(
-    () => { backNote.textContent = I18N_IT.cardBacks[currentCardBack().id]; },
-    // Chiusa la griglia, la pagina iniziale resta coperta dalle Opzioni
-    () => { if (layer.isConnected) startLayer.inert = true; }));
-  // Sfondo (lo stesso menu a tendina del Menu della partita)
+  // Dorso delle carte: miniatura e nome del dorso scelto; si tocca per la griglia di tutti i dorsi. Chiusa la griglia,
+  // la pagina iniziale resta coperta dalle Opzioni
+  const backItem = el('div', 'options-item options-item--field');
+  backItem.append(el('span', 'options-item-label', I18N_IT.cardBack),
+    cardBackChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }));
   // Sfondo: anteprima e nome dello sfondo scelto; si tocca per le anteprime di tutti gli sfondi
   const bgItem = el('div', 'options-item options-item--field');
   bgItem.append(el('span', 'options-item-label', I18N_IT.background),
@@ -4285,21 +4280,7 @@ function openSideMenu() {
   bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), backgroundChoiceButton());
   // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
   const backRow = el('div', 'ae-side-field');
-  const backBtn = el('button', 'ae-back-choice');
-  backBtn.type = 'button';
-  const backThumb = el('img', 'ae-back-choice-thumb');
-  backThumb.alt = '';
-  const syncBack = () => {
-    const b = currentCardBack();
-    backThumb.src = b.thumb;
-    backName.textContent = I18N_IT.cardBacks[b.id];
-    backBtn.setAttribute('aria-label', I18N_IT.cardBackChosen(I18N_IT.cardBacks[b.id]));
-  };
-  const backName = el('span', 'ae-back-choice-name');
-  backBtn.append(backThumb, backName);
-  backBtn.addEventListener('click', () => openCardBackPicker(syncBack));
-  syncBack();
-  backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), backBtn);
+  backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), cardBackChoiceButton());
   const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
@@ -4330,6 +4311,25 @@ function openSideMenu() {
 }
 
 // Scelta del dorso delle carte: griglia di miniature; un tocco sceglie il dorso, lo applica subito e chiude
+// Pulsante con la miniatura e il nome del dorso scelto: apre la griglia dei dorsi (Menu della partita e Opzioni)
+function cardBackChoiceButton(onClosed) {
+  const btn = el('button', 'ae-back-choice');
+  btn.type = 'button';
+  const thumb = el('img', 'ae-back-choice-thumb');
+  thumb.alt = '';
+  const name = el('span', 'ae-back-choice-name');
+  const sync = () => {
+    const b = currentCardBack();
+    thumb.src = b.thumb;
+    name.textContent = I18N_IT.cardBacks[b.id];
+    btn.setAttribute('aria-label', I18N_IT.cardBackChosen(I18N_IT.cardBacks[b.id]));
+  };
+  btn.append(thumb, name);
+  btn.addEventListener('click', () => openCardBackPicker(sync, onClosed));
+  sync();
+  return btn;
+}
+
 // Pulsante con l'anteprima e il nome dello sfondo scelto: apre la scelta con le anteprime (Menu della partita e Opzioni)
 function backgroundChoiceButton(onClosed) {
   const btn = el('button', 'ae-bg-choice');
