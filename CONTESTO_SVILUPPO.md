@@ -137,7 +137,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Colori (palette dell'utente, v174): giocatore 1 **lime** `#BDD21C`, 2 **arancio** `#D78E1C`, 3 **blu**
     `#1C518D`, 4 **viola** `#7C158E` (le scritte "Giocatore N" di blu e viola sono schiarite per leggersi), nemesi **rosso
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-red`). Jolly (v179): **strisce bianche e del colore** del
-    giocatore che è jolly in quel giro (`data-owner`).
+    giocatore che è jolly in quel giro (`data-owner`); le bianche sono spesse la metà delle colorate (v180: 3px e 6px).
   - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" nel colore del giocatore (v169); nel turno
     del jolly "**Jolly · Giocatore N**" (v179); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.

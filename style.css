@@ -1070,7 +1070,8 @@ body { overflow: hidden; }
 .ae-turn-seg[data-kind="wild"][data-owner="p3"] { --ae-seg: var(--ae-turn-p3); }
 .ae-turn-seg[data-kind="wild"][data-owner].is-past,
 .ae-turn-seg[data-kind="wild"][data-owner].is-current {
-  background: repeating-linear-gradient(135deg, #fff 0 4px, var(--ae-seg) 4px 8px);
+  /* v180: strisce bianche spesse la metà di quelle colorate (3px e 6px) */
+  background: repeating-linear-gradient(135deg, #fff 0 3px, var(--ae-seg) 3px 9px);
 }
 /* v170: la casella del turno in corso è lunga il doppio di una casella a misura fissa (6 caselle, 5 spazi da 6px:
    (100% - 30px) / 6 × 2); le altre 5 si stringono nello spazio che resta */
