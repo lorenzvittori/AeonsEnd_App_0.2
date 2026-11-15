@@ -149,6 +149,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     danno in corso si vede solo la vita. Lo stesso nella finestra della vita ("HP x / X") e, nel turno nemesi, la riga
     sopra la carta mostra solo la vita;
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
+  - **poteri con più di 3 token** (v176, ovunque si vedono i token): i token e gli spazi si rimpiccioliscono di 3/n
+    (`zoom`, `tokenIcons`), così il box resta largo come con 3 token;
   - **altri poteri:** la nota "! Non rimovibile". Nella fascia piccola (in tutti e due i turni) hanno in basso al
     centro un box uguale a quello di token e vita, simmetrico a quello in alto, con un **simbolo di divieto** rosso
     (v169, `.ae-ban-badge`).

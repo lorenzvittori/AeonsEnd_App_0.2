@@ -667,6 +667,13 @@ function tokenIcons(n) {
   const row = el('span', 'ae-tokens');
   row.setAttribute('aria-hidden', 'true');
   for (let i = 0; i < Math.max(0, n); i++) row.appendChild(el('span', 'ae-token'));
+  // Più di 3 token (v176): token e spazi si rimpiccioliscono di 3/n, così la fila (e il box) resta larga come con 3
+  if (n > 3) {
+    row.classList.add('is-many');
+    row.style.setProperty('--ae-token-zoom', String(3 / n));
+    // Gli spazi tra i token si dividono gli stessi 4px dei 2 spazi tra 3 token
+    row.style.setProperty('--ae-token-gap', `${4 / (n - 1)}px`);
+  }
   return row;
 }
 

@@ -1188,6 +1188,9 @@ body { overflow: hidden; }
 .ae-stats-minion-turns { flex: 0 0 auto; font: 700 15px/20px var(--ae-font-ui); font-variant-numeric: tabular-nums; }
 /* Statistiche: tempi */
 .ae-stats-times { margin-bottom: 4px; }
+/* v176: poteri con più di 3 token: token e spazi rimpiccioliti di 3/n (script.js tokenIcons), il box resta quello da 3 */
+.ae-tokens.is-many { gap: var(--ae-token-gap, 2px); }
+.ae-tokens.is-many .ae-token { zoom: var(--ae-token-zoom, 1); }
 /* v175: Statistiche maghi, tabella (una riga per giocatore, con il pallino del suo colore) */
 .ae-stats-mages { width: 100%; border-collapse: collapse; table-layout: fixed; font: 500 13px/17px var(--ae-font-ui); }
 .ae-stats-mages th, .ae-stats-mages td { padding: 6px 3px; text-align: center; vertical-align: middle; }
