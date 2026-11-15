@@ -3457,7 +3457,10 @@ function renderTurnTrack() {
   else delete turnTrackLabel.dataset.kind;
   turnTrackLabel.classList.toggle('is-start', cur <= 0);
   turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
-  turnTrackLabel.style.left = `${((Math.max(0, cur) + 0.5) / total) * 100}%`;
+  // Centro della casella accesa (v170, style.css .ae-turn-seg.is-current): accesa = (100% - 30px) / 3, le altre
+  // (100% - 30px) × 2 / 15, spazi da 6px
+  turnTrackLabel.style.left = cur >= 0
+    ? `calc(${cur} * ((100% - 30px) * 2 / 15 + 6px) + (100% - 30px) / 6)` : '0%';
   const card = currentTurnCard();
   const name = resolving ? (drawStep ? I18N_IT.trackNemesisDraw : I18N_IT.trackNemesisResolve)
     : card === 'wild' ? I18N_IT.trackWild

@@ -1052,7 +1052,7 @@ body { overflow: hidden; }
 .ae-turn-seg {
   --ae-seg: var(--ae-turn-off);
   flex: 1 1 0; min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
-  transition: height .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
+  transition: height .3s ease-out, flex-basis .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
 }
 .ae-turn-seg[data-kind="p1"] { --ae-seg: var(--ae-turn-p1); }
 .ae-turn-seg[data-kind="p2"] { --ae-seg: var(--ae-turn-p2); }
@@ -1061,8 +1061,10 @@ body { overflow: hidden; }
 .ae-turn-seg[data-kind="wild"] { --ae-seg: var(--ae-turn-wild); }
 .ae-turn-seg[data-kind="nemesis"] { --ae-seg: var(--ae-turn-red); }
 .ae-turn-seg.is-past { background: var(--ae-seg); opacity: .45; }
+/* v170: la casella del turno in corso è lunga il doppio di una casella a misura fissa (6 caselle, 5 spazi da 6px:
+   (100% - 30px) / 6 × 2); le altre 5 si stringono nello spazio che resta */
 .ae-turn-seg.is-current {
-  height: 8px; border-radius: 4px; background: var(--ae-seg);
+  flex: 0 0 calc((100% - 30px) / 3); height: 8px; border-radius: 4px; background: var(--ae-seg);
   box-shadow: 0 0 12px color-mix(in srgb, var(--ae-seg) 60%, transparent);
 }
 /* Turno giocatori che passa a un altro giocatore: la casella accesa pulsa una volta */

@@ -128,7 +128,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
   carta del mazzo dei turni, nell'ordine di estrazione.
-  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore); quelle dei turni già giocati nel giro
+  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e **lunga il doppio** di una casella
+    a misura fissa (v170: circa 104px contro 52px su un telefono da 375px); le altre si stringono (circa 42px). Quelle dei turni già giocati nel giro
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
   - Colori: giocatore 1 **verde**, 2 **giallo**, 3 **blu**, 4 **viola**, jolly **grigio chiaro**, nemesi **rosso
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-wild`, `--ae-turn-red`).
