@@ -1091,6 +1091,14 @@ body { overflow: hidden; }
 .ae-turn-label.is-start { left: 0 !important; transform: none; }
 .ae-turn-label.is-end { left: auto !important; right: 0; transform: none; }
 .ae-turn-label-wild { color: #fff; }
+/* v182: sigla sotto le caselle dei turni già passati (N, 1-4, J), nel colore del turno e velata come la casella */
+.ae-turn-mark { position: absolute; top: 0; transform: translateX(-50%); opacity: .7; color: var(--ae-text-muted); }
+.ae-turn-mark[data-kind="nemesis"] { color: var(--ae-turn-red-text); }
+.ae-turn-mark[data-kind="p1"] { color: var(--ae-turn-p1); }
+.ae-turn-mark[data-kind="p2"] { color: color-mix(in srgb, var(--ae-turn-p2) 85%, white); }
+.ae-turn-mark[data-kind="p3"] { color: color-mix(in srgb, var(--ae-turn-p3) 45%, white); }
+.ae-turn-mark[data-kind="p4"] { color: color-mix(in srgb, var(--ae-turn-p4) 50%, white); }
+.ae-turn-mark.is-wild { color: #fff; }
 .ae-turn-label-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 @media (prefers-reduced-motion: reduce) {
   .ae-turn-seg { transition: none; }

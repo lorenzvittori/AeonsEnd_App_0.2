@@ -3514,6 +3514,17 @@ function renderTurnTrack() {
   const labelKind = resolving ? 'nemesis' : (turnCardPlayer(currentTurnCard()) || currentTurnCard());
   if (labelKind) turnTrackLabel.dataset.kind = labelKind;
   else delete turnTrackLabel.dataset.kind;
+  // Sotto le caselle dei turni già passati nel giro (v182): N = nemesi, 1-4 = giocatore, J = jolly, nel loro colore
+  turnTrackLabels.querySelectorAll('.ae-turn-mark').forEach(m => m.remove());
+  drawn.slice(0, Math.max(0, cur)).forEach((kind, i) => {
+    const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J' : kind.slice(1));
+    mark.setAttribute('aria-hidden', 'true');
+    mark.dataset.kind = turnCardPlayer(kind) || kind;
+    if (kind === 'wild') mark.classList.add('is-wild');
+    // Centro della casella i (prima di quella accesa: tutte strette)
+    mark.style.left = `calc(${i} * ((100% - 30px) * 2 / 15 + 6px) + (100% - 30px) / 15)`;
+    turnTrackLabels.appendChild(mark);
+  });
   turnTrackLabel.classList.toggle('is-start', cur <= 0);
   turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
   // Centro della casella accesa (v170, style.css .ae-turn-seg.is-current): accesa = (100% - 30px) / 3, le altre
