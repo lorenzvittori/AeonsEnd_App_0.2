@@ -2970,14 +2970,22 @@ function stackBottom() {
   if (!dock) return window.innerHeight;
   return dock.getBoundingClientRect().top + (parseFloat(getComputedStyle(dock).paddingTop) || 0);
 }
-// { w: larghezza della carta, gap: spazio uguale } per un'area che comincia a `top` (px dall'alto dello schermo)
+// v190: spazio tra il pulsante principale e il fondo dello schermo; uguale a quello tra i comandi e il pulsante
+function buttonBottomSpace() {
+  const btn = [...document.querySelectorAll('.ae-dock .ae-button')].find(b => b.getBoundingClientRect().height > 0);
+  if (!btn) return 12;
+  return Math.max(0, window.innerHeight - btn.getBoundingClientRect().bottom);
+}
+// { w: larghezza della carta, gap: spazio uguale } per un'area che comincia a `top` (px dall'alto dello schermo).
+// v190: i comandi finiscono sopra il pulsante a una distanza uguale a quella tra il pulsante e il fondo dello schermo;
+// gli altri 3 spazi (fascia → box, box → carta, carta → comandi) sono uguali tra loro
 function stackLayout(top, boxW, peekRoom) {
-  const room = stackBottom() - top;
+  const room = stackBottom() - buttonBottomSpace() - top;
   const fixed = STATUS_H + CONTROLS_H;
-  const byHeight = (room - fixed - 4 * STACK_GAP) / CARD_RATIO;
+  const byHeight = (room - fixed - 3 * STACK_GAP) / CARD_RATIO;
   const byWidth = boxW - 2 * SIDE_MARGIN - peekRoom;
   const w = Math.max(40, Math.floor(Math.min(byHeight, byWidth)));
-  const gap = Math.max(0, (room - fixed - w * CARD_RATIO) / 4);
+  const gap = Math.max(0, (room - fixed - w * CARD_RATIO) / 3);
   return { w, gap };
 }
 // Applica la misura a un'area (queueViewport o focusEl): --ae-stack-gap è lo spazio uguale (style.css v189)

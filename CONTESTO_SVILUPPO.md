@@ -168,6 +168,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   resto; se la carta è limitata dalla larghezza (schermi alti e stretti) l'altezza che avanza si divide in parti uguali
   tra i 4 spazi. Niente più centratura né spostamenti fissi (-14/-24px). Il turno nemesi usa la stessa regola (sotto la
   carta resta vuoto il posto dei comandi). Verificato con JS: 360×640, 375×812, 412×915 (spazi 18px), 768×1024.
+  Dalla v190 lo spazio **comandi → pulsante** è uguale a quello **pulsante → fondo dello schermo** (12px,
+  `buttonBottomSpace`); gli altri 3 spazi restano uguali tra loro (6px su 375×812, 20px su 412×915).
   La carta da pescare / pescata resta centrata nell'area; la sua misura (90% della massima) ora è circa uguale alle
   carte normali (su tablet un po' più piccola).
 - Sotto ogni carta grande i suoi comandi:
