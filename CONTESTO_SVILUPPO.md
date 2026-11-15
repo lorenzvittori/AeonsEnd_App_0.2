@@ -155,8 +155,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   e lo spazio tra la fascia piccola e il box vita/token è di 4px, uguale a quello tra la barra della fase e la fascia;
   le carte vicine spuntano di circa 13px. Dalla v186 anche il carosello del turno nemesi è spostato in su di 24px
   (`.ae-focus-track`, prima 14px), così riga vita/token e carta sono alla stessa altezza nei due turni; la carta da
-  pescare / pescata (`.is-big`) annulla lo spostamento (translate 24px) e resta centrata. Con le carte più grandi la
-  carta pescata è grande quanto le altre (il 90% della misura massima, `BIG_CARD_SCALE`, ora vale circa 312px).
+  pescare / pescata (`.is-big`) annulla lo spostamento (translate 24px) e resta centrata.
+  Dalla v187: **6px** tra la barra della fase e la fascia (margin-top della fascia) e 6px tra la fascia e il box
+  vita/token (`CONTROLS_RESERVE` = 30). Su 375×812 le carte normali sono 308×431, la carta da pescare / pescata 311
+  (il 90% della misura massima, `BIG_CARD_SCALE`).
 - Sotto ogni carta grande i suoi comandi:
   - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza

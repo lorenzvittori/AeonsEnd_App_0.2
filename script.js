@@ -2960,7 +2960,8 @@ const STATUS_H = 37;
 // v185: carte più grandi, così lo spazio tra la fascia piccola e il box vita/token è uguale a quello tra la barra della
 // fase e la fascia (4px su un telefono 375×812): riserva per i comandi 27px sopra e sotto (prima 52), 5px di margine
 // per lato (prima 8)
-const CONTROLS_RESERVE = 27;
+// v187: 6px sopra e sotto la fascia (riserva 30px; le carte normali tornano più piccole della carta da pescare)
+const CONTROLS_RESERVE = 30;
 const SIDE_MARGIN = 5;
 function sharedCardWidth(boxW, boxH, padY, peekRoom) {
   const byWidth = boxW - 2 * SIDE_MARGIN - peekRoom;

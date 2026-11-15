@@ -550,7 +550,8 @@ body { overflow: hidden; }
 .ae-compact-rail .ae-next-card .ae-new-tag { top: 3px; right: 3px; }
 /* Carte grandi più grandi: meno spazio in alto e in basso (testata 48px, fascia più vicina, meno margini) */
 .ae-shell.clear-header > .ae-header { min-height: calc(48px + var(--ae-safe-top)); }
-.queue-view .queue-rail, .ae-rail-row { margin-top: 4px; }
+/* v187: 6px tra la barra della fase e la fascia (uguale allo spazio sotto la fascia, vedi script.js CONTROLS_RESERVE) */
+.queue-view .queue-rail, .ae-rail-row { margin-top: 6px; }
 .ae-dock { padding-top: 4px; }
 .ae-focus { padding-top: 6px; padding-bottom: 6px; }
 .queue-view .ae-queue-viewport { padding-top: 6px; padding-bottom: 6px; }
