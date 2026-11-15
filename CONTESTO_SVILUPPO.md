@@ -118,7 +118,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     *Scarta* (va negli scarti, un passo di undo). Serve per gli effetti che fanno pescare o guardare la carta in cima.
 - Dalla v163: **a sinistra** il nome della nemesi e sotto fiamma con il numero della battaglia | icona dei giocatori |
   Turno N (allineati a sinistra); **a destra** mazzo e scarti e, ancora a destra, il **Menu**. (Prima: mazzi a
-  sinistra, nome al centro.)
+  sinistra, nome al centro.) Dalla v169 **Turno N** conta i **giri del mazzo dei turni** (`turnOrder.round`, sale a
+  ogni rimescolamento; salvataggi della v168: si parte dai turni nemesi giocati), non più i turni nemesi (`turn`, che
+  resta per le statistiche e per i turni passati dai minion).
 - **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
   gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
   sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste; finite le 6 si
@@ -130,8 +132,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.
   - Colori: giocatore 1 **verde**, 2 **giallo**, 3 **blu**, 4 **viola**, jolly **grigio chiaro**, nemesi **rosso
     scuro** (`--ae-turn-p1`…`--ae-turn-p4`, `--ae-turn-wild`, `--ae-turn-red`).
-  - Nessuna scritta nel turno di un giocatore (il turno è detto nell'aria-label). Nel turno nemesi sotto la casella
-    accesa "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+  - Sotto la casella accesa: nel turno di un giocatore "**Giocatore N**" (o "**Jolly**") nel colore del giocatore
+    (v169); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
   - Prima: due metà Giocatori/Nemesi con i pallini (v162), e prima ancora 6 segmenti fissi (v161).
 - **Niente linee di separazione** tra testata, fascia piccola e carte grandi (v162): le zone sono separate solo dallo
@@ -145,7 +147,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     danno in corso si vede solo la vita. Lo stesso nella finestra della vita ("HP x / X") e, nel turno nemesi, la riga
     sopra la carta mostra solo la vita;
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
-  - **altri poteri:** la nota "! Non rimovibile".
+  - **altri poteri:** la nota "! Non rimovibile". Nella fascia piccola (in tutti e due i turni) hanno in basso al
+    centro un box uguale a quello di token e vita, simmetrico a quello in alto, con un **simbolo di divieto** rosso
+    (v169, `.ae-ban-badge`).
 - Le modifiche sono una bozza: il pulsante principale diventa **Salva modifiche**, con accanto **Annulla modifiche**.
   Salvando (un solo passo di undo) i minion a 0 e i poteri pagati volano negli scarti.
 - I **comandi** sotto le carte si vedono solo sulla carta grande **al centro** (`.queue-slot.is-centred`, aggiornata
@@ -155,7 +159,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Gli scorrimenti animati verso una carta (tocco sulla fascia piccola o su una carta di lato, Turno Nemesi) sono
   circa il 50% più veloci di quelli del browser: `fastScrollTo`, 260ms, con lo scroll-snap spento durante
   l'animazione; un dito sulle carte la interrompe.
-- Il pulsante **Fine turno** (v168, prima "Turno Nemesi"), con l'illustrazione della nemesi, chiude il turno del
+- Il pulsante **Fine turno · Pesca ordine turno** (v169; v168 "Fine turno", prima "Turno Nemesi") ha un fondo scuro
+  velato, molto tenue, del **colore del giocatore** di turno (grigio chiaro per il jolly; `.has-player-color`) al posto
+  dell'illustrazione della nemesi. Chiude il turno del
   giocatore (`endPlayerTurn`: vita di riferimento azzerata, poteri pagati negli scarti) ed estrae il turno dopo. Se
   esce la nemesi parte il turno nemesi: breve scossa dello schermo e vibrazione (urgenza, `shakeApp`) e lo sfondo
   (maga a sinistra, nemesi a destra) scorre verso il lato della nemesi. Se esce un giocatore si resta nel turno
@@ -180,8 +186,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     rimpicciolisce al suo posto e le altre carte della coda entrano da sinistra); se è di nuovo la nemesi il turno
     nemesi riparte subito (scossa e vibrazione).
 - Nella **fascia piccola**, durante la risoluzione, dopo l'ultima carta c'è il posto della carta da pescare: solo un
-  **bordo tratteggiato grigio**, come mazzo e scarti vuoti (v168, `nextSlotItem`). Al passo Pesca al suo posto compare
-  il dorso.
+  **bordo tratteggiato grigio**, come mazzo e scarti vuoti (v168, `nextSlotItem`), con il box **NUOVA** come sul dorso
+  (v169). Al passo Pesca al suo posto compare il dorso.
 - Alla prima carta di Tier 2 e di Tier 3 compare la scritta "Tier N".
 - **Il mazzo non si rimescola:** se è vuoto la nemesi non pesca.
 - **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi), oppure "Nemesi uccisa" nel

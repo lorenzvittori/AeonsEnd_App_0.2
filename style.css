@@ -1081,9 +1081,35 @@ body { overflow: hidden; }
   .ae-turn-seg { transition: none; }
   .ae-turn-track.is-changed .ae-turn-seg.is-current { animation: none; }
 }
+/* v169: scritta "Giocatore N" / "Jolly" nel colore del giocatore */
+.ae-turn-label[data-kind="p1"] { color: color-mix(in srgb, var(--ae-turn-p1) 75%, white); }
+.ae-turn-label[data-kind="p2"] { color: color-mix(in srgb, var(--ae-turn-p2) 80%, white); }
+.ae-turn-label[data-kind="p3"] { color: color-mix(in srgb, var(--ae-turn-p3) 65%, white); }
+.ae-turn-label[data-kind="p4"] { color: color-mix(in srgb, var(--ae-turn-p4) 75%, white); }
+.ae-turn-label[data-kind="wild"] { color: var(--ae-turn-wild); }
+/* v169: pulsante "Fine turno" nel turno di un giocatore: fondo scuro velato del colore del giocatore, molto tenue */
+.ae-button.has-player-color {
+  --ae-player: var(--ae-turn-wild);
+  background: color-mix(in srgb, var(--ae-player) 16%, #15161c); color: var(--ae-text);
+  border: 1px solid color-mix(in srgb, var(--ae-player) 45%, transparent); letter-spacing: .04em; text-shadow: none;
+}
+.ae-button.has-player-color[data-kind="p1"] { --ae-player: var(--ae-turn-p1); }
+.ae-button.has-player-color[data-kind="p2"] { --ae-player: var(--ae-turn-p2); }
+.ae-button.has-player-color[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
+.ae-button.has-player-color[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
+.ae-button.has-player-color:disabled { opacity: .55; }
+/* Con modifiche non salvate resta il pulsante dorato "Salva modifiche" */
+.ae-button.has-player-color.is-save { background: var(--ae-gold); color: #20160B; border-color: var(--ae-gold); }
+/* v169: fascia piccola, potere non rimovibile: box con il simbolo di divieto in basso, simmetrico al box in alto */
+.ae-compact-rail .ae-queue-item > .ae-status-badge.ae-ban-badge {
+  top: auto; bottom: 4px; display: inline-flex; align-items: center; justify-content: center; color: hsl(356 70% 62%);
+}
+.ae-compact-rail .ae-ban-badge svg { display: block; width: 12px; height: 12px; }
 /* Fascia del turno nemesi, fase di risoluzione: il posto della carta da pescare è solo un bordo tratteggiato grigio,
    come il mazzo e gli scarti vuoti (script.js nextSlotItem) */
 .ae-next-slot { pointer-events: none; }
+/* v169: box NUOVA come sul dorso al passo Pesca (.ae-compact-rail .ae-next-card .ae-new-tag) */
+.ae-compact-rail .ae-next-slot .ae-new-tag { display: block; top: 3px; right: 3px; padding: 1px 3px; font-size: 10px; line-height: 12px; border-radius: 4px; }
 .ae-next-slot .ae-card-art,
 .ae-compact-rail .ae-queue-item.ae-next-slot .ae-card-art {
   display: block; aspect-ratio: 5 / 7; box-sizing: border-box; background: none; box-shadow: none;

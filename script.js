@@ -190,7 +190,9 @@ const I18N_IT = {
   trackNemesisResolve: 'Turno nemesi, fase di risoluzione',
   trackNemesisDraw: 'Turno nemesi, fase di pesca',
   trackPosition: (i, n) => `turno ${i} di ${n} del mazzo dei turni`,
-  endTurn: 'Fine turno',
+  endTurn: 'Fine turno · Pesca ordine turno',
+  trackPlayerName: n => `Giocatore ${n}`,
+  trackWildName: 'Jolly',
   ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
@@ -334,7 +336,8 @@ let turn = 0;
 // Mazzo dei turni (v168): 6 carte come nel gioco, estratte a caso alla fine di ogni turno; finite le 6 si rimescola.
 // 'p1'..'p4' = giocatori, 'wild' = jolly (con 3 giocatori, sceglie il gruppo), 'nemesis' = nemesi.
 // left: carte ancora da estrarre in questo giro; drawn: carte estratte in ordine (l'ultima è il turno in corso).
-let turnOrder = { left: [], drawn: [] };
+// round: giri del mazzo dei turni cominciati (v169: è il "Turno N" della testata)
+let turnOrder = { left: [], drawn: [], round: 0 };
 // Tier più alto pescato finora: alla prima carta del Tier 2 e del Tier 3 compare la scritta "Tier N"
 let maxTierDrawn = 0;
 // Statistiche della partita (finestra Statistiche della Vittoria). Fanno parte della partita: entrano nel salvataggio e
@@ -512,7 +515,7 @@ function newGame() {
   stats = emptyStats(deck.length);
   stats.startedAt = Date.now();
   // Primo turno: estratto subito dal mazzo dei turni (può essere anche la nemesi, vedi finishDeckBuild)
-  turnOrder = { left: [], drawn: [] };
+  turnOrder = { left: [], drawn: [], round: 0 };
   drawTurnCard();
 }
 
@@ -527,7 +530,8 @@ function turnOrderCards(players) {
 // Estrae a caso una carta tra quelle rimaste (finite le 6 si rimescola). pick: solo le carte che lo soddisfano
 // (serve per i salvataggi vecchi, senza mazzo dei turni)
 function drawTurnCard(pick) {
-  if (!turnOrder.left.length) turnOrder = { left: turnOrderCards(settings.players), drawn: [] };
+  // Giro nuovo: si rimescola e il contatore dei giri ("Turno N" nella testata) sale
+  if (!turnOrder.left.length) turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1 };
   let choices = turnOrder.left.map((c, i) => i);
   if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
   const card = turnOrder.left.splice(choices[Math.floor(Math.random() * choices.length)], 1)[0];
@@ -730,6 +734,7 @@ function queueItem(entry, opts) {
 
   const parts = [data.name, typeName(data), statusText(entry), I18N_IT.cardOf(opts.index + 1, opts.total)];
   if (entry.isNew) parts.push(I18N_IT.newTag.toLowerCase());
+  if (data.type === 'Power' && data.removable === false) parts.push(I18N_IT.notRemovable.toLowerCase());
   if (entry.paid) parts.push(I18N_IT.paidNote.toLowerCase());
   else if (isGone(entry)) parts.push(I18N_IT.killedNote.toLowerCase());
   if (opts.current) parts.push('da risolvere');
@@ -745,6 +750,15 @@ function queueItem(entry, opts) {
   // non spariscono per un attimo
   const art = cardArt(data, { thumb: !opts.full, lazy: opts.lazy, sync: !!opts.compact });
   button.append(statusBadge(entry), meta, art);
+  // Fascia piccola: potere che non si può scartare pagando (niente "TO DISCARD") = simbolo di divieto in un box uguale a
+  // quello di token e vita, in basso al centro (simmetrico al box in alto). v169
+  if (opts.compact && data.type === 'Power' && data.removable === false) {
+    const ban = el('span', 'ae-status-badge ae-ban-badge');
+    ban.setAttribute('aria-hidden', 'true');
+    ban.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" '
+      + 'stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+    button.appendChild(ban);
+  }
   if (entry.isNew) {
     const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
     tag.setAttribute('aria-hidden', 'true');
@@ -759,7 +773,9 @@ function nextSlotItem() {
   const item = el('div', 'ae-queue-item ae-next-slot');
   item.setAttribute('aria-hidden', 'true');
   const badge = el('span', 'ae-status-badge ae-status-badge--empty', '·');
-  item.append(badge, el('span', 'ae-card-art'));
+  // v169: anche qui il box NUOVA, come sul dorso al passo Pesca
+  const tag = el('span', 'ae-new-tag', I18N_IT.newTag);
+  item.append(badge, el('span', 'ae-card-art'), tag);
   return item;
 }
 
@@ -2321,7 +2337,7 @@ function snapshot() {
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
     stats: JSON.parse(JSON.stringify(stats)),
-    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice() }
+    turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round }
   };
 }
 
@@ -2389,9 +2405,11 @@ function restore(s) {
   // Mazzo dei turni. Salvataggi senza (prima della v168): giro nuovo con il turno in corso già estratto
   const savedOrder = s.turnOrder;
   if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn) && savedOrder.drawn.length) {
-    turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice() };
+    // Salvataggi della v168 senza il contatore dei giri: si parte dai turni nemesi giocati
+    turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice(),
+      round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn) };
   } else {
-    turnOrder = { left: [], drawn: [] };
+    turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1 };
     drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
   }
 }
@@ -2526,8 +2544,9 @@ function render() {
   playersIcon.style.setProperty('--ae-players-icon', `url('Assets/ui/icons/players-${players}.png')`);
   playersIcon.setAttribute('role', 'img');
   playersIcon.setAttribute('aria-label', I18N_IT.players(players));
-  const turnText = el('span', '', I18N_IT.turnN(turn));
-  turnText.hidden = turn < 1;
+  // "Turno N" = giri del mazzo dei turni (v169; prima erano i turni nemesi)
+  const turnText = el('span', '', I18N_IT.turnN(turnOrder.round));
+  turnText.hidden = !(turnOrder.round >= 1);
   // Battaglia della nemesi: numero dentro la fiamma (Assets/ui/icons/flame.png); le informazioni sono separate da |
   const battleNo = battleOf(settings.nemesis);
   const battle = el('span', 'ae-battle-flame', battleNo ? String(battleNo) : '?');
@@ -2547,7 +2566,13 @@ function render() {
   nemesisBtn.hidden = resolving;
   nemesisBtn.disabled = !deckSetup;
   // "Turno Nemesi" con l'illustrazione della nemesi della partita (come nel menu iniziale), velata per leggere la scritta
-  const nemesisArtNow = settings.nemesis && nemesisArt[settings.nemesis];
+  // Turno di un giocatore (o del jolly): niente illustrazione, fondo tenue del colore del giocatore (v169)
+  const turnCard = currentTurnCard();
+  const playerKind = turnCard && turnCard !== 'nemesis' ? turnCard : null;
+  nemesisBtn.classList.toggle('has-player-color', !!playerKind);
+  if (playerKind) nemesisBtn.dataset.kind = playerKind;
+  else delete nemesisBtn.dataset.kind;
+  const nemesisArtNow = !playerKind && settings.nemesis && nemesisArt[settings.nemesis];
   nemesisBtn.classList.toggle('has-nemesis-art', !!nemesisArtNow);
   if (nemesisArtNow) nemesisBtn.style.setProperty('--ae-nemesis-art', `url("${encodeURI(nemesisArtNow.portrait)}")`);
   else nemesisBtn.style.removeProperty('--ae-nemesis-art');
@@ -3422,8 +3447,14 @@ function renderTurnTrack() {
     turnTrackLabel.replaceChildren(I18N_IT.trackNemesisName, el('span', 'ae-turn-label-dot'),
       drawStep ? I18N_IT.trackDraw : I18N_IT.trackResolve);
   } else {
-    turnTrackLabel.replaceChildren();
+    // Turno di un giocatore: "Giocatore N" (o "Jolly") nel colore del giocatore (v169)
+    const kind = currentTurnCard();
+    turnTrackLabel.replaceChildren(kind === 'wild' ? I18N_IT.trackWildName
+      : kind && kind !== 'nemesis' ? I18N_IT.trackPlayerName(Number(kind.slice(1))) : '');
   }
+  const labelKind = resolving ? 'nemesis' : currentTurnCard();
+  if (labelKind) turnTrackLabel.dataset.kind = labelKind;
+  else delete turnTrackLabel.dataset.kind;
   turnTrackLabel.classList.toggle('is-start', cur <= 0);
   turnTrackLabel.classList.toggle('is-end', cur >= total - 1);
   turnTrackLabel.style.left = `${((Math.max(0, cur) + 0.5) / total) * 100}%`;
