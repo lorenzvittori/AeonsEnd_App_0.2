@@ -150,6 +150,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 
 **Turno dei giocatori**
 - In alto la fascia piccola con tutte le carte in gioco; sotto le stesse carte, grandi, che si scorrono in orizzontale.
+- **Carte grandi più grandi** (v185, `sharedCardWidth`, vale per tutti e due i turni): riserva per i comandi 27px sopra
+  e sotto (prima 52) e 5px di margine per lato (prima 8). Su un telefono 375×812 la carta passa da 278×389 a 313×437
+  e lo spazio tra la fascia piccola e il box vita/token è di 4px, uguale a quello tra la barra della fase e la fascia;
+  le carte vicine spuntano di circa 13px. Nel turno nemesi la riga vita/token resta 10px più in basso, come prima.
 - Sotto ogni carta grande i suoi comandi:
   - **minion:** −5 / −1 / +1 alla vita (+1 solo fino alla vita di inizio turno). Mentre si fa danno il box mostra
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza
