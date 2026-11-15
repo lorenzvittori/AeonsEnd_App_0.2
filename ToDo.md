@@ -20,6 +20,8 @@
 
 # Menu Principale 
 - togliere il box dei pulsanti, mostra solo le scritte
+- Ci deve essere: Nuova Partita, continua partita, opzioni, Biblioteca
+- Opzioni -> collezione, scelta back, scelta sfondo, scelta lingua, scelta se fare animazione di creazione mazzo
 
 # Menu Nuova Partita
 - Togliere titolo Aeons End e Nemesis Companion e scrivere Nuova Partita
@@ -31,6 +33,7 @@
 - la freccia verso il basso per aprire i dettagli del boss deve essere attaccata al boss selezionato, ora è troppo in basso
 
 # Finestra Collezione
+- Ci deve essere Seleziona tutto e deseleziona tutto
 - il flag on/off delle espansioni devono essere più piccole le leggermente più a sinistra del falg della wave
 
 # Barra informativa superiore
