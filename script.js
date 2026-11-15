@@ -2074,9 +2074,9 @@ function openOptions(trigger) {
   backItem.append(el('span', 'options-item-label', I18N_IT.cardBack),
     cardBackChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }, { compact: true }));
   // Sfondo: anteprima e nome dello sfondo scelto; si tocca per le anteprime di tutti gli sfondi
-  const bgItem = el('div', 'options-item options-item--field');
+  const bgItem = el('div', 'options-item options-item--row');
   bgItem.append(el('span', 'options-item-label', I18N_IT.background),
-    backgroundChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }));
+    backgroundChoiceButton(() => { if (layer.isConnected) startLayer.inert = true; }, { compact: true }));
   body.append(item, backItem, bgItem);
   layer.append(head, body);
   layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
@@ -4277,11 +4277,11 @@ function openSideMenu() {
   statsList.append(el('dt', '', I18N_IT.menuTurn), el('dd', '', String(turn)),
     el('dt', '', I18N_IT.menuDeck), el('dd', '', String(deck.length)));
   // Sfondo: anteprima dello sfondo scelto con il nome; si tocca per scegliere tra le anteprime di tutti gli sfondi
-  const bgRow = el('div', 'ae-side-field');
-  bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), backgroundChoiceButton());
+  const bgRow = el('div', 'ae-side-field ae-side-field--row');
+  bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), backgroundChoiceButton(null, { compact: true }));
   // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
-  const backRow = el('div', 'ae-side-field');
-  backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), cardBackChoiceButton());
+  const backRow = el('div', 'ae-side-field ae-side-field--row');
+  backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), cardBackChoiceButton(null, { compact: true }));
   const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
@@ -4333,8 +4333,9 @@ function cardBackChoiceButton(onClosed, { compact = false } = {}) {
 }
 
 // Pulsante con l'anteprima e il nome dello sfondo scelto: apre la scelta con le anteprime (Menu della partita e Opzioni)
-function backgroundChoiceButton(onClosed) {
-  const btn = el('button', 'ae-bg-choice');
+// compact: solo l'anteprima, senza nome (il nome resta per i lettori di schermo)
+function backgroundChoiceButton(onClosed, { compact = false } = {}) {
+  const btn = el('button', 'ae-bg-choice' + (compact ? ' ae-bg-choice--compact' : ''));
   btn.type = 'button';
   const thumb = el('img', 'ae-bg-choice-thumb');
   thumb.alt = '';

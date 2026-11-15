@@ -1087,6 +1087,10 @@ body { overflow: hidden; }
 .options-item.options-item--row { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; cursor: default; }
 .ae-back-choice.ae-back-choice--compact { min-height: 0; padding: 4px; gap: 0; }
 .ae-back-choice--compact .ae-back-choice-name { display: none; }
+.ae-bg-choice.ae-bg-choice--compact { min-height: 0; padding: 4px; gap: 0; }
+.ae-bg-choice--compact .ae-bg-choice-name { display: none; }
+/* Menu della partita: Sfondo e Dorso delle carte in una riga, scritta a sinistra e anteprima piccola a destra */
+.ae-side-field.ae-side-field--row { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
 /* Opzioni: voce con dentro il pulsante dello sfondo */
 .options-item--field { cursor: default; gap: 8px; align-items: stretch; }
 /* Sfondo: anteprima dello sfondo scelto (Menu della partita e Opzioni) e scelta con le anteprime di tutti */

@@ -62,7 +62,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - I pulsanti del menu iniziale sono **solo scritte** (Cinzel 22px, oro la voce principale), senza box (v163).
 - **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (in una riga: la scritta a
   sinistra e, piccola a destra, la miniatura del dorso scelto, `cardBackChoiceButton` con `compact`; si tocca per la
-  griglia) e *Sfondo* (con le anteprime, come nel Menu della partita).
+  griglia) e *Sfondo* (stessa riga con l'anteprima piccola a destra; si tocca per le anteprime di tutti gli sfondi).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
@@ -194,7 +194,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.
 - Scarti.
 - **Nemesi uccisa:** per quando la nemesi muore al tavolo; apre la schermata Vittoria.
-- **Sfondo:** anteprima e nome dello sfondo scelto (`backgroundChoiceButton`); toccandola si apre la scelta con
+- **Sfondo** e **Dorso delle carte** (v167): ognuno in una riga, la scritta a sinistra e l'anteprima piccola a
+  destra, senza nome (`backgroundChoiceButton` / `cardBackChoiceButton` con `compact`; uguale in Opzioni).
+- **Sfondo:** anteprima dello sfondo scelto (`backgroundChoiceButton`); toccandola si apre la scelta con
   l'**anteprima** di ogni sfondo (`openBackgroundPicker`: Nemesi mascherata, Demone cornuto, Bocca con tentacoli) e un
   tocco lo applica. Resta salvato nel browser; non entra nella partita né nell'undo. Uguale in Opzioni (v164; prima era
   un menu a tendina con i soli nomi).
