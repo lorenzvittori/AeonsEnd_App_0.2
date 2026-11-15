@@ -108,7 +108,7 @@ const I18N_IT = {
   statsTimeTitle: 'Tempi',
   statsMinionsTitle: 'Turni in gioco dei minion',
   statsMagesTitle: 'Statistiche maghi',
-  statsMagesHead: ['Mago', 'Danni ai minion', 'Poteri scartati', 'Æ spesi', 'Minion uccisi'],
+  statsMagesHead: ['Mago', 'Danni minion', 'Poteri scartati', 'Æ spesi', 'Minion uccisi'],
   statsNoMinions: 'Nessun minion in gioco in questa partita',
   minionTurns: n => (n === 1 ? '1 turno' : `${n} turni`),
   stillInPlay: 'ancora in gioco',

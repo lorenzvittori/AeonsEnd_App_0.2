@@ -208,7 +208,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   "Turni in gioco dei minion" ha una riga per minion con la miniatura della carta (toccandola si vede grande), il
   nome e i turni; i minion uccisi hanno l'id in `stats.minions` dalla v163 (prima si cerca la carta per nome).
   **Statistiche maghi** (v175, prima di "Turni in gioco dei minion"): tabella con una riga per giocatore (con 3
-  giocatori anche il Jolly), con il pallino del suo colore, e le colonne *Danni ai minion*, *Poteri scartati*, *Æ spesi*
+  giocatori anche il Jolly), con il pallino del suo colore, e le colonne *Danni minion*, *Poteri scartati*, *Æ spesi*
   (per ora vuota, "—") e *Minion uccisi*. I numeri sono in `stats.mages` (`p1`…`p4`, `wild`) e si contano in
   `saveAllDrafts`, assegnati al giocatore del turno in corso (mazzo dei turni): danni = vita tolta ai minion (le cure
   nello stesso salvataggio la riducono), minion uccisi = minion portati a 0. Non si contano le modifiche alla vita fatte
