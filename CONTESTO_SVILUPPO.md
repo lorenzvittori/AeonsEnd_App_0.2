@@ -60,8 +60,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Se c'è una partita salvata, la finestra **Partita in corso** (nemesi, giocatori, illustrazione) con solo *Riprendi
   partita*. Sotto, sempre: **Nuova partita** (secondario se c'è una partita in corso) e **Opzioni**.
 - I pulsanti del menu iniziale sono **solo scritte** (Cinzel 22px, oro la voce principale), senza box (v163).
-- **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (miniatura e nome del dorso
-  scelto, `cardBackChoiceButton`, come nel Menu della partita; si tocca per la griglia) e *Sfondo* (con le anteprime, come nel Menu della partita).
+- **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (in una riga: la scritta a
+  sinistra e, piccola a destra, la miniatura del dorso scelto, `cardBackChoiceButton` con `compact`; si tocca per la
+  griglia) e *Sfondo* (con le anteprime, come nel Menu della partita).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di

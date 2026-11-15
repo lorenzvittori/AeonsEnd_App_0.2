@@ -1083,6 +1083,10 @@ body { overflow: hidden; }
 /* Carte grandi del turno giocatori: i comandi si vedono solo sulla carta al centro */
 .queue-slot > .queue-controls { transition: opacity .15s ease-out; }
 .queue-slot:not(.is-centred) > .queue-controls { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Opzioni: voce in una riga, scritta a sinistra e miniatura piccola a destra (Dorso delle carte) */
+.options-item.options-item--row { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; cursor: default; }
+.ae-back-choice.ae-back-choice--compact { min-height: 0; padding: 4px; gap: 0; }
+.ae-back-choice--compact .ae-back-choice-name { display: none; }
 /* Opzioni: voce con dentro il pulsante dello sfondo */
 .options-item--field { cursor: default; gap: 8px; align-items: stretch; }
 /* Sfondo: anteprima dello sfondo scelto (Menu della partita e Opzioni) e scelta con le anteprime di tutti */
