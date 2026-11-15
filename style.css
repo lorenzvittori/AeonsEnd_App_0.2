@@ -1107,6 +1107,11 @@ body { overflow: hidden; }
   top: auto; bottom: 4px; display: inline-flex; align-items: center; justify-content: center; color: hsl(356 70% 62%);
 }
 .ae-compact-rail .ae-ban-badge svg { display: block; width: 12px; height: 12px; }
+/* v171: nella fascia piccola la carta da risolvere ha un bagliore rosso, come la carta grande (non il dorso da pescare,
+   non la carta appena pescata, che ha il suo bagliore dorato) */
+.ae-compact-rail .ae-queue-item[aria-current='true']:not(.ae-next-card):not(.is-new) .ae-card-art {
+  --ae-glow: 0 0 9px 2px rgba(230, 40, 40, .7);
+}
 /* Fascia del turno nemesi, fase di risoluzione: il posto della carta da pescare è solo un bordo tratteggiato grigio,
    come il mazzo e gli scarti vuoti (script.js nextSlotItem) */
 .ae-next-slot { pointer-events: none; }

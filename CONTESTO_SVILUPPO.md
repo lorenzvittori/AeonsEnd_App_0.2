@@ -174,6 +174,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - Toccando "Fine turno" (quando esce la nemesi) il carosello parte dalla carta che si stava guardando e scorre (animato) fino alla carta da
   risolvere; anche un tocco sulla fascia in alto fa scorrere il carosello, come nel turno giocatori.
 - La carta da risolvere lampeggia di rosso, come l'attacco appena pescato; non lampeggiano i poteri con più di un token.
+  Nella fascia piccola in alto la carta da risolvere ha un **bagliore rosso** fisso (v171; non il dorso da pescare né
+  la carta appena pescata, che ha il bagliore dorato).
 - Pulsante in basso:
   - **potere:** un token lampeggia e diventa grigio da solo; il pulsante dice "Vai avanti" (token −1) o "Effetto risolto
     e scarta" (ultimo token: negli scarti);
