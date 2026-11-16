@@ -19,19 +19,11 @@ square = src.crop(((w - side) // 2, (h - side) // 2, (w - side) // 2 + side, (h 
 def plain(size, name):
     square.resize((size, size), Image.LANCZOS).save(OUT + name, optimize=True)
 
-def maskable(size, name, ratio=.72):
-    # Android ritaglia l'icona (cerchio di diametro 80%): l'immagine sta nel 72% centrale, così la scritta in alto
-    # non viene tagliata; intorno la stessa immagine sfocata, con il bordo sfumato (niente stacco netto)
-    bg = square.resize((size, size), Image.LANCZOS).filter(ImageFilter.GaussianBlur(size // 25))
-    inner = int(size * ratio)
-    fg = square.resize((inner, inner), Image.LANCZOS)
-    feather = max(2, inner // 16)
-    mask = Image.new('L', (inner, inner), 0)
-    mask.paste(255, (feather, feather, inner - feather, inner - feather))
-    mask = mask.filter(ImageFilter.GaussianBlur(feather / 2))
-    off = (size - inner) // 2
-    bg.paste(fg, (off, off), mask)
-    bg.save(OUT + name, optimize=True)
+def maskable(size, name):
+    # Android ritaglia l'icona nella forma del launcher: dalla v200 l'immagine intera, senza cornice (scelta
+    # dell'utente; il ritaglio taglia un po' i bordi). Prima: immagine nel 72% centrale con la stessa immagine sfocata
+    # intorno.
+    square.resize((size, size), Image.LANCZOS).save(OUT + name, optimize=True)
 
 plain(192, 'icon-192.png')
 plain(512, 'icon-512.png')
