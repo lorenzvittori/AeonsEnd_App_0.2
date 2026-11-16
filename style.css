@@ -1154,7 +1154,8 @@ body { overflow: hidden; }
 .ae-pair-pick[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
 .ae-pair-pick:active { transform: scale(.96); }
 /* v200: scelta ridotta nel pulsante grande in basso, diviso in due ("Giocatore x | Giocatore y") */
-.ae-pair-dock { display: flex; width: 100%; }
+/* v202: due pulsanti separati (prima uno solo diviso in due) */
+.ae-pair-dock { display: flex; gap: 10px; width: 100%; }
 .ae-pair-dock[hidden] { display: none; }
 .ae-pair-dock .ae-pair-half {
   --ae-player: var(--ae-turn-wild);
@@ -1165,9 +1166,6 @@ body { overflow: hidden; }
 }
 /* v201: copia della finestra che scende fino al pulsante */
 .ae-pair-ghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-sizing: border-box; }
-.ae-pair-dock .ae-pair-half:first-child { border-radius: var(--ae-radius-md, 12px) 0 0 var(--ae-radius-md, 12px); border-right-width: 0; }
-.ae-pair-dock .ae-pair-half:last-child { border-radius: 0 var(--ae-radius-md, 12px) var(--ae-radius-md, 12px) 0; }
-.ae-pair-dock .ae-pair-half + .ae-pair-half { box-shadow: inset 1px 0 0 rgba(0, 0, 0, .6); }
 .ae-pair-half[data-kind="p1"] { --ae-player: var(--ae-turn-p1); }
 .ae-pair-half[data-kind="p2"] { --ae-player: var(--ae-turn-p2); }
 .ae-pair-half[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
