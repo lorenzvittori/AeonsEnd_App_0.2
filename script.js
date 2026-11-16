@@ -869,8 +869,11 @@ function queueItem(entry, opts) {
   if (opts.compact && data.type === 'Power' && data.removable === false) {
     const ban = el('span', 'ae-status-badge ae-ban-badge');
     ban.setAttribute('aria-hidden', 'true');
-    ban.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" '
-      + 'stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
+    // v204: icona di divieto dell'utente (Assets/ui/icons/ban.webp)
+    const img = el('img', 'ae-ban-icon');
+    img.src = 'Assets/ui/icons/ban.webp';
+    img.alt = '';
+    ban.appendChild(img);
     button.appendChild(ban);
   }
   if (entry.isNew) {

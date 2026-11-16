@@ -224,7 +224,7 @@ body { overflow: hidden; }
 .nemesis-option[aria-pressed='true'] .nemesis-tags { opacity: .85; }
 .nemesis-skeleton { min-height: 60px; border-radius: var(--ae-radius-md); background: var(--ae-surface-raised); opacity: .6; }
 .start-note { margin-top: 4px; color: var(--ae-text-muted); font: 500 14px/20px var(--ae-font-ui); }
-/* Nemesi non disponibili: box con solo il nome attenuato e un piccolo punto esclamativo rosso accanto (Assets/ui/icons/alert.webp) */
+/* Nemesi non disponibili: box con solo il nome attenuato e accanto l'icona di divieto (v204; prima un punto esclamativo) */
 .nemesis-unavailable { margin: 8px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .nemesis-locked {
   position: relative; min-height: 40px; padding: 4px 14px; display: flex; align-items: center; justify-content: flex-start; text-align: left;
@@ -232,9 +232,10 @@ body { overflow: hidden; }
   color: var(--ae-text-quiet); font: 600 14px/18px var(--ae-font-ui); cursor: not-allowed; user-select: none;
 }
 .nemesis-locked { gap: 8px; }
+/* v204: al posto del punto esclamativo l'icona di divieto (Assets/ui/icons/ban.webp) */
 .nemesis-locked::before {
-  content: ''; flex: 0 0 auto; width: 6px; height: 16px; background: var(--ae-danger);
-  -webkit-mask: url('Assets/ui/icons/alert.webp') center / contain no-repeat; mask: url('Assets/ui/icons/alert.webp') center / contain no-repeat;
+  content: ''; flex: 0 0 auto; width: 16px; height: 16px;
+  background: url('Assets/ui/icons/ban.webp') center / contain no-repeat;
 }
 .start-error { display: flex; flex-direction: column; gap: 12px; color: var(--ae-danger); font: 500 14px/20px var(--ae-font-ui); white-space: pre-line; overflow-wrap: anywhere; }
 .start-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
@@ -1224,6 +1225,8 @@ body { overflow: hidden; }
   top: auto; bottom: 4px; display: inline-flex; align-items: center; justify-content: center; color: hsl(356 70% 62%);
 }
 .ae-compact-rail .ae-ban-badge svg { display: block; width: 12px; height: 12px; }
+/* v204: icona di divieto dell'utente (a colori) */
+.ae-compact-rail .ae-ban-badge .ae-ban-icon { display: block; width: 13px; height: 13px; }
 /* v171: nella fascia piccola la carta da risolvere ha un bagliore rosso, come la carta grande (non il dorso da pescare,
    non la carta appena pescata, che ha il suo bagliore dorato) */
 .ae-compact-rail .ae-queue-item[aria-current='true']:not(.ae-next-card):not(.is-new) .ae-card-art {

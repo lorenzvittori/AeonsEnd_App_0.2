@@ -97,7 +97,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     Chiudendo la carta lo zoom si toglie (`resetNemesisZoom`).
 - **"Inizia partita"** in fondo: sopra il pulsante 16px di nero pieno, poi la sfumatura.
   - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
-    collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso.
+    collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) l'**icona di divieto**
+    (`Assets/ui/icons/ban.webp`, v204; prima un "!" rosso).
 - L'interruttore **Includi carte base potenziate** è stato tolto in v156 (per ora non serve): le Upgraded Basic sono
   sempre incluse (`settings.includeUpgraded` resta `true`; la logica in `buildDeck` c'è ancora).
 
@@ -203,7 +204,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - **poteri con più di 5 token** (v178): un token e il numero, come la vita dei minion (`.ae-tokens.is-count`; il
     token che si spegne da solo nel turno nemesi qui non si anima);
   - **altri poteri:** la nota "! Non rimovibile". Nella fascia piccola (in tutti e due i turni) hanno in basso al
-    centro un box uguale a quello di token e vita, simmetrico a quello in alto, con un **simbolo di divieto** rosso
+    centro un box uguale a quello di token e vita, simmetrico a quello in alto, con un **simbolo di divieto** rosso (dalla v204 l'icona dell'utente, `Assets/ui/icons/ban.webp`, 13px)
     (v169, `.ae-ban-badge`).
 - Le modifiche sono una bozza: il pulsante principale diventa **Salva modifiche**, con accanto **Annulla modifiche**.
   Salvando (un solo passo di undo) i minion a 0 e i poteri pagati volano negli scarti.
