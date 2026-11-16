@@ -1158,10 +1158,13 @@ body { overflow: hidden; }
 .ae-pair-dock[hidden] { display: none; }
 .ae-pair-dock .ae-pair-half {
   --ae-player: var(--ae-turn-wild);
-  flex: 1 1 0; min-width: 0; color: var(--ae-text); letter-spacing: .04em; text-shadow: none;
-  background: color-mix(in srgb, var(--ae-player) 22%, #15161c);
-  border: 1px solid color-mix(in srgb, var(--ae-player) 60%, transparent);
+  /* v201: fondo più chiaro (era 22% del colore del giocatore, troppo scuro) */
+  flex: 1 1 0; min-width: 0; color: #fff; font-weight: 700; letter-spacing: .04em; text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+  background: color-mix(in srgb, var(--ae-player) 55%, #15161c);
+  border: 1px solid color-mix(in srgb, var(--ae-player) 85%, transparent);
 }
+/* v201: copia della finestra che scende fino al pulsante */
+.ae-pair-ghost { position: fixed; z-index: 60; margin: 0; pointer-events: none; transform-origin: center; box-sizing: border-box; }
 .ae-pair-dock .ae-pair-half:first-child { border-radius: var(--ae-radius-md, 12px) 0 0 var(--ae-radius-md, 12px); border-right-width: 0; }
 .ae-pair-dock .ae-pair-half:last-child { border-radius: 0 var(--ae-radius-md, 12px) var(--ae-radius-md, 12px) 0; }
 .ae-pair-dock .ae-pair-half + .ae-pair-half { box-shadow: inset 1px 0 0 rgba(0, 0, 0, .6); }

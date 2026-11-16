@@ -160,7 +160,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     finestra** la scelta scende nel pulsante grande in basso, **diviso in due**: "Giocatore x | Giocatore y" nei loro
     colori (`.ae-pair-dock`, `ui.pairMinimized`, solo per quella carta). Allora l'app si usa normalmente tranne: comandi
     sotto le carte velati e spenti, finestra della carta senza vita né "Rimuovi" (`openCardDialog`), nessuna bozza
-    (`setDraft`) e niente pesca dal mazzo in alto (velato). La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
+    (`setDraft`) e niente pesca dal mazzo in alto (velato).
+    v201: il passaggio è animato (`animatePairToDock`, 0,42 s): una copia della finestra scende e si deforma fino al
+    pulsante sfumando, e il pulsante compare mentre lei arriva. Le due metà hanno il colore del giocatore al 55% (prima
+    22%, troppo scuro), con la scritta bianca in grassetto. La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
     casella, scritta e pulsante prendono il suo colore.
     L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si

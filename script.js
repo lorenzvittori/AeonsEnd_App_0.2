@@ -3820,12 +3820,41 @@ app.appendChild(pairChoice);
 // v200: toccando fuori dalla finestra la scelta scende nel pulsante grande in basso, diviso in due
 // ("Giocatore x | Giocatore y"); l'app si può usare, ma non si toccano le carte e non si pesca dal mazzo
 pairChoice.addEventListener('click', e => {
-  if (e.target !== pairChoice || !needsPairChoice()) return;
+  if (e.target !== pairChoice || !needsPairChoice() || ui.isTransitioning) return;
+  const from = pairChoicePanel.getBoundingClientRect();
   ui.pairMinimized = pairChoiceKey();
   render();
+  animatePairToDock(from);
   const first = pairDock.querySelector('button');
   if (first) first.focus({ preventScroll: true });
 });
+// v201: la finestra scende e si trasforma nel pulsante diviso in due. Una copia della finestra parte dalla sua
+// posizione e si stringe/allunga fino al pulsante, sfumando; il pulsante compare mentre lei arriva
+const PAIR_DOCK_MS = 420;
+function animatePairToDock(from) {
+  const to = pairDock.getBoundingClientRect();
+  if (reducedMotion.matches || !document.body.animate || !from.width || !to.width) return;
+  const ghost = pairChoicePanel.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.classList.add('ae-pair-ghost');
+  Object.assign(ghost.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
+  document.body.appendChild(ghost);
+  const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+  const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+  const sx = to.width / from.width;
+  const sy = to.height / from.height;
+  const anim = ghost.animate([
+    { transform: 'none', opacity: 1 },
+    { transform: `translate(${dx * .7}px, ${dy * .7}px) scale(${1 + (sx - 1) * .7}, ${1 + (sy - 1) * .7})`, opacity: .9, offset: .7 },
+    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 0 }
+  ], { duration: PAIR_DOCK_MS, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+  anim.onfinish = () => ghost.remove();
+  setTimeout(() => ghost.remove(), PAIR_DOCK_MS + 200);
+  pairDock.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 0, transform: 'scale(.96)', offset: .55 },
+    { opacity: 1, transform: 'none' }], { duration: PAIR_DOCK_MS, easing: 'ease-out' });
+}
 const pairDock = el('div', 'ae-pair-dock');
 pairDock.setAttribute('role', 'group');
 pairDock.setAttribute('aria-label', I18N_IT.pairChoiceTitle);
