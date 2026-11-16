@@ -3,6 +3,19 @@
 - Implementare vita nemesi e vita gravehold
 - Implementare biblioteca carte e assistente per la creazione del mercato
 
+# Ordine Turno 
+- Interazione necessarie (solo The New Age e Core Set):
+[x] vedere gli scarti: Hatch, Unrelenting Ire, Thunderous Tempest.
+[ ] rimescolare dagli scarti al mazzo una o più carte a scelta: Nothingness, Sunder, Lash, Talix.
+[ ] rivelare la prima carta e rimetterla in cima o in fondo: Flare, Xaxos’s Flare e Hissing Acid la rimettono solo in cima; Quartz Shard e Lash’s Quartz Shard permettono anche il fondo.
+[ ] rivelare tutto il mazzo e sceglierne l’ordine: Xaxos.
+
+
+# DOMDANDE:
+- quando gioco contro una nemesi devo usare solo le carte della wave della nemesi?
+- se devo rimettere in gioco la turn order card di un giocatore ma gioco con le regole di the new age e metto una carta 3/4, devo poi riscegliere chi gioca?
+
+
 # Generale:
 - [x] cambiare visualizzazione di VITTORIA
 - [x] Fare una back senza la scritta da usare per i mazzi
