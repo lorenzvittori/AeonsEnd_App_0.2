@@ -793,6 +793,7 @@ function draftHp(entry) {
   return d && d.hp !== undefined ? d.hp : entry.hp;
 }
 function setDraft(entry, patch) {
+  if (needsPairChoice()) return;
   const d = Object.assign({}, draftOf(entry), patch);
   if (d.hp === entry.hp) delete d.hp;
   if (!d.paid) delete d.paid;
@@ -1162,7 +1163,8 @@ function cardControls(entry) {
   const ctl = (label, variant, key, aria, handler) => {
     const b = button(label, variant, e => {
       e.stopPropagation();
-      if (resolving || ui.isTransitioning || queueViewport.dataset.dragged === '1') return;
+      // (v200: anche con la scelta del giocatore x/y in sospeso non si toccano le carte)
+      if (resolving || ui.isTransitioning || queueViewport.dataset.dragged === '1' || needsPairChoice()) return;
       handler();
     });
     b.dataset.uid = uid;
@@ -1398,10 +1400,12 @@ function openCardDialog(entry) {
   art.classList.add('ae-modal-art');
   const panel = el('div', 'ae-card-panel');
   dialog.append(art, panel);
+  // Scelta del giocatore x/y in sospeso (v200): la carta si guarda ma non si cambia (niente vita, niente rimuovi)
+  const locked = needsPairChoice();
 
-  if (hasHp(entry)) {
+  if (hasHp(entry) && !locked) {
     buildHpPanel(dialog, panel, entry, () => close());
-  } else if (data.type === 'Power') {
+  } else if (data.type === 'Power' && !locked) {
     // Token rimasti come icone, un token per ogni token
     const tokens = el('p', 'ae-card-panel-tokens');
     tokens.setAttribute('aria-label', I18N_IT.tokensLeft(entry.tokens));
@@ -3813,20 +3817,63 @@ const pairChoiceCards = el('div', 'ae-pair-choice-cards');
 pairChoicePanel.append(pairChoiceTitle, pairChoiceCards);
 pairChoice.appendChild(pairChoicePanel);
 app.appendChild(pairChoice);
+// v200: toccando fuori dalla finestra la scelta scende nel pulsante grande in basso, diviso in due
+// ("Giocatore x | Giocatore y"); l'app si può usare, ma non si toccano le carte e non si pesca dal mazzo
+pairChoice.addEventListener('click', e => {
+  if (e.target !== pairChoice || !needsPairChoice()) return;
+  ui.pairMinimized = pairChoiceKey();
+  render();
+  const first = pairDock.querySelector('button');
+  if (first) first.focus({ preventScroll: true });
+});
+const pairDock = el('div', 'ae-pair-dock');
+pairDock.setAttribute('role', 'group');
+pairDock.setAttribute('aria-label', I18N_IT.pairChoiceTitle);
+pairDock.hidden = true;
+nemesisBtn.after(pairDock);
 
 function needsPairChoice() {
   const cur = currentTurnCard();
   return !resolving && !ui.deckBuilding && isPairCard(cur) && !turnCardPlayer(cur);
 }
+// Carta x/y in attesa di scelta (giro e posizione): la finestra ridotta vale solo per questa carta
+function pairChoiceKey() {
+  return turnOrder.round + ':' + (turnOrder.drawn.length - 1);
+}
+function pairButtons(kind, cls, label) {
+  return pairOptions(kind).map(p => {
+    const b = el('button', cls, label(p));
+    b.type = 'button';
+    b.dataset.kind = p;
+    b.setAttribute('aria-label', I18N_IT.pairChoiceLabel(Number(p.slice(1))));
+    b.addEventListener('click', () => chooseTurnPlayer(p));
+    return b;
+  });
+}
 function renderPairChoice() {
-  const show = needsPairChoice();
+  const pending = needsPairChoice();
+  const minimized = pending && ui.pairMinimized === pairChoiceKey();
+  const show = pending && !minimized;
   const wasShown = !pairChoice.hidden;
   pairChoice.hidden = !show;
   app.classList.toggle('is-pair-choice', show);
+  // Scelta ridotta nel pulsante in basso: niente carte e niente pesca dal mazzo (cardControls, openCardDialog, mazzo)
+  app.classList.toggle('is-pair-pending', minimized);
   mainEl.inert = show;
   const dock = document.querySelector('.ae-dock');
   if (dock) dock.inert = show;
   headerPiles.inert = show;
+  // Pulsante grande: sparisce con la finestra aperta; con la finestra ridotta lo sostituiscono i due giocatori
+  // (con la finestra aperta resta il suo spazio, invisibile, così le carte sotto non cambiano misura)
+  nemesisBtn.style.visibility = show ? 'hidden' : '';
+  if (minimized) nemesisBtn.hidden = true;
+  pairDock.hidden = !minimized;
+  if (minimized && pairDock.dataset.kind !== currentTurnCard()) {
+    pairDock.dataset.kind = currentTurnCard();
+    pairDock.replaceChildren(...pairButtons(currentTurnCard(), 'ae-button ae-pair-half',
+      p => I18N_IT.trackPlayerName(Number(p.slice(1)))));
+  }
+  if (!minimized) delete pairDock.dataset.kind;
   if (!show) return;
   // Misura delle carte della fascia piccola (52px sul telefono)
   const small = document.querySelector('.ae-compact-rail .ae-queue-item');
@@ -3835,14 +3882,7 @@ function renderPairChoice() {
   const kind = currentTurnCard();
   if (pairChoiceCards.dataset.kind !== kind) {
     pairChoiceCards.dataset.kind = kind;
-    pairChoiceCards.replaceChildren(...pairOptions(kind).map(p => {
-      const b = el('button', 'ae-pair-pick', p.slice(1));
-      b.type = 'button';
-      b.dataset.kind = p;
-      b.setAttribute('aria-label', I18N_IT.pairChoiceLabel(Number(p.slice(1))));
-      b.addEventListener('click', () => chooseTurnPlayer(p));
-      return b;
-    }));
+    pairChoiceCards.replaceChildren(...pairButtons(kind, 'ae-pair-pick', p => p.slice(1)));
   }
   if (!wasShown) {
     announce(I18N_IT.pairChoiceTitle);
@@ -3861,7 +3901,10 @@ dockDiscard.addEventListener('click', () => { if (!ui.isTransitioning && !ui.dec
 // Tocco sul mazzo: compare il pulsante "Pesca carta" (per gli effetti che fanno pescare o guardare la carta in cima)
 dockDeck.setAttribute('role', 'button');
 dockDeck.tabIndex = 0;
-dockDeck.addEventListener('click', () => { if (!ui.isTransitioning && !modals.length && !ui.deckBuilding) openDeckPopover(); });
+// (v200: non con la scelta del giocatore x/y in sospeso)
+dockDeck.addEventListener('click', () => {
+  if (!ui.isTransitioning && !modals.length && !ui.deckBuilding && !needsPairChoice()) openDeckPopover();
+});
 dockDeck.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dockDeck.click(); } });
 headerPiles.append(dockDeck, dockDiscard);
 undoBtn.before(headerPiles);

@@ -155,7 +155,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     grandi come quelle della fascia piccola, bordo nero, colore del giocatore scurito e numero nero al centro. Finché
     non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu. Dalla v195 è **tutto oscurato
     tranne la barra della fase** in alto: velo `::before` della shell sullo sfondo e filtro `brightness(.28)` su
-    testata (Menu compreso, che resta toccabile), parte centrale e pulsante. La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
+    testata (Menu compreso, che resta toccabile), parte centrale e pulsante.
+    Dalla v200 con la finestra aperta il pulsante in basso **sparisce** (resta il suo spazio). **Toccando fuori dalla
+    finestra** la scelta scende nel pulsante grande in basso, **diviso in due**: "Giocatore x | Giocatore y" nei loro
+    colori (`.ae-pair-dock`, `ui.pairMinimized`, solo per quella carta). Allora l'app si usa normalmente tranne: comandi
+    sotto le carte velati e spenti, finestra della carta senza vita né "Rimuovi" (`openCardDialog`), nessuna bozza
+    (`setDraft`) e niente pesca dal mazzo in alto (velato). La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
     casella, scritta e pulsante prendono il suo colore.
     L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si
