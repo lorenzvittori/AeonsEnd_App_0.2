@@ -216,6 +216,46 @@ const I18N_IT = {
   drawTurnCard: 'Pesca carta turno',
   trackWaiting: 'Carta turno da pescare',
   pairChoiceTitle: 'Chi gioca questo turno?',
+  // Mazzo dei turni (v206)
+  turnDeckHint: 'tocca per il mazzo dei turni',
+  turnPairName: (a, b) => `Giocatore ${a} o ${b}`,
+  turnDeckTitle: 'Mazzo dei turni',
+  turnDeckInfo: (left, pile) => `${left} ${left === 1 ? 'carta' : 'carte'} nel mazzo · ${pile} negli scarti`,
+  turnPileLabel: 'Scarti dei turni',
+  turnPileEmpty: 'Nessuna carta',
+  turnRevealTop: 'Rivela la prima carta',
+  turnRevealTopNote: 'Poi in cima o in fondo · Quartz Shard, Flare',
+  turnShuffleBack: 'Rimescola dagli scarti',
+  turnShuffleBackNote: 'Una o più carte a scelta · Nothingness, Lash, Talix',
+  turnOrderAll: 'Rivela e ordina tutto il mazzo',
+  turnOrderAllNote: 'Xaxos',
+  turnRevealTitle: 'Prima carta del mazzo dei turni',
+  turnRevealText: n => `Il mazzo dei turni ha ${n} ${n === 1 ? 'carta' : 'carte'}. Dove la rimetti?`,
+  turnKeepTop: 'In cima',
+  turnKeptTop: 'Carta rimessa in cima al mazzo dei turni',
+  turnToBottom: 'In fondo',
+  turnMovedBottom: 'Carta messa in fondo al mazzo dei turni',
+  turnPileNothing: 'Negli scarti dei turni non ci sono carte da rimescolare',
+  turnShuffleTitle: 'Rimescola nel mazzo dei turni',
+  turnShuffleText: 'Tocca le carte degli scarti da rimettere nel mazzo dei turni, che poi viene mescolato. La carta del turno in corso resta.',
+  turnShuffleGo: n => n ? `Rimescola ${n} ${n === 1 ? 'carta' : 'carte'}` : 'Scegli le carte',
+  turnShuffled: n => `${n} ${n === 1 ? 'carta rimescolata' : 'carte rimescolate'} nel mazzo dei turni`,
+  turnOrderTitle: 'Ordina il mazzo dei turni',
+  turnOrderText: 'Sposta le carte con ▲ e ▼.',
+  turnOrderTop: 'In alto la prossima carta che si pesca',
+  turnMoveUp: n => `Sposta in su la carta ${n}`,
+  turnMoveDown: n => `Sposta in giù la carta ${n}`,
+  turnOrderGo: 'Conferma l’ordine',
+  turnOrdered: 'Ordine del mazzo dei turni salvato',
+  chipReveal: 'Rivela la prima carta turno',
+  chipRevealNote: 'Hissing Acid: la carta resta in cima',
+  chipRevealGo: 'Rivela',
+  chipShuffle: 'Carte nemesi nel mazzo dei turni',
+  chipShuffleNote: n => `Sunder: ${n} negli scarti dei turni (quella in corso resta)`,
+  chipShuffleGo: 'Rimescola',
+  chipPile: n => `Carte nemesi negli scarti dei turni: ${n}`,
+  chipPileNote: 'Thunderous Tempest: con 2 i danni sono 8, altrimenti 5',
+  chipPileGo: 'Guarda',
   pairChoiceLabel: n => `Giocatore ${n}`,
   ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
   statsTime: 'Tempo di partita',
@@ -592,7 +632,9 @@ function playerKinds() {
 function shuffleTurnOrder() {
   const wild = Number(settings.players) === 3
     ? (turnOrder.wild ? (turnOrder.wild % 3) + 1 : 1 + Math.floor(Math.random() * 3)) : null;
-  turnOrder = { left: turnOrderCards(settings.players), drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {} };
+  // v206: il mazzo è in ordine (left[0] = la carta in cima), mescolato qui; si pesca sempre dalla cima, così le carte
+  // che guardano o riordinano il mazzo dei turni (Hissing Acid, Quartz Shard, Xaxos...) vedono le carte vere
+  turnOrder = { left: shuffle(turnOrderCards(settings.players)), drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {} };
 }
 // Turno in corso = ultima carta del giro (v194): finendolo si mischia il mazzo e si aspetta "Pesca la prima carta turno"
 function turnRoundOver() {
@@ -605,11 +647,41 @@ function nextTurnCard() {
 }
 function drawTurnCard(pick) {
   if (!turnOrder.left.length) shuffleTurnOrder();
-  let choices = turnOrder.left.map((c, i) => i);
-  if (pick && choices.some(i => pick(turnOrder.left[i]))) choices = choices.filter(i => pick(turnOrder.left[i]));
-  const card = turnOrder.left.splice(choices[Math.floor(Math.random() * choices.length)], 1)[0];
+  // Dalla cima (v206); pick (salvataggi vecchi): la prima carta dall'alto che lo soddisfa
+  let at = 0;
+  if (pick) { const i = turnOrder.left.findIndex(pick); if (i >= 0) at = i; }
+  const card = turnOrder.left.splice(at, 1)[0];
   turnOrder.drawn.push(card);
   return card;
+}
+
+// --- Azioni sul mazzo dei turni (v206), da carte nemesi o dei giocatori ---
+// Nella pila degli scarti dei turni ci sono le carte già pescate nel giro (turnOrder.drawn); quella del turno in corso
+// resta dov'è. Ogni azione è un passo di undo (act).
+function turnCardToBottom() {
+  if (turnOrder.left.length < 2) return;
+  turnOrder.left.push(turnOrder.left.shift());
+}
+// Carte degli scarti (posizioni in drawn, non il turno in corso) rimesse nel mazzo, che viene mescolato.
+// I giocatori scelti per le carte 1/2 e 3/4 restano attaccati alle carte che restano negli scarti.
+function shuffleTurnCardsBack(positions) {
+  const cur = turnOrder.drawn.length - 1;
+  const take = new Set(positions.filter(i => i >= 0 && i < cur));
+  if (!take.size) return;
+  const keep = [];
+  const picks = {};
+  turnOrder.drawn.forEach((kind, i) => {
+    if (take.has(i)) return;
+    if (turnOrder.picks && turnOrder.picks[i]) picks[keep.length] = turnOrder.picks[i];
+    keep.push(kind);
+  });
+  const back = [...take].map(i => turnOrder.drawn[i]);
+  turnOrder.left = shuffle(turnOrder.left.concat(back));
+  turnOrder.drawn = keep;
+  turnOrder.picks = picks;
+}
+function setTurnDeckOrder(order) {
+  if (order.length === turnOrder.left.length) turnOrder.left = order.slice();
 }
 function currentTurnCard() {
   return turnOrder.drawn[turnOrder.drawn.length - 1] || null;
@@ -3707,7 +3779,11 @@ menuBtn.addEventListener('click', openSideMenu);
 // Nel turno nemesi sotto la casella accesa c'è la scritta "Nemesi · Risolvi" o "Nemesi · Pesca"; nel turno di un
 // giocatore niente scritta (basta il colore; il turno è detto nell'aria-label).
 const turnTrack = el('div', 'ae-turn-track');
-turnTrack.setAttribute('role', 'img');
+// v206: toccando la barra si apre il mazzo dei turni (rivela, rimescola dagli scarti, ordina)
+turnTrack.setAttribute('role', 'button');
+turnTrack.tabIndex = 0;
+turnTrack.addEventListener('click', () => openTurnDeckMenu());
+turnTrack.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTurnDeckMenu(); } });
 const turnTrackBar = el('div', 'ae-turn-track-bar');
 const turnTrackLabels = el('div', 'ae-turn-labels');
 const turnTrackLabel = el('span', 'ae-turn-label');
@@ -3744,6 +3820,7 @@ function renderTurnTrack() {
   if (ui.trackShuffle) {
     turnTrack.setAttribute('aria-label', I18N_IT.trackWaiting);
     renderPairChoice();
+    renderTurnChip();
     return;
   }
   // Scritta sotto la casella accesa, centrata sotto di lei (v196, anche alle due estremità)
@@ -3800,8 +3877,222 @@ function renderTurnTrack() {
     : isPairCard(card) ? (turnCardPlayer(card) ? I18N_IT.trackPlayer(Number(turnCardPlayer(card).slice(1)))
       : I18N_IT.trackPairChoose(...pairOptions(card).map(p => Number(p.slice(1)))))
     : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
-  turnTrack.setAttribute('aria-label', [name, cur >= 0 ? I18N_IT.trackPosition(cur + 1, total) : ''].filter(Boolean).join(', '));
+  turnTrack.setAttribute('aria-label', [name, cur >= 0 ? I18N_IT.trackPosition(cur + 1, total) : '', I18N_IT.turnDeckHint]
+    .filter(Boolean).join(', '));
   renderPairChoice();
+  renderTurnChip();
+}
+
+// --- Mazzo dei turni: menu e finestre (v206) ---
+// Carte nemesi dell'app che agiscono sul mazzo dei turni: nel turno nemesi, quando sono la carta da risolvere, sopra il
+// pulsante compare un riquadro con l'azione. Le carte dei giocatori (Flare, Quartz Shard, Xaxos...) non sono nell'app:
+// le loro azioni si fanno dal menu del mazzo dei turni (tocco sulla barra della fase).
+const TURN_DECK_CARDS = {
+  'Hissing Acid': { action: 'reveal', bottom: false },
+  'Sunder': { action: 'shuffle', preselect: 'nemesis' },
+  'Thunderous Tempest': { action: 'pile' }
+};
+// Carta del mazzo dei turni disegnata come una piccola carta: colore del giocatore (scurito), numero nero al centro;
+// N = nemesi, J = jolly, 1/2 e 3/4 finché non si sa il giocatore. i: posizione negli scarti (drawn), -1 = nel mazzo
+function turnCardFace(kind, i, tag = 'span') {
+  const who = turnCardPlayer(kind, i);
+  const face = el(tag, 'ae-turn-card');
+  face.dataset.kind = who || kind;
+  if (kind === 'wild') face.classList.add('is-wild');
+  face.textContent = kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J'
+    : isPairCard(kind) ? (who ? who.slice(1) : pairOptions(kind).map(p => p.slice(1)).join('/')) : kind.slice(1);
+  face.setAttribute('aria-label', turnCardName(kind, i));
+  return face;
+}
+function turnCardName(kind, i) {
+  const who = turnCardPlayer(kind, i);
+  if (kind === 'nemesis') return I18N_IT.trackNemesisName;
+  if (kind === 'wild') return who ? I18N_IT.trackWildOf(Number(who.slice(1))) : I18N_IT.trackWildName;
+  if (who) return I18N_IT.trackPlayerName(Number(who.slice(1)));
+  return I18N_IT.turnPairName(...pairOptions(kind).map(p => Number(p.slice(1))));
+}
+// Carte negli scarti dei turni che si possono rimettere nel mazzo: tutte tranne quella del turno in corso
+function turnPilePositions() {
+  return turnOrder.drawn.map((k, i) => i).slice(0, Math.max(0, turnOrder.drawn.length - 1));
+}
+function turnDeckBlocked() {
+  return ui.isTransitioning || ui.deckBuilding || ui.trackShuffle || modals.length > 0;
+}
+
+function openTurnDeckMenu() {
+  if (turnDeckBlocked()) return;
+  let close = () => {};
+  const cancel = () => close();
+  const left = turnOrder.left.length;
+  const pile = turnOrder.drawn.length;
+  const dialog = dialogShell(I18N_IT.turnDeckTitle, I18N_IT.turnDeckInfo(left, pile), cancel);
+  dialog.classList.add('ae-turn-deck');
+  // Scarti dei turni (pescate nel giro, l'ultima è il turno in corso)
+  const pileRow = el('div', 'ae-turn-pile');
+  pileRow.setAttribute('aria-label', I18N_IT.turnPileLabel);
+  if (pile) turnOrder.drawn.forEach((k, i) => pileRow.appendChild(turnCardFace(k, i)));
+  else pileRow.appendChild(el('span', 'ae-turn-pile-empty', I18N_IT.turnPileEmpty));
+  const actions = el('div', 'ae-turn-actions');
+  const action = (label, note, enabled, handler) => {
+    const b = el('button', 'ae-turn-action');
+    b.type = 'button';
+    b.append(el('span', 'ae-turn-action-label', label), el('span', 'ae-turn-action-note', note));
+    b.disabled = !enabled;
+    b.addEventListener('click', () => { close(); handler(); });
+    return b;
+  };
+  actions.append(
+    action(I18N_IT.turnRevealTop, I18N_IT.turnRevealTopNote, left > 0, () => openTurnReveal({ bottom: true })),
+    action(I18N_IT.turnShuffleBack, I18N_IT.turnShuffleBackNote, turnPilePositions().length > 0, () => openTurnShuffle({})),
+    action(I18N_IT.turnOrderAll, I18N_IT.turnOrderAllNote, left > 1, () => openTurnOrder())
+  );
+  const footer = el('div', 'ae-modal-footer');
+  footer.appendChild(button(I18N_IT.close, 'secondary', cancel));
+  dialog.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnPileLabel), pileRow, actions, footer);
+  close = openModal(dialog, { onCancel: cancel });
+}
+
+// Rivela la prima carta del mazzo dei turni: "In cima" la lascia dov'è; "In fondo" (se la carta lo permette) la sposta
+function openTurnReveal({ bottom = true } = {}) {
+  if (turnDeckBlocked() || !turnOrder.left.length) return;
+  let close = () => {};
+  const cancel = () => close();
+  const kind = turnOrder.left[0];
+  const dialog = dialogShell(I18N_IT.turnRevealTitle, turnCardName(kind, -1), cancel);
+  dialog.classList.add('ae-turn-deck', 'ae-turn-reveal');
+  const big = turnCardFace(kind, -1);
+  big.classList.add('is-big');
+  const footer = el('div', 'ae-modal-footer');
+  const top = button(I18N_IT.turnKeepTop, 'primary', () => { close(); showToast(I18N_IT.turnKeptTop); });
+  footer.appendChild(top);
+  if (bottom && turnOrder.left.length > 1) {
+    footer.prepend(button(I18N_IT.turnToBottom, 'secondary', () => {
+      close();
+      act(turnCardToBottom);
+      render();
+      showToast(I18N_IT.turnMovedBottom);
+    }));
+  }
+  dialog.append(big, el('p', 'ae-modal-text', I18N_IT.turnRevealText(turnOrder.left.length)), footer);
+  close = openModal(dialog, { onCancel: cancel, initialFocus: top });
+}
+
+// Rimescola dagli scarti dei turni: si scelgono una o più carte (preselect 'nemesis': quelle della nemesi, per Sunder)
+function openTurnShuffle({ preselect } = {}) {
+  if (turnDeckBlocked()) return;
+  const positions = turnPilePositions();
+  if (!positions.length) { showToast(I18N_IT.turnPileNothing); return; }
+  let close = () => {};
+  const cancel = () => close();
+  const chosen = new Set(preselect === 'nemesis' ? positions.filter(i => turnOrder.drawn[i] === 'nemesis') : []);
+  const dialog = dialogShell(I18N_IT.turnShuffleTitle, '', cancel);
+  dialog.classList.add('ae-turn-deck', 'ae-turn-shuffle');
+  const grid = el('div', 'ae-turn-grid');
+  const go = button('', 'primary', () => {
+    if (!chosen.size) return;
+    close();
+    const n = chosen.size;
+    act(() => shuffleTurnCardsBack([...chosen]));
+    render();
+    showToast(I18N_IT.turnShuffled(n));
+  });
+  const sync = () => {
+    grid.querySelectorAll('.ae-turn-card').forEach(b => b.setAttribute('aria-pressed', String(chosen.has(Number(b.dataset.pos)))));
+    go.textContent = I18N_IT.turnShuffleGo(chosen.size);
+    go.disabled = !chosen.size;
+  };
+  positions.forEach(i => {
+    const b = turnCardFace(turnOrder.drawn[i], i, 'button');
+    b.type = 'button';
+    b.dataset.pos = String(i);
+    b.addEventListener('click', () => { if (chosen.has(i)) chosen.delete(i); else chosen.add(i); sync(); });
+    grid.appendChild(b);
+  });
+  const footer = el('div', 'ae-modal-footer');
+  footer.append(button(I18N_IT.cancel, 'secondary', cancel), go);
+  dialog.append(el('p', 'ae-modal-text', I18N_IT.turnShuffleText), grid, footer);
+  sync();
+  close = openModal(dialog, { onCancel: cancel });
+}
+
+// Xaxos: tutto il mazzo dei turni in fila (in alto la prossima carta), con ▲ ▼ per spostare; "Conferma l'ordine"
+function openTurnOrder() {
+  if (turnDeckBlocked() || turnOrder.left.length < 2) return;
+  let close = () => {};
+  const cancel = () => close();
+  const order = turnOrder.left.slice();
+  const dialog = dialogShell(I18N_IT.turnOrderTitle, '', cancel);
+  dialog.classList.add('ae-turn-deck', 'ae-turn-order');
+  const list = el('ol', 'ae-turn-order-list');
+  const draw = focusKey => {
+    list.replaceChildren(...order.map((kind, i) => {
+      const li = el('li', 'ae-turn-order-row');
+      const move = (dir, label, glyph) => {
+        const b = el('button', 'ae-icon-button ae-turn-move', glyph);
+        b.type = 'button';
+        b.setAttribute('aria-label', label);
+        b.dataset.key = i + dir;
+        b.disabled = i + dir < 0 || i + dir >= order.length;
+        b.addEventListener('click', () => {
+          [order[i], order[i + dir]] = [order[i + dir], order[i]];
+          draw((i + dir) + ':' + dir);
+        });
+        return b;
+      };
+      li.append(el('span', 'ae-turn-order-pos', String(i + 1)), turnCardFace(kind, -1),
+        el('span', 'ae-turn-order-name', turnCardName(kind, -1)),
+        move(-1, I18N_IT.turnMoveUp(i + 1), '▲'), move(1, I18N_IT.turnMoveDown(i + 1), '▼'));
+      li.querySelectorAll('.ae-turn-move').forEach((b, j) => { b.dataset.focus = (i) + ':' + (j ? 1 : -1); });
+      return li;
+    }));
+    if (focusKey) {
+      const [pos, dir] = focusKey.split(':');
+      const target = list.querySelector(`.ae-turn-move[data-focus="${pos}:${dir}"]`);
+      const fallback = list.querySelector(`.ae-turn-move[data-focus="${pos}:${-dir}"]`);
+      const f = target && !target.disabled ? target : fallback;
+      if (f) f.focus({ preventScroll: true });
+    }
+  };
+  draw();
+  const footer = el('div', 'ae-modal-footer');
+  footer.append(button(I18N_IT.cancel, 'secondary', cancel), button(I18N_IT.turnOrderGo, 'primary', () => {
+    close();
+    act(() => setTurnDeckOrder(order));
+    render();
+    showToast(I18N_IT.turnOrdered);
+  }));
+  dialog.append(el('p', 'ae-modal-text', I18N_IT.turnOrderText), el('p', 'ae-turn-order-top', I18N_IT.turnOrderTop), list, footer);
+  close = openModal(dialog, { onCancel: cancel });
+}
+
+// Riquadro sopra il pulsante nel turno nemesi, se la carta da risolvere agisce sul mazzo dei turni
+const turnChip = el('div', 'ae-turn-chip');
+turnChip.hidden = true;
+resolveBtn.before(turnChip);
+function renderTurnChip() {
+  const active = resolving && !isDrawStep() ? activeEntry() : null;
+  const effect = active && ui.viewedUid === active.uid ? TURN_DECK_CARDS[active.data.name] : null;
+  turnChip.hidden = !effect;
+  if (!effect) { delete turnChip.dataset.card; return; }
+  const key = active.data.name + ':' + turnOrder.left.length + ':' + turnOrder.drawn.join(',');
+  if (turnChip.dataset.card === key) return;
+  turnChip.dataset.card = key;
+  const nemesisInPile = turnOrder.drawn.filter(k => k === 'nemesis').length;
+  const text = el('span', 'ae-turn-chip-text');
+  let go;
+  if (effect.action === 'reveal') {
+    text.append(el('strong', '', I18N_IT.chipReveal), el('span', '', I18N_IT.chipRevealNote));
+    go = button(I18N_IT.chipRevealGo, 'primary', () => openTurnReveal({ bottom: effect.bottom }));
+    go.disabled = !turnOrder.left.length;
+  } else if (effect.action === 'shuffle') {
+    text.append(el('strong', '', I18N_IT.chipShuffle), el('span', '', I18N_IT.chipShuffleNote(nemesisInPile)));
+    go = button(I18N_IT.chipShuffleGo, 'primary', () => openTurnShuffle({ preselect: effect.preselect }));
+    go.disabled = !turnPilePositions().length;
+  } else {
+    text.append(el('strong', '', I18N_IT.chipPile(nemesisInPile)), el('span', '', I18N_IT.chipPileNote));
+    go = button(I18N_IT.chipPileGo, 'secondary', () => openTurnDeckMenu());
+  }
+  turnChip.replaceChildren(text, go);
 }
 
 // Finestra "Chi gioca questo turno?" (v193): esce una carta 1/2 o 3/4 senza giocatore. Al centro due carte grandi come

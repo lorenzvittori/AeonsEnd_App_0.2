@@ -133,7 +133,23 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   resta per le statistiche e per i turni passati dai minion).
 - **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
   gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
-  sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste.
+  sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste. Dalla v206 il mazzo è
+  **in ordine** (`turnOrder.left[0]` = la carta in cima), mescolato a ogni giro (`shuffleTurnOrder`), e si pesca dalla
+  cima: così le carte che guardano o riordinano il mazzo dei turni vedono le carte vere.
+  - **Azioni sul mazzo dei turni** (v206; solo The New Age e Core Set). **Toccando la barra della fase** si apre
+    "Mazzo dei turni" (`openTurnDeckMenu`): carte nel mazzo e negli scarti, gli **scarti dei turni** (le carte pescate
+    nel giro, come piccole carte colorate: numero del giocatore, N, J, 1/2) e tre azioni, ognuna un passo di undo:
+    - **Rivela la prima carta** (`openTurnReveal`): la carta in grande, "In cima" (resta) o "In fondo"
+      (`turnCardToBottom`). Quartz Shard, Lash's Quartz Shard; Flare, Xaxos's Flare e Hissing Acid solo in cima.
+    - **Rimescola dagli scarti** (`openTurnShuffle`, `shuffleTurnCardsBack`): si toccano una o più carte degli scarti
+      (non quella del turno in corso), tornano nel mazzo che viene mescolato; i giocatori scelti per le carte 1/2 e
+      3/4 restano attaccati alle carte che restano negli scarti. Nothingness, Sunder, Lash, Talix.
+    - **Rivela e ordina tutto il mazzo** (`openTurnOrder`, Xaxos): le carte in fila, in alto la prossima, ▲ ▼ per
+      spostarle, "Conferma l'ordine".
+    Le carte dei giocatori non sono nell'app. Le tre carte nemesi che ci sono (`TURN_DECK_CARDS`) quando sono la carta
+    da risolvere mostrano un **riquadro sopra il pulsante** (`renderTurnChip`): Hissing Acid → "Rivela" (solo in
+    cima), Sunder → "Rimescola" con le carte nemesi già scelte, Thunderous Tempest → quante carte nemesi ci sono negli
+    scarti dei turni (8 danni con 2, altrimenti 5) e "Guarda".
   - **Fine giro** (v194, `turnRoundOver`, `nextTurnCard`, `shuffleTurnOrder`): all'ultima carta del giro il pulsante è
     "**Fine turno · Mischia mazzo**" (nel turno nemesi "**Metti in gioco · Mischia mazzo**"). Toccandolo il mazzo dei
     turni si mischia (giro nuovo, "Turno N" sale) e parte l'animazione (`playTurnShuffle`): le scritte sotto la barra

@@ -1160,6 +1160,60 @@ body { overflow: hidden; }
 .ae-pair-pick[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
 .ae-pair-pick[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
 .ae-pair-pick:active { transform: scale(.96); }
+/* v206: mazzo dei turni. La barra della fase si tocca (apre il menu); le carte turno sono piccole carte colorate */
+.ae-turn-track { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ae-turn-track:focus-visible { outline: 2px solid var(--ae-focus); outline-offset: 2px; border-radius: 6px; }
+.ae-turn-card {
+  --ae-player: var(--ae-turn-wild);
+  width: 40px; aspect-ratio: 63 / 88; flex: 0 0 auto; display: grid; place-items: center; padding: 0; box-sizing: border-box;
+  border: 2px solid #000; border-radius: 5px; color: #000; font: 800 15px/1 var(--ae-font-ui);
+  background: color-mix(in srgb, var(--ae-player) 70%, #000);
+}
+.ae-turn-card[data-kind="p1"] { --ae-player: var(--ae-turn-p1); }
+.ae-turn-card[data-kind="p2"] { --ae-player: var(--ae-turn-p2); }
+.ae-turn-card[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
+.ae-turn-card[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
+.ae-turn-card[data-kind="nemesis"] { --ae-player: hsl(356 58% 52%); }
+.ae-turn-card[data-kind="p12"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p1) 70%, #000), color-mix(in srgb, var(--ae-turn-p2) 70%, #000)); font-size: 12px; }
+.ae-turn-card[data-kind="p34"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p3) 70%, #000), color-mix(in srgb, var(--ae-turn-p4) 70%, #000)); font-size: 12px; }
+.ae-turn-card.is-big { width: 110px; font-size: 40px; border-width: 3px; border-radius: 10px; align-self: center; margin: 4px 0 12px; }
+button.ae-turn-card { width: 64px; cursor: pointer; font-size: 22px; }
+button.ae-turn-card[aria-pressed="false"] { opacity: .45; }
+button.ae-turn-card[aria-pressed="true"] { outline: 3px solid var(--ae-gold); outline-offset: 2px; }
+.ae-turn-subtitle { margin: 0 0 8px; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.ae-turn-pile { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.ae-turn-pile-empty { color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
+.ae-turn-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.ae-turn-action {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px 14px; text-align: left;
+  border: 1px solid var(--ae-border); border-radius: 12px; background: var(--ae-surface); color: var(--ae-text); cursor: pointer;
+}
+.ae-turn-action:disabled { opacity: .4; cursor: not-allowed; }
+.ae-turn-action-label { font: 600 15px/20px var(--ae-font-ui); }
+.ae-turn-action-note { color: var(--ae-text-muted); font: 400 12px/16px var(--ae-font-ui); }
+.ae-turn-deck .ae-modal-text { margin: 0 0 14px; color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
+.ae-turn-reveal { text-align: center; }
+.ae-turn-reveal .ae-turn-card.is-big { margin-inline: auto; }
+.ae-turn-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.ae-turn-order-top { margin: 0 0 8px; color: var(--ae-gold); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.ae-turn-order-list { margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ae-turn-order-row {
+  display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 4px 4px 4px 10px;
+  border: 1px solid var(--ae-border); border-radius: 12px; background: var(--ae-surface);
+}
+.ae-turn-order-pos { width: 18px; color: var(--ae-text-muted); font: 700 13px/1 var(--ae-font-ui); text-align: center; }
+.ae-turn-order-name { flex: 1 1 auto; min-width: 0; font: 600 14px/18px var(--ae-font-ui); }
+.ae-turn-move { width: 44px; height: 44px; font-size: 14px; color: var(--ae-gold); }
+.ae-turn-move:disabled { opacity: .25; }
+/* Riquadro sopra il pulsante nel turno nemesi: la carta da risolvere agisce sul mazzo dei turni */
+.ae-turn-chip {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 8px 8px 12px; border-radius: 12px;
+  background: rgba(223, 174, 89, .1); border: 1px solid rgba(223, 174, 89, .45);
+}
+.ae-turn-chip[hidden] { display: none; }
+.ae-turn-chip-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; font: 400 12px/16px var(--ae-font-ui); color: var(--ae-text-muted); }
+.ae-turn-chip-text strong { color: var(--ae-text); font: 600 13px/18px var(--ae-font-ui); }
+.ae-turn-chip .ae-button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; }
 /* v200: scelta ridotta nel pulsante grande in basso, diviso in due ("Giocatore x | Giocatore y") */
 /* v202: due pulsanti separati (prima uno solo diviso in due) */
 .ae-pair-dock { display: flex; gap: 10px; width: 100%; }
