@@ -171,7 +171,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     sceglie, quello che si salva non va nelle Statistiche maghi.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
   carta del mazzo dei turni, nell'ordine di estrazione.
-  - La casella del turno in corso è **accesa** (8px, colore pieno e bagliore) e più lunga delle altre: dalla v184
+  - La casella del turno in corso è **accesa** (8px, colore pieno e un bagliore leggero: dalla v203 4px al 25%, prima 12px al 60%) e più lunga delle altre: dalla v184
     **122px fissi**, abbastanza per la scritta più lunga ("Nemesi · Risolvi", circa 114px); le altre 5 si dividono lo
     spazio che resta (circa 38px su un telefono da 375px). (v170: il doppio di una casella normale.) Quelle dei turni già giocati nel giro
     sono linee sottili colorate velate; quelle ancora da estrarre linee grigie.

@@ -1104,7 +1104,8 @@ body { overflow: hidden; }
 .ae-turn-seg.is-current {
   /* v184: misura fissa 122px, abbastanza per la scritta più lunga ("Nemesi · Risolvi", circa 114px) */
   flex: 0 0 122px; height: 8px; border-radius: 4px; background: var(--ae-seg);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--ae-seg) 60%, transparent);
+  /* v203: bagliore molto più leggero (era 12px al 60%: sembravano caramelle) */
+  box-shadow: 0 0 4px color-mix(in srgb, var(--ae-seg) 25%, transparent);
 }
 /* Turno giocatori che passa a un altro giocatore: la casella accesa pulsa una volta */
 .ae-turn-track.is-changed .ae-turn-seg.is-current { animation: ae-turn-pulse .5s ease-out; }
