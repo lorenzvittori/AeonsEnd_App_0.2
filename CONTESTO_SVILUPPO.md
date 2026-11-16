@@ -298,7 +298,9 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - **Menu:** si chiude anche trascinandolo verso destra (`swipeToClose`).
 - **Vibrazione** (solo Android): carta pescata (doppia per un attacco) e scritte Tier / Partita iniziata (`buzz`).
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
-  (rifatte da `tools/build-app-icons.py` a partire dal dorso).
+  (rifatte da `tools/build-app-icons.py`; dalla v197 a partire da `Assets/ui/decor/app-icon.webp`, l'immagine
+  quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%
+  centrale con il bordo sfumato nella stessa immagine sfocata, così la scritta non si taglia nel cerchio di Android.
 - **Senza rete:** `sw.js` (service worker). Codice e dati: prima la rete, senza rete l'ultima copia salvata (una per
   file, senza `?v=N`). Immagini e font: prima la copia salvata. All'inizio o alla ripresa della partita si scaricano le
   immagini di tutte le carte in gioco nel mazzo (`prefetchDeckImages`), non con "Risparmio dati". Se un'immagine già
