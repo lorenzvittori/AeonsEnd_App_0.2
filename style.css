@@ -633,6 +633,9 @@ body { overflow: hidden; }
 .collection-item.is-wave > span:first-child { font: 600 15px/20px var(--ae-font-ui); }
 .collection-item.is-mini { padding-left: 18px; color: var(--ae-text-muted); font-size: 14px; }
 .collection-item.is-disabled { opacity: .4; }
+/* v199: wave non ancora disponibili nella collezione (solo wave 1 e 4 si possono scegliere) */
+.collection-wave.is-locked .collection-item { cursor: not-allowed; }
+.collection-locked-note { display: block; color: var(--ae-text-muted); font: 400 12px/16px var(--ae-font-ui); }
 .collection-footer { padding: 8px 16px 0; }
 @media (min-width: 900px) { .collection-body, .collection-head, .collection-footer { width: min(100%, 560px); margin-inline: auto; } }
 

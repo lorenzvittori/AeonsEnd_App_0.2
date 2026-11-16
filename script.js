@@ -82,6 +82,7 @@ const I18N_IT = {
   myCollection: 'La mia collezione',
   collectionHint: 'Spunta quello che possiedi: nemesi e carte nemesi usciranno solo da questi prodotti.',
   collectionSave: 'Salva collezione',
+  collectionLocked: 'Non ancora disponibile',
   collectionSaved: 'Collezione salvata',
   collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
   victoryTitle: 'Vittoria',
@@ -473,10 +474,16 @@ function collectionCatalog() {
   });
 }
 
+// Per ora (v199) nella collezione si possono scegliere solo la wave 1 e la wave 4, con le loro mini espansioni; le
+// altre wave si vedono ma sono disattivate e non restano nella collezione
+const COLLECTION_WAVES = [1, 4];
+function collectionWaveEnabled(wave) {
+  return COLLECTION_WAVES.includes(parseInt(String(wave), 10));
+}
 function loadCollection() {
   try {
     const saved = JSON.parse(localStorage.getItem(COLLECTION_KEY));
-    if (Array.isArray(saved)) { collection = new Set(saved); return; }
+    if (Array.isArray(saved)) { collection = new Set(saved.filter(id => collectionWaveEnabled(id.split('|')[0]))); return; }
   } catch (err) { /* collezione illeggibile: si riparte da quella predefinita */ }
   // Nuovi utenti (v194): collezione vuota; nel menu iniziale compare "Inserisci collezione"
   collection = new Set();
@@ -2328,13 +2335,15 @@ function openCollection(trigger, onSaved) {
   body.appendChild(el('p', 'start-note', I18N_IT.collectionHint));
   // Seleziona tutto / Deseleziona tutto: spuntano o tolgono tutte le wave e le mini espansioni (valgono con "Salva")
   const bulk = el('div', 'collection-bulk');
+  // (solo le wave che si possono scegliere, v199)
   const setAll = on => {
-    collectionCatalog().forEach(({ products }) => products.forEach(p => { if (on) draft.add(p.id); else draft.delete(p.id); }));
-    body.querySelectorAll('.collection-item input').forEach(input => {
+    collectionCatalog().filter(({ wave }) => collectionWaveEnabled(wave))
+      .forEach(({ products }) => products.forEach(p => { if (on) draft.add(p.id); else draft.delete(p.id); }));
+    body.querySelectorAll('.collection-wave:not(.is-locked) .collection-item input').forEach(input => {
       input.checked = on;
       if (input.closest('.is-mini')) input.disabled = !on;
     });
-    body.querySelectorAll('.collection-item.is-mini').forEach(r => r.classList.toggle('is-disabled', !on));
+    body.querySelectorAll('.collection-wave:not(.is-locked) .collection-item.is-mini').forEach(r => r.classList.toggle('is-disabled', !on));
   };
   bulk.append(button(I18N_IT.selectAll, 'secondary', () => setAll(true)), button(I18N_IT.deselectAll, 'secondary', () => setAll(false)));
   body.appendChild(bulk);
@@ -2374,6 +2383,17 @@ function openCollection(trigger, onSaved) {
     }));
     block.append(waveRow, ...minis);
     sync();
+    // Wave non ancora disponibili (v199): visibili ma spente e non si toccano
+    if (!collectionWaveEnabled(wave)) {
+      block.classList.add('is-locked');
+      [waveRow, ...minis].forEach(r => {
+        const input = r.querySelector('input');
+        input.checked = false;
+        input.disabled = true;
+        r.classList.add('is-disabled');
+      });
+      waveRow.querySelector('span').append(el('span', 'collection-locked-note', I18N_IT.collectionLocked));
+    }
     body.appendChild(block);
   });
   const footer = el('div', 'collection-footer');
@@ -2453,7 +2473,8 @@ function resumeGame() {
   const saved = readSave();
   if (!saved) return;
   const info = nemeses.find(n => n.name === saved.settings.nemesis);
-  if (info && collection && !collection.has(productOfNemesis(info))) {
+  // (nemesi di una wave non ancora disponibile nella collezione, v199: si riprende e basta)
+  if (info && collection && collectionWaveEnabled(info.wave) && !collection.has(productOfNemesis(info))) {
     openMissingNemesis(info, () => {
       collection.add(info.wave + '|base');
       collection.add(productOfNemesis(info));

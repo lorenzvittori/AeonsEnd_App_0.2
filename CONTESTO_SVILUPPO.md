@@ -77,6 +77,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **La mia collezione:** schermata con un interruttore per ogni wave (la sua scatola base) e, sotto, le sue mini
   espansioni (interruttori più piccoli e un po' più a sinistra). In cima *Seleziona tutto* e *Deseleziona tutto*. Nemesi e carte Basic / Upgraded Basic escono solo dai
   prodotti spuntati. Vale solo con "Salva collezione".
+  - Per ora (v199, `COLLECTION_WAVES`) si possono scegliere **solo la wave 1 e la wave 4** con le loro mini
+    espansioni: le altre wave si vedono spente con la scritta "Non ancora disponibile", *Seleziona tutto* spunta solo
+    1 e 4, e i prodotti delle altre wave già salvati si tolgono dalla collezione all'avvio (`loadCollection`).
 - **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
 - **Wave:** menu a tendina con una casella per wave (solo quelle della collezione), **anche più di una**
   (`selectedWaves`); resta sempre almeno una wave. Le wave si mostrano in **cifre romane** (`waveLabel`: "IV - The New
