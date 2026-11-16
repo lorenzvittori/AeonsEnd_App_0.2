@@ -1,9 +1,10 @@
 # Icone dell'app installata (manifest.webmanifest e apple-touch-icon).
-# Dalla v197 dall'immagine quadrata dell'utente (logo e ragno sotto la luna); prima dal dorso delle carte.
+# Dall'immagine quadrata dell'utente (logo e ragno sotto la luna; v197, dalla v198 la versione app-icon.png da
+# 400×400); prima dal dorso delle carte.
 # Da lanciare dalla cartella del repo: python tools/build-app-icons.py
 from PIL import Image, ImageFilter
 
-SRC = 'Assets/ui/decor/app-icon.webp'
+SRC = 'Assets/ui/decor/app-icon.png'
 OUT = 'Assets/ui/app-icons/'
 
 import os
