@@ -64,7 +64,7 @@ const DATA = {
  "larghezza_mm": 68.0,
  "larghezza_px": 360.0,
  "mm_per_px": 0.1889,
- "nota": "Misure prese con getBoundingClientRect su localhost a 360 px CSS di larghezza; mm = px x 68/360. Partita di prova con 7 carte in gioco (fascia piccola piena) e la 4a carta al centro della vista grande; i box che escono dallo schermo sono tagliati al bordo.",
+ "nota": "Misure prese con getBoundingClientRect su localhost a 360 px CSS di larghezza; mm = px x 68/360. Partita di prova con 7 carte in gioco (fascia piccola piena) e la 4a carta al centro della vista grande; i box che escono dallo schermo sono tagliati al bordo. Solo turno giocatori: dalla v207 il turno nemesi ha box e carta alla stessa altezza (non ha i comandi sotto la carta).",
  "formati": [
   {
    "formato": "18:9",
@@ -163,17 +163,17 @@ const DATA = {
         "h": 1.5
        }
       },
-      "Scritta della fase": {
+      "Fascia della scritta": {
        "px": {
-        "x": 77.6,
+        "x": 16,
         "y": 82,
-        "w": 81.3,
+        "w": 328,
         "h": 14
        },
        "mm": {
-        "x": 14.7,
+        "x": 3.0,
         "y": 15.5,
-        "w": 15.4,
+        "w": 62.0,
         "h": 2.6
        }
       },
@@ -361,12 +361,12 @@ const DATA = {
       },
       {
        "da": "Barra della fase",
-       "a": "Scritta della fase",
+       "a": "Fascia della scritta",
        "px": 6,
        "mm": 1.1
       },
       {
-       "da": "Scritta della fase",
+       "da": "Fascia della scritta",
        "a": "Fascia piccola 1",
        "px": 20.7,
        "mm": 3.9
@@ -394,312 +394,6 @@ const DATA = {
        "a": "Pulsante",
        "px": 28.4,
        "mm": 5.4
-      },
-      {
-       "da": "Pulsante",
-       "a": "fondo dello schermo",
-       "px": 12,
-       "mm": 2.3
-      }
-     ]
-    },
-    "nemesi": {
-     "box": {
-      "Testata": {
-       "px": {
-        "x": 0,
-        "y": 0,
-        "w": 360,
-        "h": 58
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 68.0,
-        "h": 11.0
-       }
-      },
-      "Nome nemesi": {
-       "px": {
-        "x": 16,
-        "y": 13,
-        "w": 146.3,
-        "h": 42
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 2.5,
-        "w": 27.6,
-        "h": 7.9
-       }
-      },
-      "Mazzo": {
-       "px": {
-        "x": 213,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 40.2,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Scarti": {
-       "px": {
-        "x": 256.5,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 48.4,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Menu": {
-       "px": {
-        "x": 304,
-        "y": 12,
-        "w": 44,
-        "h": 44
-       },
-       "mm": {
-        "x": 57.4,
-        "y": 2.3,
-        "w": 8.3,
-        "h": 8.3
-       }
-      },
-      "Barra della fase": {
-       "px": {
-        "x": 16,
-        "y": 68,
-        "w": 328,
-        "h": 8
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 12.8,
-        "w": 62.0,
-        "h": 1.5
-       }
-      },
-      "Scritta della fase": {
-       "px": {
-        "x": 61,
-        "y": 82,
-        "w": 114.4,
-        "h": 14
-       },
-       "mm": {
-        "x": 11.5,
-        "y": 15.5,
-        "w": 21.6,
-        "h": 2.6
-       }
-      },
-      "Fascia piccola 1": {
-       "px": {
-        "x": 16,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 2": {
-       "px": {
-        "x": 78,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 14.7,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 3": {
-       "px": {
-        "x": 140,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 26.4,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 4": {
-       "px": {
-        "x": 202,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 38.2,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 5": {
-       "px": {
-        "x": 264,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 49.9,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 6": {
-       "px": {
-        "x": 326,
-        "y": 116.7,
-        "w": 34,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 61.6,
-        "y": 22.0,
-        "w": 6.4,
-        "h": 13.7
-       }
-      },
-      "Box vita/token": {
-       "px": {
-        "x": 144,
-        "y": 244.4,
-        "w": 72,
-        "h": 37
-       },
-       "mm": {
-        "x": 27.2,
-        "y": 46.2,
-        "w": 13.6,
-        "h": 7.0
-       }
-      },
-      "Carta grande": {
-       "px": {
-        "x": 74,
-        "y": 289.4,
-        "w": 212,
-        "h": 296.1
-       },
-       "mm": {
-        "x": 14.0,
-        "y": 54.7,
-        "w": 40.0,
-        "h": 55.9
-       }
-      },
-      "Carta laterale sinistra": {
-       "px": {
-        "x": 0,
-        "y": 289.4,
-        "w": 62,
-        "h": 296.1
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 54.7,
-        "w": 11.7,
-        "h": 55.9
-       }
-      },
-      "Carta laterale destra": {
-       "px": {
-        "x": 298,
-        "y": 289.4,
-        "w": 62,
-        "h": 296.1
-       },
-       "mm": {
-        "x": 56.3,
-        "y": 54.7,
-        "w": 11.7,
-        "h": 55.9
-       }
-      },
-      "Pulsante": {
-       "px": {
-        "x": 16,
-        "y": 656,
-        "w": 328,
-        "h": 52
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 123.9,
-        "w": 62.0,
-        "h": 9.8
-       }
-      }
-     },
-     "spazi": [
-      {
-       "da": "alto dello schermo",
-       "a": "Testata",
-       "px": 0.0,
-       "mm": 0.0
-      },
-      {
-       "da": "Testata",
-       "a": "Barra della fase",
-       "px": 10,
-       "mm": 1.9
-      },
-      {
-       "da": "Barra della fase",
-       "a": "Scritta della fase",
-       "px": 6,
-       "mm": 1.1
-      },
-      {
-       "da": "Scritta della fase",
-       "a": "Fascia piccola 1",
-       "px": 20.7,
-       "mm": 3.9
-      },
-      {
-       "da": "Fascia piccola 1",
-       "a": "Box vita/token",
-       "px": 55.1,
-       "mm": 10.4
-      },
-      {
-       "da": "Box vita/token",
-       "a": "Carta grande",
-       "px": 8.0,
-       "mm": 1.5
-      },
-      {
-       "da": "Carta grande",
-       "a": "Pulsante",
-       "px": 70.5,
-       "mm": 13.3
       },
       {
        "da": "Pulsante",
@@ -808,17 +502,17 @@ const DATA = {
         "h": 1.5
        }
       },
-      "Scritta della fase": {
+      "Fascia della scritta": {
        "px": {
-        "x": 77.6,
+        "x": 16,
         "y": 82,
-        "w": 81.3,
+        "w": 328,
         "h": 14
        },
        "mm": {
-        "x": 14.7,
+        "x": 3.0,
         "y": 15.5,
-        "w": 15.4,
+        "w": 62.0,
         "h": 2.6
        }
       },
@@ -1006,12 +700,12 @@ const DATA = {
       },
       {
        "da": "Barra della fase",
-       "a": "Scritta della fase",
+       "a": "Fascia della scritta",
        "px": 6,
        "mm": 1.1
       },
       {
-       "da": "Scritta della fase",
+       "da": "Fascia della scritta",
        "a": "Fascia piccola 1",
        "px": 20.7,
        "mm": 3.9
@@ -1039,312 +733,6 @@ const DATA = {
        "a": "Pulsante",
        "px": 28.2,
        "mm": 5.3
-      },
-      {
-       "da": "Pulsante",
-       "a": "fondo dello schermo",
-       "px": 12,
-       "mm": 2.3
-      }
-     ]
-    },
-    "nemesi": {
-     "box": {
-      "Testata": {
-       "px": {
-        "x": 0,
-        "y": 0,
-        "w": 360,
-        "h": 58
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 68.0,
-        "h": 11.0
-       }
-      },
-      "Nome nemesi": {
-       "px": {
-        "x": 16,
-        "y": 13,
-        "w": 146.3,
-        "h": 42
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 2.5,
-        "w": 27.6,
-        "h": 7.9
-       }
-      },
-      "Mazzo": {
-       "px": {
-        "x": 213,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 40.2,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Scarti": {
-       "px": {
-        "x": 256.5,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 48.4,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Menu": {
-       "px": {
-        "x": 304,
-        "y": 12,
-        "w": 44,
-        "h": 44
-       },
-       "mm": {
-        "x": 57.4,
-        "y": 2.3,
-        "w": 8.3,
-        "h": 8.3
-       }
-      },
-      "Barra della fase": {
-       "px": {
-        "x": 16,
-        "y": 68,
-        "w": 328,
-        "h": 8
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 12.8,
-        "w": 62.0,
-        "h": 1.5
-       }
-      },
-      "Scritta della fase": {
-       "px": {
-        "x": 61,
-        "y": 82,
-        "w": 114.4,
-        "h": 14
-       },
-       "mm": {
-        "x": 11.5,
-        "y": 15.5,
-        "w": 21.6,
-        "h": 2.6
-       }
-      },
-      "Fascia piccola 1": {
-       "px": {
-        "x": 16,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 2": {
-       "px": {
-        "x": 78,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 14.7,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 3": {
-       "px": {
-        "x": 140,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 26.4,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 4": {
-       "px": {
-        "x": 202,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 38.2,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 5": {
-       "px": {
-        "x": 264,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 49.9,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 6": {
-       "px": {
-        "x": 326,
-        "y": 116.7,
-        "w": 34,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 61.6,
-        "y": 22.0,
-        "w": 6.4,
-        "h": 13.7
-       }
-      },
-      "Box vita/token": {
-       "px": {
-        "x": 143.8,
-        "y": 244.2,
-        "w": 72,
-        "h": 37
-       },
-       "mm": {
-        "x": 27.2,
-        "y": 46.1,
-        "w": 13.6,
-        "h": 7.0
-       }
-      },
-      "Carta grande": {
-       "px": {
-        "x": 59.3,
-        "y": 289.2,
-        "w": 241,
-        "h": 336.6
-       },
-       "mm": {
-        "x": 11.2,
-        "y": 54.6,
-        "w": 45.5,
-        "h": 63.6
-       }
-      },
-      "Carta laterale sinistra": {
-       "px": {
-        "x": 0,
-        "y": 289.2,
-        "w": 47.3,
-        "h": 336.6
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 54.6,
-        "w": 8.9,
-        "h": 63.6
-       }
-      },
-      "Carta laterale destra": {
-       "px": {
-        "x": 312.3,
-        "y": 289.2,
-        "w": 47.7,
-        "h": 336.6
-       },
-       "mm": {
-        "x": 59.0,
-        "y": 54.6,
-        "w": 9.0,
-        "h": 63.6
-       }
-      },
-      "Pulsante": {
-       "px": {
-        "x": 16,
-        "y": 696,
-        "w": 328,
-        "h": 52
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 131.5,
-        "w": 62.0,
-        "h": 9.8
-       }
-      }
-     },
-     "spazi": [
-      {
-       "da": "alto dello schermo",
-       "a": "Testata",
-       "px": 0.0,
-       "mm": 0.0
-      },
-      {
-       "da": "Testata",
-       "a": "Barra della fase",
-       "px": 10,
-       "mm": 1.9
-      },
-      {
-       "da": "Barra della fase",
-       "a": "Scritta della fase",
-       "px": 6,
-       "mm": 1.1
-      },
-      {
-       "da": "Scritta della fase",
-       "a": "Fascia piccola 1",
-       "px": 20.7,
-       "mm": 3.9
-      },
-      {
-       "da": "Fascia piccola 1",
-       "a": "Box vita/token",
-       "px": 54.9,
-       "mm": 10.4
-      },
-      {
-       "da": "Box vita/token",
-       "a": "Carta grande",
-       "px": 8.0,
-       "mm": 1.5
-      },
-      {
-       "da": "Carta grande",
-       "a": "Pulsante",
-       "px": 70.2,
-       "mm": 13.3
       },
       {
        "da": "Pulsante",
@@ -1453,17 +841,17 @@ const DATA = {
         "h": 1.5
        }
       },
-      "Scritta della fase": {
+      "Fascia della scritta": {
        "px": {
-        "x": 77.6,
+        "x": 16,
         "y": 82,
-        "w": 81.3,
+        "w": 328,
         "h": 14
        },
        "mm": {
-        "x": 14.7,
+        "x": 3.0,
         "y": 15.5,
-        "w": 15.4,
+        "w": 62.0,
         "h": 2.6
        }
       },
@@ -1651,12 +1039,12 @@ const DATA = {
       },
       {
        "da": "Barra della fase",
-       "a": "Scritta della fase",
+       "a": "Fascia della scritta",
        "px": 6,
        "mm": 1.1
       },
       {
-       "da": "Scritta della fase",
+       "da": "Fascia della scritta",
        "a": "Fascia piccola 1",
        "px": 20.7,
        "mm": 3.9
@@ -1684,312 +1072,6 @@ const DATA = {
        "a": "Pulsante",
        "px": 28.4,
        "mm": 5.4
-      },
-      {
-       "da": "Pulsante",
-       "a": "fondo dello schermo",
-       "px": 12,
-       "mm": 2.3
-      }
-     ]
-    },
-    "nemesi": {
-     "box": {
-      "Testata": {
-       "px": {
-        "x": 0,
-        "y": 0,
-        "w": 360,
-        "h": 58
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 68.0,
-        "h": 11.0
-       }
-      },
-      "Nome nemesi": {
-       "px": {
-        "x": 16,
-        "y": 13,
-        "w": 146.3,
-        "h": 42
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 2.5,
-        "w": 27.6,
-        "h": 7.9
-       }
-      },
-      "Mazzo": {
-       "px": {
-        "x": 213,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 40.2,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Scarti": {
-       "px": {
-        "x": 256.5,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 48.4,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Menu": {
-       "px": {
-        "x": 304,
-        "y": 12,
-        "w": 44,
-        "h": 44
-       },
-       "mm": {
-        "x": 57.4,
-        "y": 2.3,
-        "w": 8.3,
-        "h": 8.3
-       }
-      },
-      "Barra della fase": {
-       "px": {
-        "x": 16,
-        "y": 68,
-        "w": 328,
-        "h": 8
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 12.8,
-        "w": 62.0,
-        "h": 1.5
-       }
-      },
-      "Scritta della fase": {
-       "px": {
-        "x": 61,
-        "y": 82,
-        "w": 114.4,
-        "h": 14
-       },
-       "mm": {
-        "x": 11.5,
-        "y": 15.5,
-        "w": 21.6,
-        "h": 2.6
-       }
-      },
-      "Fascia piccola 1": {
-       "px": {
-        "x": 16,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 2": {
-       "px": {
-        "x": 78,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 14.7,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 3": {
-       "px": {
-        "x": 140,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 26.4,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 4": {
-       "px": {
-        "x": 202,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 38.2,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 5": {
-       "px": {
-        "x": 264,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 49.9,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 6": {
-       "px": {
-        "x": 326,
-        "y": 116.7,
-        "w": 34,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 61.6,
-        "y": 22.0,
-        "w": 6.4,
-        "h": 13.7
-       }
-      },
-      "Box vita/token": {
-       "px": {
-        "x": 144.2,
-        "y": 244.4,
-        "w": 72,
-        "h": 37
-       },
-       "mm": {
-        "x": 27.2,
-        "y": 46.2,
-        "w": 13.6,
-        "h": 7.0
-       }
-      },
-      "Carta grande": {
-       "px": {
-        "x": 52.7,
-        "y": 289.4,
-        "w": 255,
-        "h": 356.2
-       },
-       "mm": {
-        "x": 10.0,
-        "y": 54.7,
-        "w": 48.2,
-        "h": 67.3
-       }
-      },
-      "Carta laterale sinistra": {
-       "px": {
-        "x": 0,
-        "y": 289.4,
-        "w": 40.7,
-        "h": 356.2
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 54.7,
-        "w": 7.7,
-        "h": 67.3
-       }
-      },
-      "Carta laterale destra": {
-       "px": {
-        "x": 319.7,
-        "y": 289.4,
-        "w": 40.3,
-        "h": 356.2
-       },
-       "mm": {
-        "x": 60.4,
-        "y": 54.7,
-        "w": 7.6,
-        "h": 67.3
-       }
-      },
-      "Pulsante": {
-       "px": {
-        "x": 16,
-        "y": 716,
-        "w": 328,
-        "h": 52
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 135.2,
-        "w": 62.0,
-        "h": 9.8
-       }
-      }
-     },
-     "spazi": [
-      {
-       "da": "alto dello schermo",
-       "a": "Testata",
-       "px": 0.0,
-       "mm": 0.0
-      },
-      {
-       "da": "Testata",
-       "a": "Barra della fase",
-       "px": 10,
-       "mm": 1.9
-      },
-      {
-       "da": "Barra della fase",
-       "a": "Scritta della fase",
-       "px": 6,
-       "mm": 1.1
-      },
-      {
-       "da": "Scritta della fase",
-       "a": "Fascia piccola 1",
-       "px": 20.7,
-       "mm": 3.9
-      },
-      {
-       "da": "Fascia piccola 1",
-       "a": "Box vita/token",
-       "px": 55.1,
-       "mm": 10.4
-      },
-      {
-       "da": "Box vita/token",
-       "a": "Carta grande",
-       "px": 8.0,
-       "mm": 1.5
-      },
-      {
-       "da": "Carta grande",
-       "a": "Pulsante",
-       "px": 70.4,
-       "mm": 13.3
       },
       {
        "da": "Pulsante",
@@ -2098,17 +1180,17 @@ const DATA = {
         "h": 1.5
        }
       },
-      "Scritta della fase": {
+      "Fascia della scritta": {
        "px": {
-        "x": 77.6,
+        "x": 16,
         "y": 82,
-        "w": 81.3,
+        "w": 328,
         "h": 14
        },
        "mm": {
-        "x": 14.7,
+        "x": 3.0,
         "y": 15.5,
-        "w": 15.4,
+        "w": 62.0,
         "h": 2.6
        }
       },
@@ -2296,12 +1378,12 @@ const DATA = {
       },
       {
        "da": "Barra della fase",
-       "a": "Scritta della fase",
+       "a": "Fascia della scritta",
        "px": 6,
        "mm": 1.1
       },
       {
-       "da": "Scritta della fase",
+       "da": "Fascia della scritta",
        "a": "Fascia piccola 1",
        "px": 20.7,
        "mm": 3.9
@@ -2337,312 +1419,6 @@ const DATA = {
        "mm": 2.3
       }
      ]
-    },
-    "nemesi": {
-     "box": {
-      "Testata": {
-       "px": {
-        "x": 0,
-        "y": 0,
-        "w": 360,
-        "h": 58
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 68.0,
-        "h": 11.0
-       }
-      },
-      "Nome nemesi": {
-       "px": {
-        "x": 16,
-        "y": 13,
-        "w": 146.3,
-        "h": 42
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 2.5,
-        "w": 27.6,
-        "h": 7.9
-       }
-      },
-      "Mazzo": {
-       "px": {
-        "x": 213,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 40.2,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Scarti": {
-       "px": {
-        "x": 256.5,
-        "y": 12,
-        "w": 31.5,
-        "h": 44
-       },
-       "mm": {
-        "x": 48.4,
-        "y": 2.3,
-        "w": 6.0,
-        "h": 8.3
-       }
-      },
-      "Menu": {
-       "px": {
-        "x": 304,
-        "y": 12,
-        "w": 44,
-        "h": 44
-       },
-       "mm": {
-        "x": 57.4,
-        "y": 2.3,
-        "w": 8.3,
-        "h": 8.3
-       }
-      },
-      "Barra della fase": {
-       "px": {
-        "x": 16,
-        "y": 68,
-        "w": 328,
-        "h": 8
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 12.8,
-        "w": 62.0,
-        "h": 1.5
-       }
-      },
-      "Scritta della fase": {
-       "px": {
-        "x": 61,
-        "y": 82,
-        "w": 114.4,
-        "h": 14
-       },
-       "mm": {
-        "x": 11.5,
-        "y": 15.5,
-        "w": 21.6,
-        "h": 2.6
-       }
-      },
-      "Fascia piccola 1": {
-       "px": {
-        "x": 16,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 2": {
-       "px": {
-        "x": 78,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 14.7,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 3": {
-       "px": {
-        "x": 140,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 26.4,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 4": {
-       "px": {
-        "x": 202,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 38.2,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 5": {
-       "px": {
-        "x": 264,
-        "y": 116.7,
-        "w": 52,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 49.9,
-        "y": 22.0,
-        "w": 9.8,
-        "h": 13.7
-       }
-      },
-      "Fascia piccola 6": {
-       "px": {
-        "x": 326,
-        "y": 116.7,
-        "w": 34,
-        "h": 72.6
-       },
-       "mm": {
-        "x": 61.6,
-        "y": 22.0,
-        "w": 6.4,
-        "h": 13.7
-       }
-      },
-      "Box vita/token": {
-       "px": {
-        "x": 143.8,
-        "y": 244.6,
-        "w": 72,
-        "h": 37
-       },
-       "mm": {
-        "x": 27.2,
-        "y": 46.2,
-        "w": 13.6,
-        "h": 7.0
-       }
-      },
-      "Carta grande": {
-       "px": {
-        "x": 45.3,
-        "y": 289.6,
-        "w": 269,
-        "h": 375.7
-       },
-       "mm": {
-        "x": 8.6,
-        "y": 54.7,
-        "w": 50.8,
-        "h": 71.0
-       }
-      },
-      "Carta laterale sinistra": {
-       "px": {
-        "x": 0,
-        "y": 289.6,
-        "w": 33.3,
-        "h": 375.7
-       },
-       "mm": {
-        "x": 0.0,
-        "y": 54.7,
-        "w": 6.3,
-        "h": 71.0
-       }
-      },
-      "Carta laterale destra": {
-       "px": {
-        "x": 326.3,
-        "y": 289.6,
-        "w": 33.7,
-        "h": 375.7
-       },
-       "mm": {
-        "x": 61.6,
-        "y": 54.7,
-        "w": 6.4,
-        "h": 71.0
-       }
-      },
-      "Pulsante": {
-       "px": {
-        "x": 16,
-        "y": 736,
-        "w": 328,
-        "h": 52
-       },
-       "mm": {
-        "x": 3.0,
-        "y": 139.0,
-        "w": 62.0,
-        "h": 9.8
-       }
-      }
-     },
-     "spazi": [
-      {
-       "da": "alto dello schermo",
-       "a": "Testata",
-       "px": 0.0,
-       "mm": 0.0
-      },
-      {
-       "da": "Testata",
-       "a": "Barra della fase",
-       "px": 10,
-       "mm": 1.9
-      },
-      {
-       "da": "Barra della fase",
-       "a": "Scritta della fase",
-       "px": 6,
-       "mm": 1.1
-      },
-      {
-       "da": "Scritta della fase",
-       "a": "Fascia piccola 1",
-       "px": 20.7,
-       "mm": 3.9
-      },
-      {
-       "da": "Fascia piccola 1",
-       "a": "Box vita/token",
-       "px": 55.3,
-       "mm": 10.4
-      },
-      {
-       "da": "Box vita/token",
-       "a": "Carta grande",
-       "px": 8.0,
-       "mm": 1.5
-      },
-      {
-       "da": "Carta grande",
-       "a": "Pulsante",
-       "px": 70.7,
-       "mm": 13.4
-      },
-      {
-       "da": "Pulsante",
-       "a": "fondo dello schermo",
-       "px": 12,
-       "mm": 2.3
-      }
-     ]
     }
    }
   }
@@ -2656,7 +1432,8 @@ document.getElementById('intro').innerHTML =
   `della colonna centrale, numerati dall'alto (lo stesso numero è nella tabella "Spazio verticale"). Sotto ogni schermo la tabella con tutte le misure in mm (x e y dall'angolo in alto a sinistra). ` +
   `Con la scala 1× i mm sono veri solo se lo schermo è calibrato (o stampando al 100%).`;
 const root = document.getElementById('formati');
-const TURNI = { giocatori: 'Turno giocatori', nemesi: 'Turno nemesi (risoluzione)' };
+// Solo il turno giocatori: il turno nemesi ha box e carta alla stessa altezza (senza i comandi sotto la carta)
+const TURNI = { giocatori: 'Turno giocatori (il turno nemesi è uguale, senza i comandi sotto la carta)' };
 // Formato scelto in alto (uno alla volta); si ricorda nel browser
 let chosen = DATA.formati[0].formato;
 try { const s = localStorage.getItem('scheletri-formato'); if (DATA.formati.some(f => f.formato === s)) chosen = s; } catch (e) {}

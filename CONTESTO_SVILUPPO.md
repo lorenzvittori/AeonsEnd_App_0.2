@@ -328,9 +328,13 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - **"Inizia partita"** resta sempre visibile in fondo alla pagina iniziale.
 - **Menu:** si chiude anche trascinandolo verso destra (`swipeToClose`).
 - **Vibrazione** (solo Android): carta pescata (doppia per un attacco) e scritte Tier / Partita iniziata (`buzz`).
-- **Scheletri** (`scheletri/`, non fa parte dell'app): `index.html` mostra lo scheletro del turno giocatori e del turno
-  nemesi nei formati 18:9, 19:9, 19.5:9 e 20:9, con larghezza fissa di 68 mm, ogni box e ogni spazio verticale in mm
-  (disegno in scala, 1× = mm veri su uno schermo calibrato). Misure prese il 18/11/2026 (layout della v206) con
+- **Turno nemesi allineato** (v207, come la v186 poi annullata): `.ae-focus-track` sale di 24px come
+  `.queue-view .ae-queue-list`, così nel turno nemesi box vita/token e carta grande sono alla stessa altezza del turno
+  giocatori; la carta da pescare / pescata (`.is-big`) compensa con `translate: 0 24px`.
+- **Scheletri** (`scheletri/`, non fa parte dell'app): `index.html` mostra lo scheletro del turno giocatori (il turno
+  nemesi è uguale, senza i comandi sotto la carta) nei formati 18:9, 19:9, 19.5:9 e 20:9, con larghezza fissa di 68 mm,
+  ogni box e ogni spazio verticale in mm; la scritta della fase è disegnata come tutta la sua fascia, da sinistra a
+  destra (disegno in scala, 1× = mm veri su uno schermo calibrato). Misure prese il 18/11/2026 (layout della v207) con
   `getBoundingClientRect` a 360 px CSS × 720/760/780/800, convertite con 68/360 mm per px; gli stessi dati sono in
   `misure.json`. Vanno rifatte se il layout cambia. Partita di prova con 7 carte in gioco: fascia piccola piena (6
   carte, l'ultima tagliata dal bordo) e, nella vista grande, la 4a carta al centro con le carte laterali che spuntano
