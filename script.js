@@ -1,8 +1,9 @@
 // Aeon's End – Nemesis Companion (App 0.2). Documentazione completa: CONTESTO_SVILUPPO.md.
-// Repository autonomo: dati (cards.json, deck-setup.json, nemesis.json) e scansioni delle carte (Data/) sono in questa
-// cartella, letti con DATA_ROOT; le miniature sono in thumbs/ (fatte da tools/build-thumbs.py).
+// Repository autonomo: dati (cards.json, products.json, deck-setup.json, nemesis.json) e scansioni delle carte (Data/)
+// sono in questa cartella, letti con DATA_ROOT; le miniature sono in thumbs/ con lo stesso percorso (cards.json,
+// products.json, Data/ e thumbs/ li genera dal DataBase tools/import-db.py).
 // La partita si salva con una chiave propria (il sito condivide il dominio, e quindi il localStorage, con AeonsEnd_APP);
-// il formato del salvataggio è nato con la v48 dell'app precedente ed è ancora compatibile.
+// dalla v210 il salvataggio ha un numero di versione (SAVE_VERSION): quelli senza si ignorano e si cancellano.
 //
 // Sezioni del file, in ordine:
 //   1. Testi (dizionario italiano), elementi della pagina, costanti e stato
@@ -332,11 +333,13 @@ const ANCHOR_RATIO = 0.5;
 // lorenzvittori.github.io è lo stesso dominio per tutti i siti: la chiave è diversa da quella di AeonsEnd_APP
 // (aeonsend-save-v1) e del suo prototipo new_design_0.2 (aeonsend-clone-save-v2), così le partite non si sovrascrivono.
 const SAVE_KEY = 'aeonsend-app-0.2-save';
+// v210: carte del DataBase (id e campi nuovi): i salvataggi con un'altra versione (o senza) si ignorano e si cancellano
+const SAVE_VERSION = 2;
 const UNDO_LIMIT = 300;
 
 // Cartella da cui si leggono dati e scansioni delle carte ('' = questa)
 const DATA_ROOT = '';
-// Miniature WebP della coda (264 x 369, il doppio di 132 px), una per carta: thumbs/<id>.webp
+// Miniature WebP della coda (264 x 369, il doppio di 132 px): stesso percorso dell'immagine con thumbs/ al posto di Data/
 const THUMB_DIR = 'thumbs/';
 // Dorso delle carte nemesi: mazzo, carta da pescare, creazione del mazzo. Si sceglie nel Menu ("Dorso delle carte"); la
 // scelta resta salvata nel browser e non fa parte della partita. Predefinito: il logo Aeon's End.
@@ -371,8 +374,10 @@ function setCardBack(id) {
 let allCards = [];
 let cardsById = new Map();
 let deckSetup = null;
-// Nemesi con wave, mini espansione e battaglia (nemesis.json)
+// Nemesi con prodotto (boxCode) e battaglia (nemesis.json)
 let nemeses = [];
+// Prodotti (products.json): { "4": "The New Age", "4.1": "Shattered Dreams", ... }; la wave è la parte prima del punto
+let products = {};
 
 // Scelte della pagina iniziale: giocatori, nemesi (da cui dipende la battaglia) e se usare le Upgraded Basic
 let settings = { players: 2, nemesis: null, includeUpgraded: true };
@@ -479,39 +484,52 @@ function battleOf(nemesisName) {
 }
 
 // --- Collezione: wave possedute e, per ogni wave, scatola base e mini espansioni (scelte nella schermata "La mia
-// collezione", salvate nel browser). Un prodotto ha id "<wave>|base" o "<wave>|<mini espansione>".
-// Le nemesi e le carte Basic / Upgraded Basic si usano solo se il loro prodotto è nella collezione.
+// collezione", salvate nel browser). Un prodotto ha per id il suo codice di products.json: "4" = scatola base della
+// wave 4, "4.1" = Shattered Dreams... (v210; prima "<wave>|base" / "<wave>|<mini espansione>", convertiti all'avvio).
+// Le nemesi e le carte Basic / Upgraded si usano solo se il loro prodotto (boxCode) è nella collezione.
 const COLLECTION_KEY = 'aeonsend-app-0.2-collection';
-let collection = null; // Set di id prodotto
+let collection = null; // Set di codici prodotto
 
-function productOfNemesis(info) {
-  return info.wave + '|' + (info.miniExpansion ? info.miniExpansion : 'base');
+// Wave di un codice prodotto: la parte prima del punto ("4.1" -> "4")
+function waveOfCode(code) {
+  return code === null || code === undefined ? null : String(code).split('.')[0];
 }
-
-// Prodotto di una carta Basic / Upgraded Basic dal prefisso del codice (cards.json non ha il campo): le carte
-// NA- sono della scatola base di The New Age, TA- di The Ancients, SD- di Shattered Dreams, ITW- di Into The Wild.
-// Un prefisso sconosciuto: la carta resta sempre ammessa.
-const CARD_PRODUCT_PREFIX = [
-  ['TA-', 'The Ancients'], ['SD-', 'Shattered Dreams'], ['ITW-', 'Into The Wild'], ['NA-', null]
-];
-const NEW_AGE_WAVE = '4 - The New Age';
-function productOfCard(card) {
-  const hit = CARD_PRODUCT_PREFIX.find(([prefix]) => String(card.id).startsWith(prefix));
-  if (!hit) return null;
-  return NEW_AGE_WAVE + '|' + (hit[1] || 'base');
+function isMiniCode(code) {
+  return code !== null && code !== undefined && String(code).includes('.');
+}
+function productName(code) {
+  return products[code] || String(code);
+}
+function waveOfNemesis(info) {
+  return waveOfCode(info.boxCode);
+}
+function productOfNemesis(info) {
+  return info.boxCode;
 }
 
 // Tutti i prodotti per wave, nell'ordine delle wave: [{ wave, products: [{ id, name, isBase }] }]
 function collectionCatalog() {
-  const waves = [...new Set([...nemeses].sort((a, b) => a.waveOrder - b.waveOrder).map(n => n.wave))];
-  return waves.map(wave => {
-    const minis = [...new Set(nemeses.filter(n => n.wave === wave && n.miniExpansion).map(n => n.miniExpansion))];
-    return {
-      wave,
-      products: [{ id: wave + '|base', name: I18N_IT.baseBox, isBase: true },
-        ...minis.map(m => ({ id: wave + '|' + m, name: m, isBase: false }))]
-    };
-  });
+  const codes = Object.keys(products);
+  const waves = codes.filter(c => !isMiniCode(c)).sort((a, b) => Number(a) - Number(b));
+  return waves.map(wave => ({
+    wave,
+    products: [{ id: wave, name: I18N_IT.baseBox, isBase: true },
+      ...codes.filter(c => isMiniCode(c) && waveOfCode(c) === wave).sort((a, b) => Number(a.split('.')[1]) - Number(b.split('.')[1]))
+        .map(c => ({ id: c, name: productName(c), isBase: false }))]
+  }));
+}
+
+// Chiave della collezione salvata prima della v210 ("4 - The New Age|Shattered Dreams") -> codice ("4.1"); null se
+// non si trova. Le chiavi già nuove restano come sono.
+function convertCollectionKey(id) {
+  id = String(id);
+  if (!id.includes('|')) return Object.prototype.hasOwnProperty.call(products, id) ? id : null;
+  const [wavePart, name] = id.split('|');
+  const m = /^(\d+)/.exec(wavePart.trim());
+  if (!m) return null;
+  const wave = m[1];
+  if (name === 'base') return Object.prototype.hasOwnProperty.call(products, wave) ? wave : null;
+  return Object.keys(products).find(c => waveOfCode(c) === wave && products[c] === name) || null;
 }
 
 // Per ora (v199) nella collezione si possono scegliere solo la wave 1 e la wave 4, con le loro mini espansioni; le
@@ -523,7 +541,13 @@ function collectionWaveEnabled(wave) {
 function loadCollection() {
   try {
     const saved = JSON.parse(localStorage.getItem(COLLECTION_KEY));
-    if (Array.isArray(saved)) { collection = new Set(saved.filter(id => collectionWaveEnabled(id.split('|')[0]))); return; }
+    if (Array.isArray(saved)) {
+      // Chiavi di prima della v210 convertite nei codici prodotto e risalvate (la collezione non si perde)
+      const converted = saved.map(convertCollectionKey).filter(Boolean);
+      collection = new Set(converted.filter(id => collectionWaveEnabled(waveOfCode(id))));
+      if (saved.some(id => String(id).includes('|'))) saveCollection();
+      return;
+    }
   } catch (err) { /* collezione illeggibile: si riparte da quella predefinita */ }
   // Nuovi utenti (v194): collezione vuota; nel menu iniziale compare "Inserisci collezione"
   collection = new Set();
@@ -537,16 +561,23 @@ function ownsProduct(id) {
   return !collection || collection.has(id);
 }
 
-// Carta Basic / Upgraded Basic ammessa: il suo prodotto è nella collezione (o non si sa di che prodotto è)
+// Carta Basic / Upgraded ammessa: il suo prodotto (boxCode) è nella collezione (o non si sa di che prodotto è)
 function cardAllowed(card) {
-  const product = productOfCard(card);
-  return !product || ownsProduct(product);
+  return !card.boxCode || ownsProduct(card.boxCode);
 }
 
-// Un boss si può scegliere solo se ha una battaglia, le sue carte sono nel progetto e il suo prodotto è nella collezione
+// Nemesi con un minion a vita variabile (hpVariable, la decidono i giocatori) nel suo mazzo: per ora (v210) non si
+// può giocare (manca il box per inserire la vita). Si calcola dai dati, non dai nomi.
+function hasVariableMinion(name) {
+  return allCards.some(c => c.category === 'Specific' && c.nemesis === name && c.inNemesisDeck === true
+    && c.type === 'Minion' && c.hpVariable === true);
+}
+
+// Un boss si può scegliere solo se ha un prodotto e una battaglia, le sue carte sono nel progetto (senza minion a vita
+// variabile) e il suo prodotto è nella collezione
 function isPlayable(info) {
-  return info.battle !== null && ownsProduct(productOfNemesis(info))
-    && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
+  return !!info.boxCode && info.battle !== null && ownsProduct(productOfNemesis(info))
+    && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name) && !hasVariableMinion(info.name);
 }
 
 // Mazzo per la battaglia del boss scelto (Nemesis Deck Setup): per ogni Tier si estraggono a caso le carte base e
@@ -565,12 +596,13 @@ function buildDeck() {
   if (!setup) return [];
   const result = [];
   [3, 2, 1].forEach(tier => {
-    const ofTier = c => c.tier === tier && c.type !== 'Curse';
+    // solo le carte del mazzo nemesi (inNemesisDeck) di quel Tier
+    const ofTier = c => c.inNemesisDeck === true && c.tier === tier;
     const basicCount = setup.basic[tier] + (settings.includeUpgraded ? 0 : setup.upgradedBasic[tier]);
     const upgradedCount = settings.includeUpgraded ? setup.upgradedBasic[tier] : 0;
     // solo le carte dei prodotti della collezione
-    const basic = pickRandom(allCards.filter(c => c.category === 'Basic Nemesis' && ofTier(c) && cardAllowed(c)), basicCount);
-    const upgraded = pickRandom(allCards.filter(c => c.category === 'Upgraded Basic Nemesis' && ofTier(c) && cardAllowed(c)), upgradedCount);
+    const basic = pickRandom(allCards.filter(c => c.category === 'Basic' && ofTier(c) && cardAllowed(c)), basicCount);
+    const upgraded = pickRandom(allCards.filter(c => c.category === 'Upgraded' && ofTier(c) && cardAllowed(c)), upgradedCount);
     const specific = allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && ofTier(c));
     // Quante carte vengono da ognuno dei 9 mazzi (per la schermata "Crea mazzo")
     deckPlan.push({ tier, kind: 'basic', count: basic.length }, { tier, kind: 'upgraded', count: upgraded.length },
@@ -715,10 +747,9 @@ function chooseTurnPlayer(player) {
 
 // --- Statistiche: si aggiornano quando una carta esce dal gioco ---
 
-// Costo in Æ per scartare un potere ("TO DISCARD: Spend 7 Æ."); 0 se il costo non è in Æ (carte in mano, varchi...)
+// Costo in Æ per scartare un potere (removalCost di cards.json); 0 se il costo non è in Æ (carte in mano, varchi...)
 function aetherCost(data) {
-  const m = /Spend\s+(\d+)/i.exec(data.toDiscard || '');
-  return m ? Number(m[1]) : 0;
+  return Number(data.removalCost) || 0;
 }
 // Minion ucciso (vita a 0, negli scarti)
 function countMinionKilled(entry) {
@@ -755,7 +786,7 @@ function makeEntry(data) {
   // turnHp: vita del minion all'inizio del turno dei giocatori (per mostrare il danno o la cura del turno)
   // paid: potere con costo pagato (salvato nel turno giocatori), grigio fino al turno nemesi, poi negli scarti
   // bornTurn: turno nemesi in cui la carta è stata pescata (per i turni in gioco dei minion nelle statistiche)
-  return { uid: nextUid++, data, tokens: data.tokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false, bornTurn: turn };
+  return { uid: nextUid++, data, tokens: data.powerTokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false, bornTurn: turn };
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -1952,8 +1983,9 @@ function toRoman(n) {
   map.forEach(([v, s]) => { while (n >= v) { out += s; n -= v; } });
   return out;
 }
+// Nome della wave dal suo codice: "4" -> "IV - The New Age"
 function waveLabel(wave) {
-  return String(wave).replace(/^(\d+)(\s*-\s*)/, (m, num, sep) => toRoman(Number(num)) + sep);
+  return toRoman(Number(wave)) + ' - ' + productName(wave);
 }
 
 // Nemesi delle wave scelte: prima le disponibili (pulsanti), le altre in un elenco chiuso e non interattivo
@@ -1962,9 +1994,10 @@ function renderBosses() {
   // Per wave (nell'ordine delle wave); in ogni wave prima le nemesi della scatola base, poi quelle delle mini espansioni,
   // in ognuno dei due gruppi per battaglia
   const byBattle = n => (n.battle === null || n.battle === undefined ? 99 : n.battle);
-  const ofWave = nemeses.filter(n => selectedWaves.includes(n.wave))
+  const ofWave = nemeses.filter(n => n.boxCode && selectedWaves.includes(waveOfNemesis(n)))
     .map((n, i) => ({ n, i }))
-    .sort((a, b) => (a.n.waveOrder - b.n.waveOrder) || (!!a.n.miniExpansion - !!b.n.miniExpansion) || (byBattle(a.n) - byBattle(b.n)) || (a.i - b.i))
+    .sort((a, b) => (Number(waveOfNemesis(a.n)) - Number(waveOfNemesis(b.n))) || (isMiniCode(a.n.boxCode) - isMiniCode(b.n.boxCode))
+      || (byBattle(a.n) - byBattle(b.n)) || (a.i - b.i))
     .map(x => x.n);
   const playable = ofWave.filter(isPlayable);
   const others = ofWave.filter(n => !isPlayable(n));
@@ -1988,7 +2021,7 @@ function renderBosses() {
     }
     b.append(el('span', 'nemesis-name', info.name), tags);
     // Mini espansione: etichetta dorata piccola in basso a destra
-    if (info.miniExpansion) b.appendChild(el('span', 'nemesis-expansion', info.miniExpansion));
+    if (isMiniCode(info.boxCode)) b.appendChild(el('span', 'nemesis-expansion', productName(info.boxCode)));
     b.addEventListener('click', () => {
       // Toccare di nuovo la nemesi già scelta apre o chiude la sua carta (come le frecce)
       if (settings.nemesis === info.name) {
@@ -2030,9 +2063,10 @@ function renderBosses() {
   unavailable.hidden = others.length === 0;
   unavailable.replaceChildren(...others.map(info => {
     // Nemesi che l'app ha (battaglia e carte) ma il cui prodotto non è nella collezione: niente "!", la scritta
-    // "Non in collezione" a destra. Le altre (senza battaglia o senza carte) restano con il "!" rosso.
+    // "Non in collezione" a destra. Le altre (senza battaglia, senza carte o con un minion a vita variabile, v210)
+    // restano con il "!" rosso.
     const notOwned = info.battle !== null && !ownsProduct(productOfNemesis(info))
-      && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
+      && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name) && !hasVariableMinion(info.name);
     const li = el('li', 'nemesis-locked' + (notOwned ? ' is-not-owned' : ''));
     li.setAttribute('aria-label', notOwned ? I18N_IT.notInCollectionNemesis(info.name) : I18N_IT.unavailableNemesis(info.name));
     li.appendChild(el('span', '', info.name));
@@ -2051,7 +2085,7 @@ function renderStartChoices() {
   // Wave scelte: quelle di prima ancora nella collezione; se nessuna, la wave della nemesi scelta (o la prima)
   selectedWaves = selectedWaves.filter(w => startOptions.waves.includes(w));
   if (!selectedWaves.length) {
-    selectedWaves = [current && startOptions.waves.includes(current.wave) ? current.wave : startOptions.waves[0]].filter(Boolean);
+    selectedWaves = [current && startOptions.waves.includes(waveOfNemesis(current)) ? waveOfNemesis(current) : startOptions.waves[0]].filter(Boolean);
   }
   ensureWaveGroup();
   renderWavePills();
@@ -2192,8 +2226,8 @@ function updateStartActions() {
 
 // Wave nella scelta della nemesi: solo quelle della collezione (se nessuna, tutte)
 function ownedWaves() {
-  const all = [...new Set([...nemeses].sort((a, b) => a.waveOrder - b.waveOrder).map(n => n.wave))];
-  const owned = all.filter(w => [...collection].some(id => id.startsWith(w + '|')));
+  const all = collectionCatalog().map(w => w.wave);
+  const owned = all.filter(w => [...collection].some(id => waveOfCode(id) === w));
   return owned.length ? owned : all;
 }
 
@@ -2308,7 +2342,7 @@ function pickRandomNemesis() {
   if (!all.length) return;
   const pool = all.length > 1 ? all.filter(n => n.name !== settings.nemesis) : all;
   const pick = pool[Math.floor(Math.random() * pool.length)];
-  if (!selectedWaves.includes(pick.wave)) selectedWaves.push(pick.wave);
+  if (!selectedWaves.includes(waveOfNemesis(pick))) selectedWaves.push(waveOfNemesis(pick));
   settings.nemesis = pick.name;
   nemesisPreviewOpen = false;
   renderWavePills();
@@ -2551,9 +2585,9 @@ function resumeGame() {
   if (!saved) return;
   const info = nemeses.find(n => n.name === saved.settings.nemesis);
   // (nemesi di una wave non ancora disponibile nella collezione, v199: si riprende e basta)
-  if (info && collection && collectionWaveEnabled(info.wave) && !collection.has(productOfNemesis(info))) {
+  if (info && info.boxCode && collection && collectionWaveEnabled(waveOfNemesis(info)) && !collection.has(productOfNemesis(info))) {
     openMissingNemesis(info, () => {
-      collection.add(info.wave + '|base');
+      collection.add(waveOfNemesis(info));
       collection.add(productOfNemesis(info));
       saveCollection();
       renderStartChoices();
@@ -2570,7 +2604,7 @@ function openMissingNemesis(info, onContinue) {
   const dialog = dialogShell(I18N_IT.nemesisMissingTitle, '', cancel, { displayTitle: false });
   dialog.classList.add('ae-exit-confirm');
   dialog.appendChild(el('p', 'ae-modal-text', I18N_IT.nemesisMissingText(info.name,
-    info.miniExpansion || waveLabel(info.wave))));
+    isMiniCode(info.boxCode) ? productName(info.boxCode) : waveLabel(waveOfNemesis(info)))));
   const footer = el('div', 'ae-modal-footer');
   const go = button(I18N_IT.continueLabel, 'primary', () => { close(); onContinue(); });
   footer.append(button(I18N_IT.cancel, 'secondary', cancel), go);
@@ -2714,7 +2748,7 @@ function save() {
   if (turn < 1 && !ui.gameSaved) return;
   ui.gameSaved = true;
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ settings, state: snapshot(), undo: undoStack }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, settings, state: snapshot(), undo: undoStack }));
   } catch (err) {
     console.warn('Salvataggio non riuscito', err);
   }
@@ -2723,6 +2757,11 @@ function save() {
 function readSave() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    // Salvataggio di un'altra versione (prima della v210: carte con gli id vecchi): si ignora e si cancella
+    if (saved && saved.version !== SAVE_VERSION) {
+      localStorage.removeItem(SAVE_KEY);
+      return null;
+    }
     if (saved && saved.state && saved.settings && Array.isArray(saved.state.queue)) return saved;
   } catch (err) {
     console.warn('Salvataggio illeggibile', err);
@@ -4574,7 +4613,7 @@ function statsCardStrip(cards, label) {
 
 // Carte Specifiche della nemesi della partita per un Tier (come in buildDeck)
 function specificCardsOf(tier) {
-  return allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && c.tier === tier && c.type !== 'Curse');
+  return allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && c.inNemesisDeck === true && c.tier === tier);
 }
 
 function showDeckBuild() {
@@ -5567,16 +5606,17 @@ async function init() {
   showStartSkeleton();
   updateInert();
   try {
-    const [cards, setup, nemesisList, art] = await Promise.all([
+    const [cards, setup, nemesisList, productList, art] = await Promise.all([
       loadJson(DATA_ROOT + 'cards.json'), loadJson(DATA_ROOT + 'deck-setup.json'), loadJson(DATA_ROOT + 'nemesis.json'),
-      loadJson('Assets/nemesis/nemesis-art.json').catch(() => ({}))
+      loadJson(DATA_ROOT + 'products.json'), loadJson('Assets/nemesis/nemesis-art.json').catch(() => ({}))
     ]);
     nemesisArt = art || {};
+    products = productList || {};
     if (cards.length === 0) throw new Error('Nessuna carta trovata in cards.json');
-    // Le scansioni delle carte stanno nella cartella Data/, le miniature in thumbs/
+    // Le scansioni delle carte stanno nella cartella Data/, le miniature in thumbs/ con lo stesso percorso
     cards.forEach(c => {
+      c.thumb = DATA_ROOT + String(c.image).replace(/^Data\//, THUMB_DIR);
       c.image = DATA_ROOT + c.image;
-      c.thumb = THUMB_DIR + encodeURIComponent(c.id) + '.webp';
     });
     allCards = cards;
     deckSetup = setup;

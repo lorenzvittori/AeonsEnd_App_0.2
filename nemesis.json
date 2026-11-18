@@ -1,659 +1,586 @@
 [
     {
-        "name":  "Carapace Queen",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  "Sì",
-        "owned":  true
-    },
-    {
-        "name":  "Rageborne",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Wayward One",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  "The Nameless",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Maggoth",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Horde-Crone",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  "The Depths",
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Blight Lord",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  "The Nameless",
-        "battle":  2,
-        "flagBattle5":  "Sì",
-        "owned":  true
-    },
-    {
-        "name":  "Crooked Mask",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Thrice-Dead Prophet",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  "The Outer Dark",
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Wraithmonger",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  "The Outer Dark",
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Knight of Shackles",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  "The Void",
-        "battle":  1,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Maiden of Thorns",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  "The Void",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Umbra Titan",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Hollow Crown",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Magus of Cloaks",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Gate Witch",
-        "wave":  "2 - War Eternal",
-        "waveOrder":  2,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Bladius",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  "No",
-        "owned":  false
-    },
-    {
-        "name":  "Spawning Horror",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Fungal Mesh",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Deathmind",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Maelstrom: Risen",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Xaxos: Ascended",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Haze Fiend",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Maelstrom",
-        "wave":  "3 - Legacy",
-        "waveOrder":  3,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Prince of Gluttons",
-        "wave":  "1 - Aeon\u0027s End (Core Box)",
-        "waveOrder":  1,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Arachnos",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  "Sì",
-        "owned":  true
-    },
-    {
-        "name":  "The Wailing",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  "Shattered Dreams",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "The Wanderer",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  "The Ancients",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Ageless Walker",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Necroswarm",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  "Into The Wild",
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  true
-    },
-    {
-        "name":  "Fenrix",
-        "wave":  "4 - The New Age",
-        "waveOrder":  4,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  true
-    },
-    {
-        "name":  "Fortress",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  "Return To Gravehold",
-        "battle":  2,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Burrower",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  "Return To Gravehold",
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Burning Kor",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  "Southern Village",
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Experiment 153",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Thief of Dreams",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Risen Thrall",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Fountain of Souls",
-        "wave":  "5 - Outcasts",
-        "waveOrder":  5,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Bishop of Scrolls",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  "No",
-        "owned":  false
-    },
-    {
-        "name":  "Fate Shepherd",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Mother of Rust",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Rust Superion",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Bishop: Returned",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Paradox of Myth and Bone",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Rust Amalgam",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Griefweaver",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Mist Revealed",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Paradox of Bone",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Paradox of Myth",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Brama (6 - Legacy of Gravehold)",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Z\u0027hana (6 - Legacy of Gravehold)",
-        "wave":  "6 - Legacy of Gravehold",
-        "waveOrder":  6,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Reliquary",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  "The Abyss",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Absorbing Wraith",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  "The Caverns",
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "The Infecter",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Coven",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Blight",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Wrath",
-        "wave":  "8 - The Descent",
-        "waveOrder":  8,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Rampaging Vin",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  "The Returned",
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "The Timeless",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  "The Surface",
-        "battle":  3,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "The Terror in Brass",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  null,
-        "battle":  1,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Crooked Mask (9 - Beyond the Breach)",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Oracle of Filth",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  null,
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Twice-Dead Prophet",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  null,
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Wayward Reflection",
-        "wave":  "9 - Beyond the Breach",
-        "waveOrder":  9,
-        "miniExpansion":  null,
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Kusiciele Okazji",
-        "wave":  "Promo",
-        "waveOrder":  99,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Szalony Kotokronikarz",
-        "wave":  "Promo",
-        "waveOrder":  99,
-        "miniExpansion":  null,
-        "battle":  null,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Clouded Mesmer",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Evolution",
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Endless Decay",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Origins",
-        "battle":  3,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Herald of the End",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Stonemonger",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  2,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Infested Mutation",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "The Changeling Nest",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  3,
-        "flagBattle5":  null,
-        "owned":  false
-    },
-    {
-        "name":  "Corruption\u0027s Core",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  4,
-        "flagBattle5":  "Sì",
-        "owned":  false
-    },
-    {
-        "name":  "Erythiza, Consumed",
-        "wave":  "7 - Past and Future",
-        "waveOrder":  7,
-        "miniExpansion":  "Past and Future",
-        "battle":  4,
-        "flagBattle5":  null,
-        "owned":  false
+        "name": "Carapace Queen",
+        "boxCode": "1",
+        "waveOrder": 1,
+        "battle": 1,
+        "flagBattle5": "Sì",
+        "owned": true
+    },
+    {
+        "name": "Rageborne",
+        "boxCode": "1",
+        "waveOrder": 1,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Wayward One",
+        "boxCode": "1.2",
+        "waveOrder": 1,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Maggoth",
+        "boxCode": "4",
+        "waveOrder": 4,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Horde-Crone",
+        "boxCode": "1.1",
+        "waveOrder": 1,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Blight Lord",
+        "boxCode": "1.2",
+        "waveOrder": 1,
+        "battle": 2,
+        "flagBattle5": "Sì",
+        "owned": true
+    },
+    {
+        "name": "Crooked Mask",
+        "boxCode": "1",
+        "waveOrder": 1,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Thrice-Dead Prophet",
+        "boxCode": "2.2",
+        "waveOrder": 2,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Wraithmonger",
+        "boxCode": "2.2",
+        "waveOrder": 2,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Knight of Shackles",
+        "boxCode": "2.1",
+        "waveOrder": 2,
+        "battle": 1,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Maiden of Thorns",
+        "boxCode": "2.1",
+        "waveOrder": 2,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Umbra Titan",
+        "boxCode": "2",
+        "waveOrder": 2,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Hollow Crown",
+        "boxCode": "2",
+        "waveOrder": 2,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Magus of Cloaks",
+        "boxCode": "2",
+        "waveOrder": 2,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Gate Witch",
+        "boxCode": "2",
+        "waveOrder": 2,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Bladius",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 1,
+        "flagBattle5": "No",
+        "owned": false
+    },
+    {
+        "name": "Spawning Horror",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Fungal Mesh",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Deathmind",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Maelstrom: Risen",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Xaxos: Ascended",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Haze Fiend",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Maelstrom",
+        "boxCode": "3",
+        "waveOrder": 3,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Prince of Gluttons",
+        "boxCode": "1",
+        "waveOrder": 1,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Arachnos",
+        "boxCode": "4",
+        "waveOrder": 4,
+        "battle": 2,
+        "flagBattle5": "Sì",
+        "owned": true
+    },
+    {
+        "name": "The Wailing",
+        "boxCode": "4.1",
+        "waveOrder": 4,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "The Wanderer",
+        "boxCode": "4.2",
+        "waveOrder": 4,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Ageless Walker",
+        "boxCode": "4",
+        "waveOrder": 4,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Necroswarm",
+        "boxCode": "4.3",
+        "waveOrder": 4,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": true
+    },
+    {
+        "name": "Fenrix",
+        "boxCode": "4",
+        "waveOrder": 4,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": true
+    },
+    {
+        "name": "Fortress",
+        "boxCode": "5.1",
+        "waveOrder": 5,
+        "battle": 2,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Burrower",
+        "boxCode": "5.1",
+        "waveOrder": 5,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Burning Kor",
+        "boxCode": "5.2",
+        "waveOrder": 5,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Experiment 153",
+        "boxCode": "5",
+        "waveOrder": 5,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Thief of Dreams",
+        "boxCode": "5",
+        "waveOrder": 5,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Risen Thrall",
+        "boxCode": "5",
+        "waveOrder": 5,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Fountain of Souls",
+        "boxCode": "5",
+        "waveOrder": 5,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Bishop of Scrolls",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 1,
+        "flagBattle5": "No",
+        "owned": false
+    },
+    {
+        "name": "Fate Shepherd",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Mother of Rust",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Rust Superion",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Bishop: Returned",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Paradox of Myth and Bone",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Rust Amalgam",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Griefweaver",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Mist Revealed",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Paradox of Bone",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Paradox of Myth",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Brama (6 - Legacy of Gravehold)",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Z'hana (6 - Legacy of Gravehold)",
+        "boxCode": "6",
+        "waveOrder": 6,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Reliquary",
+        "boxCode": "8.2",
+        "waveOrder": 8,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Absorbing Wraith",
+        "boxCode": "8.1",
+        "waveOrder": 8,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "The Infecter",
+        "boxCode": "8",
+        "waveOrder": 8,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Coven",
+        "boxCode": "8",
+        "waveOrder": 8,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Blight",
+        "boxCode": "8",
+        "waveOrder": 8,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Wrath",
+        "boxCode": "8",
+        "waveOrder": 8,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Rampaging Vin",
+        "boxCode": "9.2",
+        "waveOrder": 9,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "The Timeless",
+        "boxCode": "9.1",
+        "waveOrder": 9,
+        "battle": 3,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "The Terror in Brass",
+        "boxCode": "9",
+        "waveOrder": 9,
+        "battle": 1,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Crooked Mask (9 - Beyond the Breach)",
+        "boxCode": "9",
+        "waveOrder": 9,
+        "battle": 2,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Oracle of Filth",
+        "boxCode": "9",
+        "waveOrder": 9,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Twice-Dead Prophet",
+        "boxCode": "9",
+        "waveOrder": 9,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Wayward Reflection",
+        "boxCode": "9",
+        "waveOrder": 9,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Kusiciele Okazji",
+        "boxCode": null,
+        "waveOrder": 99,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Szalony Kotokronikarz",
+        "boxCode": null,
+        "waveOrder": 99,
+        "battle": null,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Clouded Mesmer",
+        "boxCode": "7.2",
+        "waveOrder": 7,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Endless Decay",
+        "boxCode": "7.1",
+        "waveOrder": 7,
+        "battle": 3,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Herald of the End",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Stonemonger",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 2,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Infested Mutation",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "The Changeling Nest",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 3,
+        "flagBattle5": null,
+        "owned": false
+    },
+    {
+        "name": "Corruption's Core",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 4,
+        "flagBattle5": "Sì",
+        "owned": false
+    },
+    {
+        "name": "Erythiza, Consumed",
+        "boxCode": "7",
+        "waveOrder": 7,
+        "battle": 4,
+        "flagBattle5": null,
+        "owned": false
     }
 ]

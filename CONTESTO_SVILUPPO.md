@@ -19,7 +19,8 @@ Il resto del gioco (maghi, vita di Gravehold e della nemesi) resta sul tavolo.
 
 | Cosa | Dove |
 |---|---|
-| Repo attivo (si lavora qui) | `C:\Users\lvitt\OneDrive\Documenti\GiuHub Local Repository\AeonsEnd_App_0.2` – GitHub `lorenzvittori/AeonsEnd_App_0.2` |
+| Repo attivo (si lavora qui) | `C:\Users\lvitt\OneDrive\Documenti\GiuHub Local Repository\AeonsEnd\AeonsEnd_App_0.2` – GitHub `lorenzvittori/AeonsEnd_App_0.2` (non lavorare in `AeonsEnd_App_0.2.5`) |
+| DataBase (fonte di cards.json e delle immagini, solo lettura) | `...\GiuHub Local Repository\AeonsEnd\DataBase` (predefinito di `tools/import-db.py`) |
 | Sito | <https://lorenzvittori.github.io/AeonsEnd_App_0.2/> |
 | Versione vecchia (v1, non toccare se non richiesto) | `...\GiuHub Local Repository\AeonsEnd_APP` – GitHub `lorenzvittori/AeonsEnd_APP` – il sito vecchio ha anche il prototipo in `new_design_0.2/` |
 
@@ -80,10 +81,13 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Per ora (v199, `COLLECTION_WAVES`) si possono scegliere **solo la wave 1 e la wave 4** con le loro mini
     espansioni: le altre wave si vedono spente con la scritta "Non ancora disponibile", *Seleziona tutto* spunta solo
     1 e 4, e i prodotti delle altre wave già salvati si tolgono dalla collezione all'avvio (`loadCollection`).
+  - Le wave e le mini espansioni sono i prodotti di `products.json` (v210): la collezione salva i loro codici ("4",
+    "4.1", ...). Una collezione salvata prima della v210 ("4 - The New Age|Shattered Dreams") si converte da sola nei
+    codici all'avvio e si risalva (`convertCollectionKey`).
 - **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
 - **Wave:** menu a tendina con una casella per wave (solo quelle della collezione), **anche più di una**
   (`selectedWaves`); resta sempre almeno una wave. Le wave si mostrano in **cifre romane** (`waveLabel`: "IV - The New
-  Age"), qui e nella collezione; i valori in `nemesis.json` restano in cifre arabe.
+  Age": numero romano del codice + nome in `products.json`), qui e nella collezione.
 - **Nemesi:** separata dalla wave da una linea; si vedono le nemesi di tutte le wave scelte (per wave, poi scatola
   base / mini espansioni, poi battaglia). A destra del titolo "Nemesi" il **dado** sceglie una nemesi a caso tra tutte
   quelle giocabili della collezione (diversa da quella scelta), aggiunge la sua wave e scorre fino a lei.
@@ -99,6 +103,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
     collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso
     (nella v204 per sbaglio l'icona di divieto, tolta nella v205).
+  - Dalla v210 hanno il "!" (e il dado non le sceglie) anche le nemesi con un **minion a vita variabile** nel mazzo
+    (carta Specific con `inNemesisDeck`, `type` Minion e `hpVariable`, `hasVariableMinion`): oggi Carapace Queen (Maggot
+    Engine) e Prince of Gluttons (Mindguzzler). Manca ancora il box per inserire la vita (ToDo.md).
+  - Le nemesi Promo (`boxCode` null) non sono in nessuna wave e non si vedono.
+- **Partite salvate prima della v210** (carte con gli id vecchi): si ignorano e si cancellano senza errori; il
+  salvataggio ha ora `version` (`SAVE_VERSION = 2`).
 - L'interruttore **Includi carte base potenziate** è stato tolto in v156 (per ora non serve): le Upgraded Basic sono
   sempre incluse (`settings.includeUpgraded` resta `true`; la logica in `buildDeck` c'è ancora).
 
@@ -430,14 +440,16 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
   `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
   `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
-- Impostazioni: `settings = { players, nemesis, includeUpgraded }`; collezione in `collection` (Set di id prodotto
-  `"<wave>|base"` o `"<wave>|<mini espansione>"`).
+- Impostazioni: `settings = { players, nemesis, includeUpgraded }`; collezione in `collection` (Set di codici
+  prodotto di `products.json`: `"4"` scatola base, `"4.1"` mini espansione; la wave è la parte prima del punto,
+  `waveOfCode`).
 - `ui`: stato solo visivo, dichiarato tutto nell'oggetto `ui` in cima (viewedUid, holdUid, isTransitioning con
   `lockFor(ms)`, reveal, queueAnchor, drafts, flyingDiscards, tierBanner, deckBuilding, …).
 - **Undo e salvataggio:** `act(fn)` fa `snapshot()` per l'undo, esegue l'azione e salva.
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
   - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione),
-    `aeonsend-app-0.2-background` (sfondo) e `aeonsend-app-0.2-card-back` (dorso delle carte), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48.
+    `aeonsend-app-0.2-background` (sfondo) e `aeonsend-app-0.2-card-back` (dorso delle carte), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48 con in più
+    `version` (v210, `SAVE_VERSION`): `readSave` cancella i salvataggi di un'altra versione.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
     cambia la "firma" (`focusStateSignature`); altrimenti scorre e basta.
@@ -451,9 +463,10 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 
 ### Regole di gioco nel codice
 
-- **Mazzo** (`buildDeck`): per ogni Tier si prendono a caso carte Basic e Upgraded Basic dei prodotti della collezione,
-  nel numero indicato da `deck-setup.json[battaglia][giocatori]`, più le carte Specific della nemesi. Ogni Tier è
-  mescolato a parte, con il Tier 1 in cima. Le carte senza Tier e le maledizioni (`Curse`) non entrano nel mazzo.
+- **Mazzo** (`buildDeck`): per ogni Tier 1-3 si prendono solo carte con `inNemesisDeck` e quel `tier`: a caso
+  Basic e Upgraded dei prodotti della collezione (`boxCode`), nel numero indicato da
+  `deck-setup.json[battaglia][giocatori]` (se le carte non bastano, il Tier esce più corto), più le carte Specific della
+  nemesi. Ogni Tier è mescolato a parte, con il Tier 1 in cima.
 - **Risoluzione** (`resolveCurrent`): potere con più di 1 token: −1 token e avanti; minion: resta e avanti; attacco o
   potere all'ultimo token: negli scarti.
 - **Pesca** (`drawNewCard`): solo con "Pesca". Il mazzo **non** si rimescola: vuoto = niente pesca.
@@ -464,23 +477,38 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 
 ## 7. Dati
 
-- `cards.json` (stile PowerShell: 4 spazi e due spazi dopo i due punti). Campi di ogni carta:
-  - `id`, `name`, `category` (`Basic Nemesis` / `Upgraded Basic Nemesis` / `Specific`), `nemesis`, `tier` (null = fuori
-    dal mazzo), `subgroup`;
-  - `type` (`Attack` / `Power` / `Minion`; altri tipi solo per le carte fuori dal mazzo), `hp`, `hpVariable`,
-    `tokens`, `qty` (>1 solo per carte senza Tier, quindi non conta per il mazzo);
+- **Ponte DataBase → app** (`tools/import-db.py`, dalla v210): `cards.json`, `products.json`, `Data/Nemesis/` e
+  `thumbs/Nemesis/` **non si modificano a mano**: li genera lo script dal DataBase (solo lettura: `Data/NEMESIS_CARDS.xlsx`,
+  `Data/DataBase_*.xlsx` foglio MAIN, `BOXES_NAMES` di `pipeline.py`). Si rilancia dalla cartella del repo (servono
+  openpyxl e Pillow):
+  - `python tools/import-db.py` (DataBase predefinito `..\DataBase`) oppure `python tools/import-db.py "C:\percorso\DataBase"`;
+  - `--no-images` rifà solo cards.json e products.json; `--force` rifà anche immagini e miniature già presenti (senza,
+    un file esistente non si sovrascrive). Due lanci di fila danno lo stesso risultato.
+- `cards.json` (244 carte nella v210: wave 1 Core Box + The Depths + The Nameless, wave 4 The New Age + Shattered
+  Dreams, The Ancients, Into The Wild). Campi di ogni carta:
+  - `id`: testo nella grammatica del DB (`"NA-1b-02"`, o un intervallo `"[NA-1b-02, NA-1b-04]"`): **solo
+    identificatore** (salvataggi, statistiche), non si interpreta e non si usa nei nomi dei file;
+  - `name`, `boxCode` (codice del prodotto: `"1"`, `"1.1"`, `"4"`, `"4.2"`...), `category` (`Basic` / `Upgraded` /
+    `Specific`), `nemesis` (solo per le Specific);
+  - `tier` (0…8, `"9+"` testo, o null), `inNemesisDeck` (true = entra nel mazzo nemesi; il mazzo usa solo queste);
+  - `type` (`Attack` / `Power` / `Minion`; altri tipi solo fuori dal mazzo), `subType`, `hp` (intero o null),
+    `hpVariable` (true = la vita la decidono i giocatori, "*"), `shield`, `powerTokens`, `quantity`;
+  - `removalCost` (costo in Æ per scartare il potere, usato da `aetherCost` nelle statistiche), `removable`;
   - `effect`, `toDiscard`, `immediately`, `persistent`, `powerEffect` (testi, **non usati dall'app**);
-  - `removable` (solo i poteri: true se l'effetto contiene "TO DISCARD");
-  - `image` (`Data/<Nemesi>/Tier_N/<Nome>.webp`).
-  - Il prodotto delle carte Basic / Upgraded Basic si ricava dal prefisso dell'id (`CARD_PRODUCT_PREFIX` in `script.js`:
-    `NA-`, `TA-`, `SD-`, `ITW-`).
-- `nemesis.json`: `name`, `wave`, `waveOrder`, `miniExpansion`, `battle`, `flagBattle5`, `owned` (dalla v194 non si
-  usa più: la collezione iniziale è vuota).
-  - Una nemesi è giocabile se ha la battaglia, il suo prodotto è nella collezione e ha carte Specific.
+  - `image`: `Data/Nemesis/<BoxCode>_<Prodotto>/<_Basics | _Upgraded | Nemesi>/Tier_N/<Nome>.webp`.
+- `products.json`: `{ codice: nome del prodotto }` per tutti i 27 codici di `BOXES_NAMES` (`"4": "The New Age"`,
+  `"4.1": "Shattered Dreams"`...). Il codice senza punto è la scatola base della wave; la wave di un codice è la parte
+  prima del punto. Da qui vengono le wave e le mini espansioni della collezione e i loro nomi.
+- `nemesis.json`: `name`, `boxCode` (codice del prodotto della nemesi; null per le Promo, mai giocabili), `waveOrder`,
+  `battle`, `flagBattle5`, `owned` (dalla v194 non si usa più: la collezione iniziale è vuota).
+  - Una nemesi è giocabile (`isPlayable`) se ha `boxCode` e battaglia, il suo prodotto è nella collezione, ha carte
+    Specific e nessun minion a vita variabile nel mazzo (`hasVariableMinion`).
 - `deck-setup.json`: la tabella del Nemesis Deck Setup.
 - **Immagini:**
-  - `Data/...`: scansioni in WebP qualità 90. Gli originali JPG/PNG sono sul PC ma esclusi da git.
-  - `thumbs/<id>.webp`: miniature (264 x 369).
+  - `Data/Nemesis/...`: scansioni in WebP qualità 90 (larghe al massimo 1640 px), generate dal ponte. Gli originali sono
+    nel DataBase.
+  - `thumbs/Nemesis/...`: miniature (264 x 369), stesso albero: la miniatura di una carta è il percorso dell'immagine
+    con `thumbs/` al posto di `Data/`.
   - `Assets/nemesis/`: per ogni nemesi `<slug>.webp` (carta), `<slug>-back.webp` (retro con setup e storia),
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
   - `Assets/ui/decor/`: `card-back-logo.webp` (dorso predefinito), `battle-bg.webp`, `battle-bg-2.webp`,
@@ -495,10 +523,16 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   - Immagini non più usate tolte in v148 (vecchi sfondi dei due turni, vecchi dorsi, gocce di vita, logo, icone del
     kit): recuperabili dal tag `v147-prima-della-pulizia`.
 - **Nemesi complete:** le 7 di The New Age: Maggoth, Arachnos, Ageless Walker e Fenrix (scatola base); The Wailing,
-  The Wanderer e Necroswarm (mini espansioni).
+  The Wanderer e Necroswarm (mini espansioni). Wave 1 (v210): Rageborne, Crooked Mask (scatola base), Horde-Crone (The
+  Depths), Blight Lord e Wayward One (The Nameless); Carapace Queen e Prince of Gluttons hanno le carte ma non sono
+  giocabili (minion a vita variabile). Il Core Set non ha Upgraded: con la sola wave 1, dalla battaglia 2 il mazzo è
+  più corto di quanto dice deck-setup.json (domanda aperta).
 
 ### Script in `tools/` (Python + Pillow, da lanciare dalla cartella del repo)
 
+- `import-db.py`: il ponte DataBase → app (vedi sopra); serve anche openpyxl.
+- `convert-webp.py`, `build-thumbs.py`: del formato di prima della v210 (immagini in `Data/<Nemesi>/` e
+  `thumbs/<id>.webp`); per le carte nemesi ora si usa `import-db.py`.
 - `convert-webp.py`: converte JPG/PNG di `Data/` in WebP 90 e aggiorna `cards.json`.
 - `build-thumbs.py`: rifà tutte le miniature. Attenzione: rigenerandole dai WebP cambiano anche quelle esistenti, quindi
   si fa commit solo delle nuove.

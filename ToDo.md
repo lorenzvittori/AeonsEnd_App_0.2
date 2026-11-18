@@ -1,4 +1,5 @@
 # Grandi miglioramenti:
+- Minion con vita variabile (hpVariable): box interattivo per inserire la vita quando entrano in gioco; poi rendere giocabili Carapace Queen e Prince of Gluttons
 - Aggiungere ordine turno
 - Implementare vita nemesi e vita gravehold
 - Implementare biblioteca carte e assistente per la creazione del mercato
