@@ -1,0 +1,1930 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheletro dell'app</title>
+<!-- Scheletro dell'app nei formati 18:9, 19:9, 19.5:9 e 20:9 (turno giocatori e turno nemesi), misure in mm.
+     Pagina a sé: non fa parte dell'app. Le misure sono in misure.json (stessi dati, copiati qui sotto). -->
+<style>
+  :root { --bg: #f4f2ed; --ink: #1d1d1f; --muted: #5f5d58; --line: #c9c5bb; --screen: #101116; --gap: #c0392b; --s: 2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--ink); font: 14px/20px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { margin: 0 0 6px; font-size: 22px; line-height: 28px; }
+  .intro { max-width: 760px; margin: 0 0 16px; color: var(--muted); }
+  .intro b { color: var(--ink); }
+  .zoom { display: flex; gap: 8px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+  .zoom button { min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }
+  .zoom button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .formato { margin-bottom: 40px; }
+  .formato h2 { margin: 0 0 12px; font-size: 18px; }
+  .formato h2 small { font-weight: 400; color: var(--muted); }
+  .coppia { display: flex; flex-wrap: wrap; gap: 32px; }
+  .turno { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .turno h3 { width: 100%; margin: 0; font-size: 14px; }
+  /* Schermo disegnato in mm (scala --s: 1 = mm veri se lo schermo è calibrato) */
+  .screen { position: relative; flex: 0 0 auto; background: var(--screen); border-radius: calc(2mm * var(--s)); overflow: hidden;
+    outline: 1px solid #000; }
+  .box { position: absolute; border: 1px solid rgba(223, 174, 89, .9); background: rgba(223, 174, 89, .14); color: #f3e3c0;
+    font: 600 9px/11px system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; overflow: hidden; padding: 1px; }
+  .box span { opacity: .85; font-weight: 400; }
+  .box.is-small { font-size: 0; }
+  .gap { position: absolute; right: 2px; border-left: 2px solid var(--gap); }
+  .gap::before, .gap::after { content: ''; position: absolute; left: -5px; width: 8px; border-top: 2px solid var(--gap); }
+  .gap::before { top: 0; } .gap::after { bottom: 0; }
+  table { border-collapse: collapse; font-size: 12px; line-height: 16px; background: #fff; }
+  th, td { padding: 3px 8px; border-bottom: 1px solid #e3dfd6; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { background: #ebe7de; }
+  td.spazio { color: var(--gap); font-weight: 700; }
+  .tabelle { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<h1>Scheletro dell'app</h1>
+<p class="intro" id="intro"></p>
+<div class="zoom" role="group" aria-label="Scala del disegno">
+  <span>Scala del disegno:</span>
+  <button type="button" data-s="1">1× (mm veri)</button>
+  <button type="button" data-s="2" aria-pressed="true">2×</button>
+  <button type="button" data-s="3">3×</button>
+</div>
+<div id="formati"></div>
+<script>
+const DATA = {
+ "larghezza_mm": 68.0,
+ "larghezza_px": 360.0,
+ "mm_per_px": 0.1889,
+ "nota": "Misure prese con getBoundingClientRect su localhost a 360 px CSS di larghezza; mm = px x 68/360.",
+ "formati": [
+  {
+   "formato": "18:9",
+   "schermo_px": {
+    "w": 360,
+    "h": 720
+   },
+   "schermo_mm": {
+    "w": 68.0,
+    "h": 136.0
+   },
+   "turni": {
+    "giocatori": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 77.6,
+        "y": 82,
+        "w": 81.3,
+        "h": 14
+       },
+       "mm": {
+        "x": 14.7,
+        "y": 15.5,
+        "w": 15.4,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 234.4,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 44.3,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 74,
+        "y": 279.4,
+        "w": 212,
+        "h": 296.1
+       },
+       "mm": {
+        "x": 14.0,
+        "y": 52.8,
+        "w": 40.0,
+        "h": 55.9
+       }
+      },
+      "Comandi": {
+       "px": {
+        "x": 74,
+        "y": 583.6,
+        "w": 212,
+        "h": 44
+       },
+       "mm": {
+        "x": 14.0,
+        "y": 110.2,
+        "w": 40.0,
+        "h": 8.3
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 656,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 123.9,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 45.1,
+       "mm": 8.5
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Comandi",
+       "px": 8.1,
+       "mm": 1.5
+      },
+      {
+       "da": "Comandi",
+       "a": "Pulsante",
+       "px": 28.4,
+       "mm": 5.4
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    },
+    "nemesi": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 61,
+        "y": 82,
+        "w": 114.4,
+        "h": 14
+       },
+       "mm": {
+        "x": 11.5,
+        "y": 15.5,
+        "w": 21.6,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 244.4,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 46.2,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 74,
+        "y": 289.4,
+        "w": 212,
+        "h": 296.1
+       },
+       "mm": {
+        "x": 14.0,
+        "y": 54.7,
+        "w": 40.0,
+        "h": 55.9
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 656,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 123.9,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 55.1,
+       "mm": 10.4
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Pulsante",
+       "px": 70.5,
+       "mm": 13.3
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    }
+   }
+  },
+  {
+   "formato": "19:9",
+   "schermo_px": {
+    "w": 360,
+    "h": 760
+   },
+   "schermo_mm": {
+    "w": 68.0,
+    "h": 143.6
+   },
+   "turni": {
+    "giocatori": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 77.6,
+        "y": 82,
+        "w": 81.3,
+        "h": 14
+       },
+       "mm": {
+        "x": 14.7,
+        "y": 15.5,
+        "w": 15.4,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 234.2,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 44.2,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 59.5,
+        "y": 279.2,
+        "w": 241,
+        "h": 336.6
+       },
+       "mm": {
+        "x": 11.2,
+        "y": 52.7,
+        "w": 45.5,
+        "h": 63.6
+       }
+      },
+      "Comandi": {
+       "px": {
+        "x": 59.5,
+        "y": 623.8,
+        "w": 241,
+        "h": 44
+       },
+       "mm": {
+        "x": 11.2,
+        "y": 117.8,
+        "w": 45.5,
+        "h": 8.3
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 696,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 131.5,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 44.9,
+       "mm": 8.5
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Comandi",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Comandi",
+       "a": "Pulsante",
+       "px": 28.2,
+       "mm": 5.3
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    },
+    "nemesi": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 61,
+        "y": 82,
+        "w": 114.4,
+        "h": 14
+       },
+       "mm": {
+        "x": 11.5,
+        "y": 15.5,
+        "w": 21.6,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 244.2,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 46.1,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 59.5,
+        "y": 289.2,
+        "w": 241,
+        "h": 336.6
+       },
+       "mm": {
+        "x": 11.2,
+        "y": 54.6,
+        "w": 45.5,
+        "h": 63.6
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 696,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 131.5,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 54.9,
+       "mm": 10.4
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Pulsante",
+       "px": 70.2,
+       "mm": 13.3
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    }
+   }
+  },
+  {
+   "formato": "19.5:9",
+   "schermo_px": {
+    "w": 360,
+    "h": 780
+   },
+   "schermo_mm": {
+    "w": 68.0,
+    "h": 147.3
+   },
+   "turni": {
+    "giocatori": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 77.6,
+        "y": 82,
+        "w": 81.3,
+        "h": 14
+       },
+       "mm": {
+        "x": 14.7,
+        "y": 15.5,
+        "w": 15.4,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 234.4,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 44.3,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 52.5,
+        "y": 279.4,
+        "w": 255,
+        "h": 356.2
+       },
+       "mm": {
+        "x": 9.9,
+        "y": 52.8,
+        "w": 48.2,
+        "h": 67.3
+       }
+      },
+      "Comandi": {
+       "px": {
+        "x": 52.5,
+        "y": 643.6,
+        "w": 255,
+        "h": 44
+       },
+       "mm": {
+        "x": 9.9,
+        "y": 121.6,
+        "w": 48.2,
+        "h": 8.3
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 716,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 135.2,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 45.1,
+       "mm": 8.5
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Comandi",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Comandi",
+       "a": "Pulsante",
+       "px": 28.4,
+       "mm": 5.4
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    },
+    "nemesi": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 61,
+        "y": 82,
+        "w": 114.4,
+        "h": 14
+       },
+       "mm": {
+        "x": 11.5,
+        "y": 15.5,
+        "w": 21.6,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 244.4,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 46.2,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 52.5,
+        "y": 289.4,
+        "w": 255,
+        "h": 356.2
+       },
+       "mm": {
+        "x": 9.9,
+        "y": 54.7,
+        "w": 48.2,
+        "h": 67.3
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 716,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 135.2,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 55.1,
+       "mm": 10.4
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Pulsante",
+       "px": 70.4,
+       "mm": 13.3
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    }
+   }
+  },
+  {
+   "formato": "20:9",
+   "schermo_px": {
+    "w": 360,
+    "h": 800
+   },
+   "schermo_mm": {
+    "w": 68.0,
+    "h": 151.1
+   },
+   "turni": {
+    "giocatori": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 77.6,
+        "y": 82,
+        "w": 81.3,
+        "h": 14
+       },
+       "mm": {
+        "x": 14.7,
+        "y": 15.5,
+        "w": 15.4,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 234.6,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 44.3,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 45.5,
+        "y": 279.6,
+        "w": 269,
+        "h": 375.7
+       },
+       "mm": {
+        "x": 8.6,
+        "y": 52.8,
+        "w": 50.8,
+        "h": 71.0
+       }
+      },
+      "Comandi": {
+       "px": {
+        "x": 45.5,
+        "y": 663.4,
+        "w": 269,
+        "h": 44
+       },
+       "mm": {
+        "x": 8.6,
+        "y": 125.3,
+        "w": 50.8,
+        "h": 8.3
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 736,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 139.0,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 45.3,
+       "mm": 8.6
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Comandi",
+       "px": 8.1,
+       "mm": 1.5
+      },
+      {
+       "da": "Comandi",
+       "a": "Pulsante",
+       "px": 28.6,
+       "mm": 5.4
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    },
+    "nemesi": {
+     "box": {
+      "Testata": {
+       "px": {
+        "x": 0,
+        "y": 0,
+        "w": 360,
+        "h": 58
+       },
+       "mm": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 68.0,
+        "h": 11.0
+       }
+      },
+      "Nome nemesi": {
+       "px": {
+        "x": 16,
+        "y": 13,
+        "w": 146.3,
+        "h": 42
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 2.5,
+        "w": 27.6,
+        "h": 7.9
+       }
+      },
+      "Mazzo": {
+       "px": {
+        "x": 213,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 40.2,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Scarti": {
+       "px": {
+        "x": 256.5,
+        "y": 12,
+        "w": 31.5,
+        "h": 44
+       },
+       "mm": {
+        "x": 48.4,
+        "y": 2.3,
+        "w": 6.0,
+        "h": 8.3
+       }
+      },
+      "Menu": {
+       "px": {
+        "x": 304,
+        "y": 12,
+        "w": 44,
+        "h": 44
+       },
+       "mm": {
+        "x": 57.4,
+        "y": 2.3,
+        "w": 8.3,
+        "h": 8.3
+       }
+      },
+      "Barra della fase": {
+       "px": {
+        "x": 16,
+        "y": 68,
+        "w": 328,
+        "h": 8
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 12.8,
+        "w": 62.0,
+        "h": 1.5
+       }
+      },
+      "Scritta della fase": {
+       "px": {
+        "x": 61,
+        "y": 82,
+        "w": 114.4,
+        "h": 14
+       },
+       "mm": {
+        "x": 11.5,
+        "y": 15.5,
+        "w": 21.6,
+        "h": 2.6
+       }
+      },
+      "Fascia piccola (carta)": {
+       "px": {
+        "x": 16,
+        "y": 116.7,
+        "w": 52,
+        "h": 72.6
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 22.0,
+        "w": 9.8,
+        "h": 13.7
+       }
+      },
+      "Box vita/token": {
+       "px": {
+        "x": 160.5,
+        "y": 244.6,
+        "w": 39,
+        "h": 37
+       },
+       "mm": {
+        "x": 30.3,
+        "y": 46.2,
+        "w": 7.4,
+        "h": 7.0
+       }
+      },
+      "Carta grande": {
+       "px": {
+        "x": 45.5,
+        "y": 289.6,
+        "w": 269,
+        "h": 375.7
+       },
+       "mm": {
+        "x": 8.6,
+        "y": 54.7,
+        "w": 50.8,
+        "h": 71.0
+       }
+      },
+      "Pulsante": {
+       "px": {
+        "x": 16,
+        "y": 736,
+        "w": 328,
+        "h": 52
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 139.0,
+        "w": 62.0,
+        "h": 9.8
+       }
+      }
+     },
+     "spazi": [
+      {
+       "da": "alto dello schermo",
+       "a": "Testata",
+       "px": 0.0,
+       "mm": 0.0
+      },
+      {
+       "da": "Testata",
+       "a": "Barra della fase",
+       "px": 10,
+       "mm": 1.9
+      },
+      {
+       "da": "Barra della fase",
+       "a": "Scritta della fase",
+       "px": 6,
+       "mm": 1.1
+      },
+      {
+       "da": "Scritta della fase",
+       "a": "Fascia piccola (carta)",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Fascia piccola (carta)",
+       "a": "Box vita/token",
+       "px": 55.3,
+       "mm": 10.4
+      },
+      {
+       "da": "Box vita/token",
+       "a": "Carta grande",
+       "px": 8.0,
+       "mm": 1.5
+      },
+      {
+       "da": "Carta grande",
+       "a": "Pulsante",
+       "px": 70.7,
+       "mm": 13.4
+      },
+      {
+       "da": "Pulsante",
+       "a": "fondo dello schermo",
+       "px": 12,
+       "mm": 2.3
+      }
+     ]
+    }
+   }
+  }
+ ]
+};
+const mm = v => String(v).replace('.', ',');
+document.getElementById('intro').innerHTML =
+  `Larghezza dello schermo uguale per tutti i formati: <b>${mm(DATA.larghezza_mm)} mm</b>. ` +
+  `L'app è stata misurata a ${DATA.larghezza_px} px CSS di larghezza, quindi 1 px = ${mm(DATA.mm_per_px)} mm. ` +
+  `Ogni box è un rettangolo con nome e misure (larghezza × altezza); in rosso, a destra, gli spazi verticali tra i box ` +
+  `della colonna centrale. Sotto ogni schermo la tabella con tutte le misure in mm (x e y dall'angolo in alto a sinistra). ` +
+  `Con la scala 1× i mm sono veri solo se lo schermo è calibrato (o stampando al 100%).`;
+const root = document.getElementById('formati');
+const TURNI = { giocatori: 'Turno giocatori', nemesi: 'Turno nemesi (risoluzione)' };
+function draw() {
+  root.replaceChildren();
+  DATA.formati.forEach(f => {
+    const sec = document.createElement('section');
+    sec.className = 'formato';
+    sec.innerHTML = `<h2>${f.formato} <small>· schermo ${mm(f.schermo_mm.w)} × ${mm(f.schermo_mm.h)} mm (${f.schermo_px.w} × ${f.schermo_px.h} px)</small></h2>`;
+    const coppia = document.createElement('div');
+    coppia.className = 'coppia';
+    Object.entries(TURNI).forEach(([key, title]) => {
+      const t = f.turni[key];
+      const wrap = document.createElement('div');
+      wrap.className = 'turno';
+      wrap.innerHTML = `<h3>${title}</h3>`;
+      const screen = document.createElement('div');
+      screen.className = 'screen';
+      screen.dataset.formato = f.formato;
+      screen.dataset.turno = key;
+      screen.style.width = `calc(${f.schermo_mm.w}mm * var(--s))`;
+      screen.style.height = `calc(${f.schermo_mm.h}mm * var(--s))`;
+      const u = v => `calc(${v}mm * var(--s))`;
+      Object.entries(t.box).forEach(([name, b]) => {
+        const el = document.createElement('div');
+        el.className = 'box' + (b.mm.h < 3 || b.mm.w < 6 ? ' is-small' : '');
+        el.title = `${name}: ${mm(b.mm.w)} × ${mm(b.mm.h)} mm, x ${mm(b.mm.x)}, y ${mm(b.mm.y)}`;
+        Object.assign(el.style, { left: u(b.mm.x), top: u(b.mm.y), width: u(b.mm.w), height: u(b.mm.h) });
+        if (name === 'Testata') { el.style.background = 'rgba(120,160,220,.12)'; el.style.borderColor = 'rgba(120,160,220,.7)'; el.style.justifyContent = 'flex-end'; }
+        el.innerHTML = name === 'Testata' ? '' : `${name}<span>${mm(b.mm.w)} × ${mm(b.mm.h)}</span>`;
+        screen.appendChild(el);
+      });
+      let y = 0;
+      t.spazi.forEach(s => {
+        const from = s.da === 'alto dello schermo' ? 0 : t.box[s.da].mm.y + t.box[s.da].mm.h;
+        if (s.mm > 0) {
+          const g = document.createElement('div');
+          g.className = 'gap';
+          g.title = `Spazio ${s.da} → ${s.a}: ${mm(s.mm)} mm`;
+          Object.assign(g.style, { top: u(from), height: u(s.mm) });
+          screen.appendChild(g);
+        }
+      });
+      const tabelle = document.createElement('div');
+      tabelle.className = 'tabelle';
+      const rows = Object.entries(t.box).map(([n, b]) =>
+        `<tr><td>${n}</td><td>${mm(b.mm.x)}</td><td>${mm(b.mm.y)}</td><td>${mm(b.mm.w)}</td><td>${mm(b.mm.h)}</td></tr>`).join('');
+      const gaps = t.spazi.map(s => `<tr><td>${s.da} → ${s.a}</td><td class="spazio">${mm(s.mm)}</td></tr>`).join('');
+      tabelle.innerHTML =
+        `<table><thead><tr><th>Box (mm)</th><th>x</th><th>y</th><th>larg.</th><th>alt.</th></tr></thead><tbody>${rows}</tbody></table>` +
+        `<table><thead><tr><th>Spazio verticale</th><th>mm</th></tr></thead><tbody>${gaps}</tbody></table>`;
+      wrap.append(screen, tabelle);
+      coppia.appendChild(wrap);
+    });
+    sec.appendChild(coppia);
+    root.appendChild(sec);
+  });
+}
+draw();
+document.querySelectorAll('.zoom button').forEach(b => b.addEventListener('click', () => {
+  document.documentElement.style.setProperty('--s', b.dataset.s);
+  document.querySelectorAll('.zoom button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+}));
+</script>
+</body>
+</html>

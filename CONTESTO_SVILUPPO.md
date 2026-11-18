@@ -328,6 +328,11 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - **"Inizia partita"** resta sempre visibile in fondo alla pagina iniziale.
 - **Menu:** si chiude anche trascinandolo verso destra (`swipeToClose`).
 - **Vibrazione** (solo Android): carta pescata (doppia per un attacco) e scritte Tier / Partita iniziata (`buzz`).
+- **Scheletri** (`scheletri/`, non fa parte dell'app): `index.html` mostra lo scheletro del turno giocatori e del turno
+  nemesi nei formati 18:9, 19:9, 19.5:9 e 20:9, con larghezza fissa di 68 mm, ogni box e ogni spazio verticale in mm
+  (disegno in scala, 1× = mm veri su uno schermo calibrato). Misure prese il 18/11/2026 (layout della v206) con
+  `getBoundingClientRect` a 360 px CSS × 720/760/780/800, convertite con 68/360 mm per px; gli stessi dati sono in
+  `misure.json`. Vanno rifatte se il layout cambia.
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
   (rifatte da `tools/build-app-icons.py`; dalla v198 a partire da `Assets/ui/decor/app-icon.png` (400×400), l'immagine
   quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%
