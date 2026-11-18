@@ -332,7 +332,9 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   nemesi nei formati 18:9, 19:9, 19.5:9 e 20:9, con larghezza fissa di 68 mm, ogni box e ogni spazio verticale in mm
   (disegno in scala, 1× = mm veri su uno schermo calibrato). Misure prese il 18/11/2026 (layout della v206) con
   `getBoundingClientRect` a 360 px CSS × 720/760/780/800, convertite con 68/360 mm per px; gli stessi dati sono in
-  `misure.json`. Vanno rifatte se il layout cambia.
+  `misure.json`. Vanno rifatte se il layout cambia. Partita di prova con 7 carte in gioco: fascia piccola piena (6
+  carte, l'ultima tagliata dal bordo) e, nella vista grande, la 4a carta al centro con le carte laterali che spuntano
+  ai due lati. In alto si sceglie il formato; gli spazi verticali sono numerati nel disegno e nella tabella.
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
   (rifatte da `tools/build-app-icons.py`; dalla v198 a partire da `Assets/ui/decor/app-icon.png` (400×400), l'immagine
   quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%
