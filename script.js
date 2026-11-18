@@ -83,8 +83,6 @@ const I18N_IT = {
   collectionHint: 'Spunta quello che possiedi: nemesi e carte nemesi usciranno solo da questi prodotti.',
   collectionSave: 'Salva collezione',
   collectionLocked: 'Non ancora disponibile',
-  schemaTitle: 'Schema dello schermo',
-  schemaNote: 'Box e spazi dell’app in 18:9, 19:9, 19.5:9 e 20:9',
   collectionSaved: 'Collezione salvata',
   collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
   victoryTitle: 'Vittoria',
@@ -2379,48 +2377,12 @@ function openOptions(trigger) {
   const pairsText = el('span', 'options-switch-text');
   pairsText.append(el('span', 'options-item-label', I18N_IT.turnPairsOption), el('span', 'options-item-note', I18N_IT.turnPairsHint));
   pairsItem.append(pairsText, pairsInput, pairsSw);
-  // Schema dello schermo (v208): lo scheletro dell'app misurato dal vivo (pagina scheletri/, solo il disegno)
-  const schemaItem = el('button', 'options-item');
-  schemaItem.type = 'button';
-  schemaItem.append(el('span', 'options-item-label', I18N_IT.schemaTitle), el('span', 'options-item-note', I18N_IT.schemaNote));
-  schemaItem.addEventListener('click', () => openSchema(schemaItem));
-  body.append(item, backItem, bgItem, pairsItem, schemaItem);
+  body.append(item, backItem, bgItem, pairsItem);
   layer.append(head, body);
   layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
   document.body.appendChild(layer);
   startLayer.inert = true;
   item.focus();
-}
-
-// Schema dello schermo (v208): a tutto schermo sopra le Opzioni, la pagina scheletri/ in modalità app (?app=1: solo
-// formato, unità e disegno). La X (o Esc / Indietro del browser non gestito) torna alle Opzioni.
-function openSchema(trigger) {
-  const layer = el('div', 'collection-screen schema-screen');
-  layer.setAttribute('role', 'dialog');
-  layer.setAttribute('aria-modal', 'true');
-  layer.setAttribute('aria-label', I18N_IT.schemaTitle);
-  const head = el('div', 'collection-head');
-  const close = () => {
-    layer.remove();
-    updateInert();
-    if (document.querySelector('.options-screen')) startLayer.inert = true;
-    if (trigger && trigger.isConnected) trigger.focus({ preventScroll: true });
-  };
-  const x = el('button', 'ae-icon-button');
-  x.type = 'button';
-  x.setAttribute('aria-label', I18N_IT.close);
-  x.appendChild(icon('close'));
-  x.addEventListener('click', close);
-  head.append(el('h2', 'collection-title', I18N_IT.schemaTitle), x);
-  const frame = document.createElement('iframe');
-  frame.className = 'schema-frame';
-  frame.title = I18N_IT.schemaTitle;
-  frame.src = 'scheletri/?app=1';
-  layer.append(head, frame);
-  layer.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
-  document.body.appendChild(layer);
-  startLayer.inert = true;
-  x.focus();
 }
 
 // Schermata "La mia collezione": per ogni wave un interruttore (la wave, cioè la sua scatola base) e sotto le sue

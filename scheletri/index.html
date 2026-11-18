@@ -47,13 +47,6 @@
   .stato { margin: -8px 0 20px; padding: 8px 12px; border-radius: 8px; background: #fff; border: 1px solid var(--line); max-width: 760px; }
   .stato.is-live { border-color: #2e7d4f; color: #1f5c39; }
   .stato.is-error { border-color: var(--gap); color: #8e2a20; }
-  /* Aperta dall'app (Opzioni → Schema dello schermo, ?app=1): solo formato, unità e disegno, adattato allo schermo */
-  .is-app body { padding: 12px 16px 16px; }
-  .is-app h1, .is-app .intro, .is-app #scelta-scala, .is-app .tabelle, .is-app .formato h2, .is-app .turno h3 { display: none; }
-  .is-app .zoom { margin-bottom: 10px; }
-  .is-app .stato { margin: 0 0 10px; padding: 4px 10px; font-size: 12px; line-height: 16px; }
-  .is-app .formato { margin-bottom: 0; }
-  .is-app .coppia, .is-app .turno { justify-content: center; }
   /* App vera, misurata dal vivo: fuori dallo schermo ma con le sue misure (display: none non darebbe le misure) */
   .misuratore { position: absolute; left: -10000px; top: 0; width: 360px; border: 0; visibility: hidden; }
 </style>
@@ -69,7 +62,7 @@
   <button type="button" data-u="px">px</button>
   <button type="button" data-u="mm">mm</button>
 </div>
-<div class="zoom" role="group" aria-label="Scala del disegno" id="scelta-scala">
+<div class="zoom" role="group" aria-label="Scala del disegno">
   <span>Scala del disegno:</span>
   <button type="button" data-s="1">1× (mm veri)</button>
   <button type="button" data-s="2" aria-pressed="true">2×</button>
@@ -1442,9 +1435,6 @@ const DATA = {
   }
  ]
 };
-// Aperta dall'app (?app=1): solo il disegno, che si adatta allo spazio
-const APP = new URLSearchParams(location.search).has('app');
-if (APP) document.documentElement.classList.add('is-app');
 const mm = v => String(v).replace('.', ',');
 // Unità delle misure scritte (px o mm), scelta in alto e ricordata nel browser; il disegno resta in scala in mm
 let unit = 'mm';
@@ -1542,20 +1532,7 @@ function draw() {
     sec.appendChild(coppia);
     root.appendChild(sec);
   });
-  if (APP) fitToScreen();
 }
-// Modalità app: scala del disegno scelta perché lo schermo disegnato stia tutto nello spazio rimasto
-function fitToScreen() {
-  const f = DATA.formati.find(x => x.formato === chosen);
-  if (!f) return;
-  const pxPerMm = 96 / 25.4;
-  const top = root.getBoundingClientRect().top;
-  const avW = Math.max(100, innerWidth - 32);
-  const avH = Math.max(100, innerHeight - top - 16);
-  const s = Math.min(avW / (f.schermo_mm.w * pxPerMm), avH / (f.schermo_mm.h * pxPerMm));
-  document.documentElement.style.setProperty('--s', s.toFixed(3));
-}
-if (APP) addEventListener('resize', fitToScreen);
 draw();
 document.querySelectorAll('#scelta-unita button').forEach(b => b.addEventListener('click', () => {
   unit = b.dataset.u;
