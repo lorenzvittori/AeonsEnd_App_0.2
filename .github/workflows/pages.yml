@@ -35,7 +35,8 @@ jobs:
         run: |
           mkdir _site
           cp index.html script.js style.css version.json cards.json deck-setup.json nemesis.json sw.js manifest.webmanifest _site/
-          cp -r css Assets Data thumbs _site/
+          # scheletri/: pagina con lo scheletro dell'app misurato dal vivo (non fa parte dell'app)
+          cp -r css Assets Data thumbs scheletri _site/
           du -sh _site
 
       - uses: actions/configure-pages@v5
