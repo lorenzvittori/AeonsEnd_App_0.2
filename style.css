@@ -971,6 +971,9 @@ body { overflow: hidden; }
 .options-item-label { font: 600 16px/22px var(--ae-font-ui); }
 .options-item-note { color: var(--ae-text-muted); font: 500 13px/18px var(--ae-font-ui); }
 .options-screen { z-index: 44; }
+/* v208: Schema dello schermo (pagina scheletri/ in un riquadro sotto la testata) */
+.schema-screen { z-index: 46; padding-bottom: 0; }
+.schema-frame { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; background: #f4f2ed; }
 /* Nuova partita: Menu in alto a destra */
 .start-menu-button { position: fixed; top: calc(var(--ae-safe-top) + 8px); right: 8px; z-index: 6; color: var(--ae-text-muted); }
 .start-menu-button[hidden] { display: none; }

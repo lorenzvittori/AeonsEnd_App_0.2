@@ -347,6 +347,10 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   misura fallisce (per esempio se cambiano i nomi interni usati: `centredQueueUid`, `scrollToCard`, `makeEntry`,
   `turnTrackBar`, `turnTrackLabels`, `nemesisBtn`, `.ae-compact-rail`, `.queue-slot`, `.queue-controls`...) mostra
   le misure salvate in `misure.json` e lo dice. Con un cambio di posizionamento lo scheletro si aggiorna da solo.
+  **Dall'app** (v208): Opzioni del menu iniziale → "**Schema dello schermo**" (`openSchema`) apre a tutto schermo la
+  pagina `scheletri/?app=1`: solo scelta del formato e dell'unità e il disegno, con la scala adattata allo spazio
+  (`fitToScreen`); niente testo, tabelle e scala. La X (o Esc) torna alle Opzioni. La cartella `scheletri/` è
+  pubblicata su GitHub Pages dal workflow (`.github/workflows/pages.yml`).
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
   (rifatte da `tools/build-app-icons.py`; dalla v198 a partire da `Assets/ui/decor/app-icon.png` (400×400), l'immagine
   quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%
