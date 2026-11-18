@@ -403,8 +403,8 @@ def main():
     text = json.dumps(out_cards, indent=4, ensure_ascii=False, separators=(',', ':  '))
     cards_path.write_text(text + '\n', encoding='utf-8', newline='\n')
 
-    used_codes = sorted({c['boxCode'] for c in cards}, key=code_key)
-    prod_out = {k: products[k] for k in used_codes if k in products}
+    # tutti i codici di BOXES_NAMES (l'app mostra anche le wave non ancora disponibili)
+    prod_out = {k: products[k] for k in sorted(products, key=code_key)}
     (ROOT / 'products.json').write_text(json.dumps(prod_out, indent=4, ensure_ascii=False, separators=(',', ':  ')) + '\n',
                                         encoding='utf-8', newline='\n')
 
