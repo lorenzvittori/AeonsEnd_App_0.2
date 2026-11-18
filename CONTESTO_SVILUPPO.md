@@ -340,6 +340,13 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   carte, l'ultima tagliata dal bordo) e, nella vista grande, la 4a carta al centro con le carte laterali che spuntano
   ai due lati. In alto si sceglie il formato e l'unità delle misure scritte (px o mm; il disegno resta in scala in mm);
   gli spazi verticali sono numerati nel disegno e nella tabella.
+  **Dinamico** (dal 18/11/2026): aprendo la pagina, l'app vera (`../index.html`) si carica in un iframe nascosto largo
+  360 px; per ogni formato prende la sua altezza, prepara la stessa partita di prova e misura i box
+  (`preparaApp`, `misuraApp` eseguite nell'iframe). Nell'iframe `save()` è spento (la partita salvata non cambia) e le
+  barre di scorrimento sono nascoste come su un telefono. Una riga in alto dice da quale versione sono le misure; se la
+  misura fallisce (per esempio se cambiano i nomi interni usati: `centredQueueUid`, `scrollToCard`, `makeEntry`,
+  `turnTrackBar`, `turnTrackLabels`, `nemesisBtn`, `.ae-compact-rail`, `.queue-slot`, `.queue-controls`...) mostra
+  le misure salvate in `misure.json` e lo dice. Con un cambio di posizionamento lo scheletro si aggiorna da solo.
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
   (rifatte da `tools/build-app-icons.py`; dalla v198 a partire da `Assets/ui/decor/app-icon.png` (400×400), l'immagine
   quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%

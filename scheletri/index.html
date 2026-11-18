@@ -44,6 +44,11 @@
   thead th { background: #ebe7de; }
   td.spazio { color: var(--gap); font-weight: 700; }
   .tabelle { display: flex; flex-direction: column; gap: 10px; }
+  .stato { margin: -8px 0 20px; padding: 8px 12px; border-radius: 8px; background: #fff; border: 1px solid var(--line); max-width: 760px; }
+  .stato.is-live { border-color: #2e7d4f; color: #1f5c39; }
+  .stato.is-error { border-color: var(--gap); color: #8e2a20; }
+  /* App vera, misurata dal vivo: fuori dallo schermo ma con le sue misure (display: none non darebbe le misure) */
+  .misuratore { position: absolute; left: -10000px; top: 0; width: 360px; border: 0; visibility: hidden; }
 </style>
 </head>
 <body>
@@ -63,6 +68,7 @@
   <button type="button" data-s="2" aria-pressed="true">2×</button>
   <button type="button" data-s="3">3×</button>
 </div>
+<p class="stato" id="stato" role="status"></p>
 <div id="formati"></div>
 <script>
 const DATA = {
@@ -1442,6 +1448,8 @@ document.getElementById('intro').innerHTML =
   `della colonna centrale, numerati dall'alto (lo stesso numero è nella tabella "Spazio verticale"). Sotto ogni schermo la tabella con tutte le misure (x e y dall'angolo in alto a sinistra), in px o in mm come scegli qui sotto. ` +
   `Con la scala 1× i mm sono veri solo se lo schermo è calibrato (o stampando al 100%).`;
 const root = document.getElementById('formati');
+// Misure prese adesso dall'app vera (per formato); finché mancano si usano quelle salvate (DATA)
+const LIVE = {};
 // Solo il turno giocatori: il turno nemesi ha box e carta alla stessa altezza (senza i comandi sotto la carta)
 const TURNI = { giocatori: 'Turno giocatori (il turno nemesi è uguale, senza i comandi sotto la carta)' };
 // Formato scelto in alto (uno alla volta); si ricorda nel browser
@@ -1464,7 +1472,8 @@ function draw() {
   root.replaceChildren();
   pick.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.formato === chosen)));
   document.querySelectorAll('#scelta-unita button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.u === unit)));
-  DATA.formati.filter(f => f.formato === chosen).forEach(f => {
+  // Misure dal vivo (LIVE) appena pronte; prima quelle salvate nella pagina
+  DATA.formati.filter(f => f.formato === chosen).map(f => LIVE[f.formato] || f).forEach(f => {
     const sec = document.createElement('section');
     sec.className = 'formato';
     sec.innerHTML = `<h2>${f.formato} <small>· schermo ${mm(f.schermo_mm.w)} × ${mm(f.schermo_mm.h)} mm (${f.schermo_px.w} × ${f.schermo_px.h} px)</small></h2>`;
@@ -1534,6 +1543,137 @@ document.querySelectorAll('.zoom button[data-s]').forEach(b => b.addEventListene
   document.documentElement.style.setProperty('--s', b.dataset.s);
   document.querySelectorAll('.zoom button[data-s]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
 }));
+
+// --- Misura dal vivo ---------------------------------------------------------------------------------------------
+// L'app vera (../index.html) si apre in un iframe nascosto largo 360 px; per ogni formato l'iframe prende l'altezza
+// del formato, nell'app si prepara la stessa partita di prova (7 carte, la 4a al centro della vista grande) e si
+// misurano i box. L'app non salva niente: save() viene spento nell'iframe, così la partita salvata resta com'è.
+// Se l'app cambia i nomi interni usati qui sotto, la misura fallisce e la pagina mostra le misure salvate.
+const COLONNA = ['Testata', 'Barra della fase', 'Fascia della scritta', 'Fascia piccola 1', 'Box vita/token',
+  'Carta grande', 'Comandi', 'Pulsante'];
+const stato = document.getElementById('stato');
+function setStato(text, cls) { stato.textContent = text; stato.className = 'stato' + (cls ? ' ' + cls : ''); }
+
+// Eseguite DENTRO l'iframe (nel suo contesto globale, con le variabili dell'app)
+function preparaApp() {
+  save = function () {};
+  // Come su un telefono: barre di scorrimento sovrapposte, che non occupano spazio (su computer la fascia piccola
+  // ne avrebbe una da 15 px e le carte risulterebbero più in alto)
+  const noBars = document.createElement('style');
+  noBars.textContent = '*{scrollbar-width:none !important}*::-webkit-scrollbar{display:none !important}';
+  document.head.appendChild(noBars);
+  const nem = nemeses.find(n => n.battle && allCards.some(c => c.category === 'Specific' && c.nemesis === n.name));
+  settings = { players: 2, nemesis: nem.name, includeUpgraded: true };
+  newGame();
+  closeStart();
+  ui.deckBuilding = false;
+  ui.deckDark = false;
+  app.classList.remove('is-deck-dark');
+  const mins = allCards.filter(c => c.type === 'Minion' && c.hp > 0);
+  const pows = allCards.filter(c => c.type === 'Power' && c.removable !== false);
+  queue = [mins[0], pows[0], mins[1], pows[1], mins[2], pows[2], mins[3]].map(makeEntry);
+  resolving = false;
+  turn = 1;
+  turnOrder = { left: ['p2', 'p2', 'nemesis', 'nemesis'], drawn: ['p1', 'p1'], round: 1, picks: {}, wild: null };
+  render();
+}
+async function misuraApp() {
+  const W = innerWidth, H = innerHeight;
+  const R = e => {
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    const x1 = Math.max(0, r.left), x2 = Math.min(W, r.right), y1 = Math.max(0, r.top), y2 = Math.min(H, r.bottom);
+    if (x2 - x1 <= 0.5 || y2 - y1 <= 0.5) return null;
+    return { x: +x1.toFixed(1), y: +y1.toFixed(1), w: +(x2 - x1).toFixed(1), h: +(y2 - y1).toFixed(1) };
+  };
+  const settle = async () => {
+    await new Promise(r => setTimeout(r, 700));
+    try { document.getAnimations().forEach(a => { try { a.finish(); } catch (e) {} }); } catch (e) {}
+    await new Promise(r => setTimeout(r, 120));
+  };
+  resolving = false; ui.isTransitioning = false; render(); await settle();
+  scrollToCard(queue[3].uid, 'center'); await settle();
+  let item = null;
+  for (let k = 0; k < 15 && !item; k++) {
+    item = document.querySelector(`.queue-slot .ae-queue-item[data-uid="${centredQueueUid()}"]`);
+    if (!item) await new Promise(r => setTimeout(r, 200));
+  }
+  if (!item) throw new Error('carta al centro non trovata');
+  const slot = item.closest('.queue-slot');
+  const g = { 'Testata': R(document.querySelector('.ae-header')), 'Nome nemesi': R(document.querySelector('.ae-phase')),
+    'Mazzo': R(document.querySelector('.ae-pile--deck')), 'Scarti': R(document.querySelector('.ae-pile--discard')),
+    'Menu': R(document.getElementById('menu-btn')), 'Barra della fase': R(turnTrackBar), 'Fascia della scritta': R(turnTrackLabels) };
+  let n = 0;
+  document.querySelectorAll('.queue-view .ae-compact-rail .ae-queue-item').forEach(it => { const r = R(it); if (r) { n++; g['Fascia piccola ' + n] = r; } });
+  g['Box vita/token'] = R(item.querySelector(':scope > .ae-status-badge'));
+  g['Carta grande'] = R(item.querySelector('.ae-card-art'));
+  const arts = [...document.querySelectorAll('.queue-slot .ae-queue-item .ae-card-art')];
+  const mi = arts.indexOf(item.querySelector('.ae-card-art'));
+  if (R(arts[mi - 1])) g['Carta laterale sinistra'] = R(arts[mi - 1]);
+  if (R(arts[mi + 1])) g['Carta laterale destra'] = R(arts[mi + 1]);
+  g['Comandi'] = R(slot.querySelector('.queue-controls'));
+  g['Pulsante'] = R(nemesisBtn);
+  Object.keys(g).forEach(k => { if (!g[k]) delete g[k]; });
+  return g;
+}
+
+// Misure in px dell'app → stesso formato dei dati salvati (px e mm, spazi lungo la colonna centrale)
+function daPx(formato, H, px) {
+  const F = DATA.mm_per_px;
+  const r1 = v => Math.round(v * 10) / 10;
+  const toMm = v => r1(v * DATA.larghezza_mm / DATA.larghezza_px);
+  const box = {};
+  Object.entries(px).forEach(([k, r]) => { box[k] = { px: r, mm: { x: toMm(r.x), y: toMm(r.y), w: toMm(r.w), h: toMm(r.h) } }; });
+  const spazi = [];
+  let prevName = 'alto dello schermo', prevBottom = 0;
+  COLONNA.filter(n => px[n]).forEach(n => {
+    spazi.push({ da: prevName, a: n, px: r1(px[n].y - prevBottom), mm: toMm(px[n].y - prevBottom) });
+    prevName = n; prevBottom = px[n].y + px[n].h;
+  });
+  spazi.push({ da: prevName, a: 'fondo dello schermo', px: r1(H - prevBottom), mm: toMm(H - prevBottom) });
+  return { formato, schermo_px: { w: DATA.larghezza_px, h: H }, schermo_mm: { w: DATA.larghezza_mm, h: toMm(H) },
+    turni: { giocatori: { box, spazi } } };
+}
+
+async function misuraDalVivo() {
+  let version = '';
+  try { version = (await (await fetch('../version.json?t=' + Date.now(), { cache: 'no-store' })).json()).v; } catch (e) {}
+  setStato(`Misuro l'app${version ? ' v' + version : ''} dal vivo… (finché non ho finito vedi le misure salvate)`);
+  const frame = document.createElement('iframe');
+  frame.className = 'misuratore';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.tabIndex = -1;
+  frame.style.height = DATA.formati[0].schermo_px.h + 'px';
+  frame.src = '../index.html?scheletro=1';
+  document.body.appendChild(frame);
+  try {
+    await new Promise((res, rej) => { frame.onload = res; frame.onerror = rej; });
+    const win = frame.contentWindow;
+    const ready = () => { try { return win.eval('typeof deckSetup !== "undefined" && !!deckSetup && allCards.length > 0 && typeof makeEntry === "function"'); } catch (e) { return false; } };
+    for (let i = 0; i < 100 && !ready(); i++) await new Promise(r => setTimeout(r, 150));
+    if (!ready()) throw new Error("l'app non si è caricata");
+    win.eval('(' + preparaApp.toString() + ')')();
+    const misura = win.eval('(' + misuraApp.toString() + ')');
+    // Prima il formato scelto, poi gli altri
+    const ordine = [...DATA.formati].sort((a, b) => (a.formato === chosen ? -1 : 0) - (b.formato === chosen ? -1 : 0));
+    for (const f of ordine) {
+      const H = f.schermo_px.h;
+      frame.style.height = H + 'px';
+      await new Promise(r => setTimeout(r, 400));
+      win.dispatchEvent(new win.Event('resize'));
+      const px = await misura();
+      LIVE[f.formato] = daPx(f.formato, H, px);
+      if (f.formato === chosen) draw();
+    }
+    setStato(`Misure prese adesso dall'app${version ? ' v' + version : ''}: si aggiornano da sole a ogni modifica dell'app.`, 'is-live');
+    draw();
+  } catch (err) {
+    setStato(`Non riesco a misurare l'app dal vivo (${err && err.message ? err.message : err}): vedi le misure salvate il 18/11/2026 (v207).`, 'is-error');
+  } finally {
+    frame.remove();
+  }
+}
+misuraDalVivo();
 </script>
 </body>
 </html>
