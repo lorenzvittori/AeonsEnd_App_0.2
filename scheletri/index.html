@@ -52,6 +52,11 @@
 <div class="zoom" role="group" aria-label="Formato dello schermo" id="scelta-formato">
   <span>Formato:</span>
 </div>
+<div class="zoom" role="group" aria-label="Unità di misura" id="scelta-unita">
+  <span>Unità di misura:</span>
+  <button type="button" data-u="px">px</button>
+  <button type="button" data-u="mm">mm</button>
+</div>
 <div class="zoom" role="group" aria-label="Scala del disegno">
   <span>Scala del disegno:</span>
   <button type="button" data-s="1">1× (mm veri)</button>
@@ -1425,11 +1430,16 @@ const DATA = {
  ]
 };
 const mm = v => String(v).replace('.', ',');
+// Unità delle misure scritte (px o mm), scelta in alto e ricordata nel browser; il disegno resta in scala in mm
+let unit = 'mm';
+try { const u = localStorage.getItem('scheletri-unita'); if (u === 'px' || u === 'mm') unit = u; } catch (e) {}
+const val = o => mm(o[unit]);
+const box = (b, k) => mm(b[unit][k]);
 document.getElementById('intro').innerHTML =
   `Larghezza dello schermo uguale per tutti i formati: <b>${mm(DATA.larghezza_mm)} mm</b>. ` +
   `L'app è stata misurata a ${DATA.larghezza_px} px CSS di larghezza, quindi 1 px = ${mm(DATA.mm_per_px)} mm. ` +
   `Ogni box è un rettangolo con nome e misure (larghezza × altezza); in rosso, a destra, gli spazi verticali tra i box ` +
-  `della colonna centrale, numerati dall'alto (lo stesso numero è nella tabella "Spazio verticale"). Sotto ogni schermo la tabella con tutte le misure in mm (x e y dall'angolo in alto a sinistra). ` +
+  `della colonna centrale, numerati dall'alto (lo stesso numero è nella tabella "Spazio verticale"). Sotto ogni schermo la tabella con tutte le misure (x e y dall'angolo in alto a sinistra), in px o in mm come scegli qui sotto. ` +
   `Con la scala 1× i mm sono veri solo se lo schermo è calibrato (o stampando al 100%).`;
 const root = document.getElementById('formati');
 // Solo il turno giocatori: il turno nemesi ha box e carta alla stessa altezza (senza i comandi sotto la carta)
@@ -1453,6 +1463,7 @@ DATA.formati.forEach(f => {
 function draw() {
   root.replaceChildren();
   pick.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.formato === chosen)));
+  document.querySelectorAll('#scelta-unita button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.u === unit)));
   DATA.formati.filter(f => f.formato === chosen).forEach(f => {
     const sec = document.createElement('section');
     sec.className = 'formato';
@@ -1474,10 +1485,10 @@ function draw() {
       Object.entries(t.box).forEach(([name, b]) => {
         const el = document.createElement('div');
         el.className = 'box' + (b.mm.h < 3 || b.mm.w < 6 ? ' is-small' : '');
-        el.title = `${name}: ${mm(b.mm.w)} × ${mm(b.mm.h)} mm, x ${mm(b.mm.x)}, y ${mm(b.mm.y)}`;
+        el.title = `${name}: ${box(b, 'w')} × ${box(b, 'h')} ${unit}, x ${box(b, 'x')}, y ${box(b, 'y')}`;
         Object.assign(el.style, { left: u(b.mm.x), top: u(b.mm.y), width: u(b.mm.w), height: u(b.mm.h) });
         if (name === 'Testata') { el.style.background = 'rgba(120,160,220,.12)'; el.style.borderColor = 'rgba(120,160,220,.7)'; el.style.justifyContent = 'flex-end'; }
-        el.innerHTML = name === 'Testata' ? '' : `${name}<span>${mm(b.mm.w)} × ${mm(b.mm.h)}</span>`;
+        el.innerHTML = name === 'Testata' ? '' : `${name}<span>${box(b, 'w')} × ${box(b, 'h')}</span>`;
         screen.appendChild(el);
       });
       // Spazi numerati dall'alto (1, 2, 3...): stesso numero nel disegno e nella tabella
@@ -1487,7 +1498,7 @@ function draw() {
         if (s.mm > 0) {
           const g = document.createElement('div');
           g.className = 'gap';
-          g.title = `Spazio ${n}: ${s.da} → ${s.a}, ${mm(s.mm)} mm`;
+          g.title = `Spazio ${n}: ${s.da} → ${s.a}, ${val(s)} ${unit}`;
           Object.assign(g.style, { top: u(from), height: u(s.mm) });
           screen.appendChild(g);
         }
@@ -1501,11 +1512,11 @@ function draw() {
       const tabelle = document.createElement('div');
       tabelle.className = 'tabelle';
       const rows = Object.entries(t.box).map(([n, b]) =>
-        `<tr><td>${n}</td><td>${mm(b.mm.x)}</td><td>${mm(b.mm.y)}</td><td>${mm(b.mm.w)}</td><td>${mm(b.mm.h)}</td></tr>`).join('');
-      const gaps = t.spazi.map((s, i) => `<tr><td><span class="num">${i + 1}</span>${s.da} → ${s.a}</td><td class="spazio">${mm(s.mm)}</td></tr>`).join('');
+        `<tr><td>${n}</td><td>${box(b, 'x')}</td><td>${box(b, 'y')}</td><td>${box(b, 'w')}</td><td>${box(b, 'h')}</td></tr>`).join('');
+      const gaps = t.spazi.map((s, i) => `<tr><td><span class="num">${i + 1}</span>${s.da} → ${s.a}</td><td class="spazio">${val(s)}</td></tr>`).join('');
       tabelle.innerHTML =
-        `<table><thead><tr><th>Box (mm)</th><th>x</th><th>y</th><th>larg.</th><th>alt.</th></tr></thead><tbody>${rows}</tbody></table>` +
-        `<table><thead><tr><th>Spazio verticale</th><th>mm</th></tr></thead><tbody>${gaps}</tbody></table>`;
+        `<table><thead><tr><th>Box (${unit})</th><th>x</th><th>y</th><th>larg.</th><th>alt.</th></tr></thead><tbody>${rows}</tbody></table>` +
+        `<table><thead><tr><th>Spazio verticale</th><th>${unit}</th></tr></thead><tbody>${gaps}</tbody></table>`;
       wrap.append(screen, tabelle);
       coppia.appendChild(wrap);
     });
@@ -1514,9 +1525,14 @@ function draw() {
   });
 }
 draw();
-document.querySelectorAll('.zoom button').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('#scelta-unita button').forEach(b => b.addEventListener('click', () => {
+  unit = b.dataset.u;
+  try { localStorage.setItem('scheletri-unita', unit); } catch (e) {}
+  draw();
+}));
+document.querySelectorAll('.zoom button[data-s]').forEach(b => b.addEventListener('click', () => {
   document.documentElement.style.setProperty('--s', b.dataset.s);
-  document.querySelectorAll('.zoom button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  document.querySelectorAll('.zoom button[data-s]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
 }));
 </script>
 </body>
