@@ -343,7 +343,10 @@ def main():
             dst, thumb = ROOT / c['image'], ROOT / c['_thumb']
             old = c['_old']
             old_img = ROOT / old['image'] if old else None
-            old_thumb = ROOT / 'thumbs' / f'{old["id"]}.webp' if old else None
+            old_thumb = None
+            if old:  # carte gia' nel nuovo albero: stessa posizione sotto thumbs/; le piu' vecchie: thumbs/<id>.webp
+                old_thumb = (ROOT / 'thumbs' / Path(old['image']).relative_to('Data')) \
+                    if old['image'].startswith('Data/Nemesis/') else ROOT / 'thumbs' / f'{old["id"]}.webp'
             if old_img is not None and old_img.resolve() == dst.resolve():
                 old_img = None  # e' gia' al suo posto
             if dst.exists() and not args.force:
