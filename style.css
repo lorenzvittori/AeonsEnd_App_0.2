@@ -1180,35 +1180,70 @@ body { overflow: hidden; }
 .ae-turn-card[data-kind="nemesis"] { --ae-player: hsl(356 58% 52%); }
 .ae-turn-card[data-kind="p12"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p1) 70%, #000), color-mix(in srgb, var(--ae-turn-p2) 70%, #000)); font-size: 12px; }
 .ae-turn-card[data-kind="p34"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p3) 70%, #000), color-mix(in srgb, var(--ae-turn-p4) 70%, #000)); font-size: 12px; }
-.ae-turn-card.is-big { width: 110px; font-size: 40px; border-width: 3px; border-radius: 10px; align-self: center; margin: 4px 0 12px; }
-button.ae-turn-card { width: 64px; cursor: pointer; font-size: 22px; }
-button.ae-turn-card[aria-pressed="false"] { opacity: .45; }
-button.ae-turn-card[aria-pressed="true"] { outline: 3px solid var(--ae-gold); outline-offset: 2px; }
-.ae-turn-subtitle { margin: 0 0 8px; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-.ae-turn-pile { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.ae-turn-pile-empty { color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
-.ae-turn-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.ae-turn-action {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px 14px; text-align: left;
-  border: 1px solid var(--ae-border); border-radius: 12px; background: var(--ae-surface); color: var(--ae-text); cursor: pointer;
+.ae-turn-subtitle { margin: 0; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
+.ae-turn-pile-empty, .ae-turn-fan-empty { color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
+/* v211: finestra del mazzo dei turni a tutto schermo (su desktop larga quanto la colonna della partita, --ae-turn-col) */
+.ae-modal-backdrop.ae-turn-screen-backdrop { padding: 0; place-items: stretch center; }
+.ae-modal.ae-turn-screen {
+  width: min(var(--ae-turn-col, 560px), 100%); height: 100dvh; max-height: none; border-radius: 0; border-width: 0 1px;
+  padding: calc(12px + var(--ae-safe-top)) 16px calc(16px + var(--ae-safe-bottom)); gap: 12px; box-sizing: border-box;
 }
-.ae-turn-action:disabled { opacity: .4; cursor: not-allowed; }
-.ae-turn-action-label { font: 600 15px/20px var(--ae-font-ui); }
-.ae-turn-action-note { color: var(--ae-text-muted); font: 400 12px/16px var(--ae-font-ui); }
-.ae-turn-deck .ae-modal-text { margin: 0 0 14px; color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
-.ae-turn-reveal { text-align: center; }
-.ae-turn-reveal .ae-turn-card.is-big { margin-inline: auto; }
-.ae-turn-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-.ae-turn-order-top { margin: 0 0 8px; color: var(--ae-gold); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
-.ae-turn-order-list { margin: 0 0 16px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.ae-turn-order-row {
-  display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 4px 4px 4px 10px;
-  border: 1px solid var(--ae-border); border-radius: 12px; background: var(--ae-surface);
+@media (max-width: 767px) { .ae-modal.ae-turn-screen { width: 100%; border-width: 0; } }
+.ae-turn-screen-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ae-turn-eye {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 12px;
+  border: 1px solid rgba(223, 174, 89, .5); border-radius: 999px; background: rgba(223, 174, 89, .08); color: var(--ae-gold);
+  font: 600 13px/1 var(--ae-font-ui); cursor: pointer;
 }
-.ae-turn-order-pos { width: 18px; color: var(--ae-text-muted); font: 700 13px/1 var(--ae-font-ui); text-align: center; }
-.ae-turn-order-name { flex: 1 1 auto; min-width: 0; font: 600 14px/18px var(--ae-font-ui); }
-.ae-turn-move { width: 44px; height: 44px; font-size: 14px; color: var(--ae-gold); }
-.ae-turn-move:disabled { opacity: .25; }
+.ae-turn-eye .ae-icon { width: 20px; height: 20px; background: currentColor; }
+.ae-turn-eye:disabled { opacity: .35; cursor: default; }
+.ae-turn-eye[hidden] { display: none; }
+.ae-turn-eye--top { position: absolute; top: 0; padding: 0; width: 44px; transform: translateX(-50%); z-index: 20; }
+/* Ventaglio: a sinistra il fondo, a destra la cima; ai due capi le zone di rilascio */
+.ae-turn-fan-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; align-items: stretch; }
+.ae-turn-fan { position: relative; height: calc(var(--ae-turn-w, 56px) * 88 / 63 + 64px); border-radius: 12px; }
+.ae-turn-fan.is-target { box-shadow: inset 0 0 0 1px rgba(223, 174, 89, .35); }
+.ae-turn-fan-empty { position: absolute; inset: 48px 0 auto; text-align: center; }
+.ae-turn-fan .ae-turn-card {
+  position: absolute; top: 52px; width: var(--ae-turn-w, 56px); font-size: 18px;
+  transform: translateY(var(--ae-fan-y, 0px)) rotate(var(--ae-fan-rot, 0deg)); transform-origin: 50% 130%;
+  transition: left .18s ease, transform .18s ease, opacity .15s;
+}
+.ae-turn-card.is-back {
+  background: repeating-linear-gradient(45deg, #2c2e37 0 5px, #24262e 5px 10px); border-color: #000;
+  box-shadow: inset 0 0 0 2px rgba(223, 174, 89, .25);
+}
+.ae-turn-zone {
+  display: flex; align-items: center; justify-content: center; padding: 0; border: 1px dashed rgba(255, 255, 255, .14);
+  border-radius: 12px; background: transparent; color: var(--ae-text-muted); font: 700 11px/1 var(--ae-font-ui);
+  letter-spacing: .08em; text-transform: uppercase; writing-mode: vertical-rl; cursor: default;
+}
+.ae-turn-zone--bottom { transform: rotate(180deg); }
+.ae-turn-zone:disabled { opacity: 1; }
+.ae-turn-zone.is-target { border-color: var(--ae-gold); background: rgba(223, 174, 89, .12); color: var(--ae-gold); cursor: pointer; }
+.ae-turn-zone.is-over { border-style: solid; background: rgba(223, 174, 89, .3); color: var(--ae-text); }
+/* Scarti dei turni: in fila da sinistra a destra, l'ultima è il turno in corso */
+.ae-turn-pile-row { display: flex; gap: 6px; min-height: 92px; }
+.ae-turn-pile-slot { flex: 0 0 auto; width: min(64px, calc((100% - 30px) / 6)); display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+.ae-turn-pile-slot .ae-turn-card { width: 100%; font-size: 18px; }
+.ae-turn-pile-slot.is-current .ae-turn-card { box-shadow: 0 0 0 2px var(--ae-gold); }
+.ae-turn-pile-note { color: var(--ae-gold); font: 700 10px/12px var(--ae-font-ui); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.ae-turn-pile-slot.is-locked::after {
+  content: ''; position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%;
+  background: hsl(356 70% 62%) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><circle cx='12' cy='12' r='8'/><path d='M6.3 6.3l11.4 11.4'/></svg>") center / 14px no-repeat;
+}
+/* Carte che si spostano: tenere premuto per trascinare, oppure tocco per selezionare */
+.ae-turn-card.is-movable { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.ae-turn-card.is-selected { outline: 3px solid var(--ae-gold); outline-offset: 2px; }
+.ae-turn-card.is-dragging, .ae-turn-fan .ae-turn-card.is-lifted { opacity: .25; }
+.ae-turn-ghost {
+  position: fixed; z-index: 1000; margin: 0; pointer-events: none; transition: none; transform-origin: center;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .55); outline: none;
+}
+.ae-turn-hint { margin: 0; color: var(--ae-text-muted); font: 400 13px/18px var(--ae-font-ui); }
+.ae-turn-screen-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+.ae-turn-screen-footer .ae-button { min-width: 0; min-height: 48px; }
+.ae-turn-screen-footer .ae-button--primary { grid-column: 1 / -1; }
 /* Riquadro sopra il pulsante nel turno nemesi: la carta da risolvere agisce sul mazzo dei turni */
 .ae-turn-chip {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 8px 8px 12px; border-radius: 12px;

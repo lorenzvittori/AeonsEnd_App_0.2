@@ -146,20 +146,44 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste. Dalla v206 il mazzo è
   **in ordine** (`turnOrder.left[0]` = la carta in cima), mescolato a ogni giro (`shuffleTurnOrder`), e si pesca dalla
   cima: così le carte che guardano o riordinano il mazzo dei turni vedono le carte vere.
-  - **Azioni sul mazzo dei turni** (v206; solo The New Age e Core Set). **Toccando la barra della fase** si apre
-    "Mazzo dei turni" (`openTurnDeckMenu`): carte nel mazzo e negli scarti, gli **scarti dei turni** (le carte pescate
-    nel giro, come piccole carte colorate: numero del giocatore, N, J, 1/2) e tre azioni, ognuna un passo di undo:
-    - **Rivela la prima carta** (`openTurnReveal`): la carta in grande, "In cima" (resta) o "In fondo"
-      (`turnCardToBottom`). Quartz Shard, Lash's Quartz Shard; Flare, Xaxos's Flare e Hissing Acid solo in cima.
-    - **Rimescola dagli scarti** (`openTurnShuffle`, `shuffleTurnCardsBack`): si toccano una o più carte degli scarti
-      (non quella del turno in corso), tornano nel mazzo che viene mescolato; i giocatori scelti per le carte 1/2 e
-      3/4 restano attaccati alle carte che restano negli scarti. Nothingness, Sunder, Lash, Talix.
-    - **Rivela e ordina tutto il mazzo** (`openTurnOrder`, Xaxos): le carte in fila, in alto la prossima, ▲ ▼ per
-      spostarle, "Conferma l'ordine".
-    Le carte dei giocatori non sono nell'app. Le tre carte nemesi che ci sono (`TURN_DECK_CARDS`) quando sono la carta
-    da risolvere mostrano un **riquadro sopra il pulsante** (`renderTurnChip`): Hissing Acid → "Rivela" (solo in
-    cima), Sunder → "Rimescola" con le carte nemesi già scelte, Thunderous Tempest → quante carte nemesi ci sono negli
-    scarti dei turni (8 danni con 2, altrimenti 5) e "Guarda".
+  - **Finestra del mazzo dei turni** (v211, `openTurnScreen`; al posto del menu e delle tre finestre della v206).
+    **Toccando la barra della fase** si apre una finestra **a tutto schermo** (su desktop larga quanto la colonna
+    della partita, `--ae-col`), con "Turno N" in alto e la X. È uno **strumento libero**: nessun vincolo per carta
+    (Hissing Acid, Flare, Quartz Shard, Sunder, Xaxos... li applicano i giocatori). Non si apre quando
+    `turnDeckBlocked()` lo impedisce.
+    - **In alto il mazzo** (`turnOrder.left`) **a ventaglio**: a **destra la cima**, a sinistra il fondo. Carte coperte
+      (dorso neutro a righe) o scoperte se **note**. Un **occhio sopra la carta in cima** la rivela; l'occhio
+      "**Rivela tutto**" sopra il ventaglio rivela tutto il mazzo. Ai due capi del ventaglio due **zone di rilascio**
+      ("Fondo" a sinistra, "Cima" a destra).
+    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti (colore del
+      giocatore, N, J, 1/2 e 3/4 o il giocatore scelto). L'ultima è il **turno in corso**: bordo dorato e scritta
+      "in corso".
+    - **Spostamenti**: tenendo premuta una carta per 0,3 s (eventi pointer, dito e mouse) si solleva e segue il dito; si
+      evidenziano solo le zone permesse; rilasciata fuori zona torna al suo posto. In alternativa si **tocca** (o Invio)
+      la carta e poi la destinazione; Esc annulla la selezione. Permessi:
+      - carta del mazzo **solo se nota**, **solo dentro il mazzo** (le altre carte si spostano per fare posto; o sulle
+        zone Cima/Fondo); la carta in cima appena rivelata si porta così in fondo;
+      - carta degli scarti **solo in cima o in fondo al mazzo** (le due zone). Lì resta **nota** e si sposta come le
+        rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
+        `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
+      - vietati: mazzo → scarti, scarti → scarti, carta coperta. Nel **turno nemesi** la carta in corso **non si
+        sposta** (simbolo di divieto): non si annulla un turno nemesi a metà.
+    - **Bozza**: tutto resta nella finestra (copia di left, known, drawn, picks e attesa, `turnDraftFrom`) finché non si
+      preme **Salva modifiche** = **un solo** `act()` (un passo di undo, `saveTurnDraft`). **Annulla tutte le
+      modifiche** torna allo stato di apertura (la finestra resta aperta). **Mescola** mischia il mazzo e lo ricopre
+      tutto. Anche rivelare è una modifica da salvare. X o Indietro: senza modifiche chiude subito, con modifiche chiede
+      "**Uscire senza salvare?**" (Annulla / Esci).
+    - **Carte note** (`turnOrder.known`, array di true/false **parallelo a `left`**, segue gli spostamenti e
+      `drawTurnCard`): nello stato, nel salvataggio e nell'undo; si azzerano con Mescola e a ogni giro nuovo
+      (`shuffleTurnOrder`); un salvataggio senza il campo = nessuna carta nota. Riaprendo la finestra restano scoperte.
+    - **Turno in corso rimesso nel mazzo** (solo nel turno giocatori): salvando, il turno è **annullato**
+      (`turnOrder.waiting = true`, nel salvataggio e nell'undo). L'app va in **attesa** come a inizio giro:
+      `awaitingTurnCard()` vale anche con `waiting`, `currentTurnCard()` è null, la barra non ha caselle accese (le
+      carte già uscite restano passate) e il pulsante è "**Pesca carta turno**" (`drawFirstTurn` estrae la cima e
+      toglie l'attesa). Le modifiche non salvate del turno giocatori (`ui.drafts`) si perdono, come a fine turno.
+    Le carte dei giocatori non sono nell'app. Le tre carte nemesi che ci sono (`TURN_DECK_CARDS`: Hissing Acid, Sunder,
+    Thunderous Tempest) quando sono la carta da risolvere mostrano un **riquadro sopra il pulsante**
+    (`renderTurnChip`) con la loro regola e **Apri**, che apre la finestra del mazzo dei turni e basta.
   - **Fine giro** (v194, `turnRoundOver`, `nextTurnCard`, `shuffleTurnOrder`): all'ultima carta del giro il pulsante è
     "**Fine turno · Mischia mazzo**" (nel turno nemesi "**Metti in gioco · Mischia mazzo**"). Toccandolo il mazzo dei
     turni si mischia (giro nuovo, "Turno N" sale) e parte l'animazione (`playTurnShuffle`): le scritte sotto la barra
@@ -167,7 +191,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     fermano un attimo e tornano al loro posto (0,76 s). Poi il pulsante è "**Pesca la prima carta turno**" (attesa, come
     a inizio partita). Dal turno nemesi l'animazione parte dopo il passaggio al turno giocatori.
   - Dalla v193 il primo turno **non** si estrae da solo: finito "Crea mazzo" l'app è in **attesa**
-  (`awaitingTurnCard`, nessuna carta estratta, barra tutta grigia) e il pulsante principale è "**Pesca carta turno**"
+  (`awaitingTurnCard`, nessuna carta estratta o, dalla v211, turno annullato; barra tutta grigia) e il pulsante principale è "**Pesca carta turno**"
   (fondo grigio chiaro tenue); toccandolo si estrae il primo turno (`drawFirstTurn`, con undo): se è la nemesi parte
   subito il turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
   - **Jolly** (v179, solo con 3 giocatori): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
