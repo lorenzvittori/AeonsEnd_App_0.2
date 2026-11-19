@@ -9,6 +9,9 @@ Scrive nel repository dell'app:
     cards.json, products.json
     Data/Nemesis/<BoxCode>_<Prodotto>/<_Basics | _Upgraded | Nemesi>/Tier_<N>/<Nome>.webp   (WebP 90, max 1640 px)
     thumbs/Nemesis/...  (stesso albero, miniature ~264 x 369)
+    Assets/nemesis/<slug>.webp, -back.webp, -portrait.webp, nemesis-art.json   (illustrazioni delle nemesi, dalla
+        plancia "mat" nel MAIN; si fanno solo per le nemesi che non hanno ancora la voce, --force-art le rifa tutte)
+    tools/anteprima-nemesi/   con --anteprima: pagina per confrontare i ritagli (immagini fuori da git, non pubblicata)
 
 Le carte di The New Age che l'app aveva gia' (vecchio cards.json) NON vengono riconvertite: la scansione e la
 miniatura esistenti vengono spostate con "git mv" nel nuovo percorso. Un file gia' presente non si sovrascrive
@@ -172,6 +175,123 @@ def git(*args):
     return subprocess.run(['git', '-C', str(ROOT), *args], capture_output=True, text=True)
 
 
+# ------------------------------------------------------------------------------- illustrazioni delle nemesi
+# Stessa logica e stesse misure di tools/build-nemesis-art.py (che parte da scansioni in Assets/nemesis/src/):
+# qui la fonte e' la plancia della nemesi nel MAIN (Format "mat", Type "Nemesis", Category = Name = nome nemesi).
+ART_DIR = ROOT / 'Assets' / 'nemesis'
+ART_CARD_WIDTH = 1000
+ART_PORTRAIT = (480, 212)  # circa 2,26:1, la forma del riquadro nel pulsante (style.css: .nemesis-art)
+ART_QUALITY = 90
+# Ritaglio standard (frazioni della carta: sinistra, alto, destra, basso); l'altezza si calcola dalla proporzione
+# di ART_PORTRAIT (None). Eccezioni per nemesi in ART_CROPS.
+ART_DEFAULT_CROP = (0.073, 0.06, 0.927, None)
+ART_CROPS = {
+    # 'Nome nemesi': (0.073, 0.06, 0.927, None),
+}
+PREVIEW_DIR = ROOT / 'tools' / 'anteprima-nemesi'
+
+
+def art_slug(name):
+    return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+
+
+def portrait_box(img, crop):
+    w, h = img.size
+    left, top, right, bottom = crop
+    box_w = (right - left) * w
+    box_h = box_w * ART_PORTRAIT[1] / ART_PORTRAIT[0] if bottom is None else (bottom - top) * h
+    return (round(left * w), round(top * h), round(left * w + box_w), round(top * h + box_h))
+
+
+def make_portrait(img, name):
+    return img.crop(portrait_box(img, ART_CROPS.get(name, ART_DEFAULT_CROP))).resize(ART_PORTRAIT, Image.LANCZOS)
+
+
+def make_card(img):
+    card = img.copy()
+    card.thumbnail((ART_CARD_WIDTH, ART_CARD_WIDTH * 2), Image.LANCZOS)
+    return card
+
+
+def build_nemesis_art(data, main_rows, args, issues):
+    """Crea Assets/nemesis/<slug>.webp, -back.webp, -portrait.webp e aggiorna nemesis-art.json.
+    Salta le nemesi che hanno gia' la voce e i file (salvo --force-art); le voci esistenti non si toccano."""
+    names = {n['name'] for n in json.loads((ROOT / 'nemesis.json').read_text(encoding='utf-8-sig'))}
+    manifest_path = ART_DIR / 'nemesis-art.json'
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig')) if manifest_path.exists() else {}
+    ART_DIR.mkdir(parents=True, exist_ok=True)
+    done, skipped, previews = [], [], []
+    for m in main_rows:
+        name = str(m.get('Name') or '').strip()
+        if not (m.get('Type') == 'Nemesis' and m.get('Format') == 'mat' and name and name == str(m.get('Category') or '').strip()):
+            continue
+        if name not in names:
+            issues.append(f'illustrazione nemesi: "{name}" non e\' in nemesis.json, saltata')
+            continue
+        s = art_slug(name)
+        files = [ART_DIR / f'{s}.webp', ART_DIR / f'{s}-portrait.webp', ART_DIR / f'{s}-back.webp']
+        front = data / str(m['Path_FRONT']).replace('\\', '/') if m.get('Path_FRONT') else None
+        back_val = str(m.get('Path_BACK') or '').strip()
+        back = data / back_val.replace('\\', '/') if back_val not in ('', '-') else None
+        if front is None or not front.exists():
+            issues.append(f'illustrazione nemesi {name}: Path_FRONT mancante o file non trovato')
+            continue
+        exists = name in manifest and all(f.exists() for f in files[:2] + ([files[2]] if back else []))
+        if args.anteprima:  # solo il ritaglio fatto dal DB, nella cartella dell'anteprima (fuori da git)
+            PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+            with Image.open(front) as img:
+                make_portrait(img.convert('RGB'), name).save(PREVIEW_DIR / f'db-{s}-portrait.webp', 'WEBP',
+                                                             quality=ART_QUALITY, method=6)
+            previews.append((name, s))
+        if exists and not args.force_art:
+            skipped.append(name)
+            continue
+        with Image.open(front) as img:
+            img = img.convert('RGB')
+            card = make_card(img)
+            card.save(files[0], 'WEBP', quality=ART_QUALITY, method=6)
+            make_portrait(img, name).save(files[1], 'WEBP', quality=ART_QUALITY, method=6)
+            entry = {'card': f'Assets/nemesis/{s}.webp', 'portrait': f'Assets/nemesis/{s}-portrait.webp',
+                     'ratio': round(card.height / card.width, 4)}
+        if back:
+            if not back.exists():
+                issues.append(f'illustrazione nemesi {name}: retro non trovato ({back_val})')
+            else:
+                with Image.open(back) as img:
+                    make_card(img.convert('RGB')).save(files[2], 'WEBP', quality=ART_QUALITY, method=6)
+                entry['back'] = f'Assets/nemesis/{s}-back.webp'
+        manifest[name] = entry
+        done.append(name)
+    if done:
+        manifest = {k: manifest[k] for k in sorted(manifest)}
+        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+    print(f'illustrazioni nemesi: {len(done)} fatte ({", ".join(done) or "-"}), {len(skipped)} gia\' presenti (saltate)')
+    return previews
+
+
+def write_preview_page(previews):
+    """tools/anteprima-nemesi/index.html: ritaglio 480x212 del DB e, per le nemesi che l'app ha gia', quello attuale."""
+    cells = []
+    for name, s in sorted(previews, key=lambda p: p[0]):
+        cur = ART_DIR / f'{s}-portrait.webp'
+        db_file = PREVIEW_DIR / f'db-{s}-portrait.webp'
+        has_old = cur.exists() and cur.read_bytes() != db_file.read_bytes()
+        cells.append(
+            f'<figure><div class="row"><div><img src="db-{s}-portrait.webp" width="480" height="212" alt="">'
+            f'<small>dal DataBase</small></div>'
+            + (f'<div><img src="../../Assets/nemesis/{s}-portrait.webp" width="480" height="212" alt="">'
+               f'<small>attuale nell\'app</small></div>' if has_old else '')
+            + f'</div><figcaption>{name}</figcaption></figure>')
+    html = ('<!doctype html>\n<html lang="it"><head><meta charset="utf-8"><title>Anteprima ritagli nemesi</title>\n'
+            '<style>body{background:#16181d;color:#e8e8e8;font:15px system-ui,sans-serif;margin:16px}'
+            'h1{font-size:20px}.grid{display:flex;flex-wrap:wrap;gap:20px}figure{margin:0;background:#22252c;'
+            'padding:10px;border-radius:8px}.row{display:flex;gap:10px}small{display:block;color:#9aa;font-size:12px;'
+            'margin-top:2px}img{display:block;max-width:100%;height:auto}figcaption{font-weight:600;margin-top:6px}</style>'
+            '</head><body>\n<h1>Ritagli delle illustrazioni delle nemesi (480 x 212)</h1>\n<div class="grid">\n'
+            + '\n'.join(cells) + '\n</div></body></html>\n')
+    (PREVIEW_DIR / 'index.html').write_text(html, encoding='utf-8', newline='\n')
+
+
 def move_file(src: Path, dst: Path):
     """git mv se il file e' tracciato, altrimenti spostamento normale."""
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -204,6 +324,8 @@ def main():
     ap.add_argument('db', nargs='?', default=str(ROOT.parent / 'DataBase'), help='cartella del DataBase (default ..\\DataBase)')
     ap.add_argument('--force', action='store_true', help='rifa anche immagini e miniature gia presenti')
     ap.add_argument('--no-images', action='store_true', help='solo cards.json e products.json')
+    ap.add_argument('--force-art', action='store_true', help='rifa anche le illustrazioni delle nemesi gia presenti')
+    ap.add_argument('--anteprima', action='store_true', help='crea anche tools/anteprima-nemesi/ (non pubblicata)')
     args = ap.parse_args()
 
     db = Path(args.db).resolve()
@@ -410,6 +532,12 @@ def main():
     prod_out = {k: products[k] for k in sorted(products, key=code_key)}
     (ROOT / 'products.json').write_text(json.dumps(prod_out, indent=4, ensure_ascii=False, separators=(',', ':  ')) + '\n',
                                         encoding='utf-8', newline='\n')
+
+    # ---- illustrazioni delle nemesi (Assets/nemesis)
+    if not args.no_images:
+        previews = build_nemesis_art(data, main_rows, args, issues)
+        if args.anteprima:
+            write_preview_page(previews)
 
     # ---- riepilogo
     print(f'{len(rows)} righe in NEMESIS_CARDS -> {len(out_cards)} carte in cards.json, {len(prod_out)} prodotti in products.json')

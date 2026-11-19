@@ -9,3 +9,6 @@ Data/**/*.png
 
 # Scansioni originali delle carte nemesi (le immagini del menu si rifanno con tools/build-nemesis-art.py)
 Assets/nemesis/src/
+
+# Immagini dell'anteprima dei ritagli nemesi (si rifanno con: python tools/import-db.py --anteprima)
+tools/anteprima-nemesi/*.webp
