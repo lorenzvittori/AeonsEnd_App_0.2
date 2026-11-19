@@ -225,6 +225,7 @@ const I18N_IT = {
   turnPileEmpty: 'Nessuna carta',
   // Finestra del mazzo dei turni (v211)
   turnDeckEmpty: 'Mazzo vuoto',
+  turnDeckLabel: 'Mazzo',
   turnRevealAll: 'Rivela tutto',
   turnRevealAllLabel: 'Rivela tutto il mazzo dei turni',
   turnRevealTopLabel: 'Rivela la carta in cima',
@@ -3839,19 +3840,27 @@ function renderTurnTrack() {
   // Turno annullato (v211, waiting): nessuna casella accesa, le carte già uscite restano passate
   const cur = turnOrder.waiting ? -1 : drawn.length - 1;
   const pastCount = turnOrder.waiting ? drawn.length : Math.max(0, cur);
+  // Carte del mazzo note (v212, turnOrder.known): le caselle dopo le carte uscite sono le carte del mazzo in ordine
+  // (casella drawn.length + j = left[j]); quelle note prendono il loro colore, tenue (is-known)
+  const known = turnOrder.known || [];
+  const knownAt = i => (i >= drawn.length && known[i - drawn.length] ? turnOrder.left[i - drawn.length] : null);
   [...turnTrackBar.children].forEach((seg, i) => {
+    const futureKind = knownAt(i);
+    const kind = i < drawn.length ? drawn[i] : futureKind;
+    const pos = i < drawn.length ? i : -1;
     // Carta 1/2 o 3/4 (v192): con il giocatore deciso prende il suo colore, prima metà e metà dei due colori
-    if (i < drawn.length) seg.dataset.kind = isPairCard(drawn[i]) ? (turnCardPlayer(drawn[i], i) || drawn[i]) : drawn[i];
+    if (kind) seg.dataset.kind = isPairCard(kind) ? (turnCardPlayer(kind, pos) || kind) : kind;
     else delete seg.dataset.kind;
     // Jolly (v179): strisce bianche e del colore del giocatore che è jolly in questo giro
-    const owner = drawn[i] === 'wild' ? turnCardPlayer('wild') : null;
+    const owner = kind === 'wild' ? turnCardPlayer('wild') : null;
     if (owner) seg.dataset.owner = owner;
     else delete seg.dataset.owner;
     // Carta x/y (v194): sfumatura dai due colori (style.css ::after), che svanisce quando si sceglie il giocatore
-    if (i < drawn.length && isPairCard(drawn[i])) seg.dataset.pair = drawn[i];
+    if (kind && isPairCard(kind)) seg.dataset.pair = kind;
     else delete seg.dataset.pair;
     seg.classList.toggle('is-current', i === cur);
     seg.classList.toggle('is-past', i < pastCount);
+    seg.classList.toggle('is-known', !!futureKind);
   });
   turnTrack.classList.toggle('is-nemesis', resolving);
   // Nessun turno in corso (attesa della carta turno): caselle tutte uguali (v194)
@@ -3892,17 +3901,22 @@ function renderTurnTrack() {
   else delete turnTrackLabel.dataset.kind;
   // Sotto le caselle dei turni già passati nel giro (v182): N = nemesi, 1-4 = giocatore, J = jolly, nel loro colore
   turnTrackLabels.querySelectorAll('.ae-turn-mark').forEach(m => m.remove());
-  drawn.slice(0, pastCount).forEach((kind, i) => {
+  // (v212: anche sotto le caselle future delle carte note del mazzo, più chiare)
+  const marked = drawn.slice(0, pastCount).map((kind, i) => ({ kind, i, pos: i }));
+  turnTrackBar.querySelectorAll('.ae-turn-seg').forEach((seg, i) => { if (knownAt(i)) marked.push({ kind: knownAt(i), i, pos: -1, known: true }); });
+  marked.forEach(({ kind, i, pos, known: isKnown }) => {
     // Carta x/y: il numero del giocatore che l'ha giocata (o "1/2" se non è stato scelto)
-    const who = turnCardPlayer(kind, i);
+    const who = turnCardPlayer(kind, pos);
     const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J'
       : isPairCard(kind) ? (who ? who.slice(1) : kind.slice(1).split('').join('/')) : kind.slice(1));
     mark.setAttribute('aria-hidden', 'true');
     mark.dataset.kind = who || kind;
     if (kind === 'wild') mark.classList.add('is-wild');
-    // Centro della casella i (prima di quella accesa: tutte strette)
+    if (isKnown) mark.classList.add('is-known');
+    // Centro della casella i: prima di quella accesa tutte strette; dopo, c'è davanti la casella accesa (122px)
     // (nessuna casella accesa, v211: 6 caselle uguali, style.css .is-idle)
     mark.style.left = cur < 0 ? `calc(${i} * ((100% - 30px) / 6 + 6px) + (100% - 30px) / 12)`
+      : i > cur ? `calc(${i - 1} * ((100% - 152px) / 5 + 6px) + 128px + (100% - 152px) / 10)`
       : `calc(${i} * ((100% - 152px) / 5 + 6px) + (100% - 152px) / 10)`;
     turnTrackLabels.appendChild(mark);
   });
@@ -3921,6 +3935,8 @@ function renderTurnTrack() {
     : card && card !== 'nemesis' ? I18N_IT.trackPlayer(Number(card.slice(1))) : '';
   turnTrack.setAttribute('aria-label', [name, cur >= 0 ? I18N_IT.trackPosition(cur + 1, total) : '', I18N_IT.turnDeckHint]
     .filter(Boolean).join(', '));
+  // (v212: niente scelta x/y né riquadro mentre la finestra del mazzo dei turni disegna la sua copia della barra)
+  if (ui.trackPreview) return;
   renderPairChoice();
   renderTurnChip();
 }
@@ -3989,13 +4005,16 @@ const turnDraftOps = {
     d.known.splice(to, 0, known);
     return true;
   },
-  // Carta degli scarti in cima o in fondo al mazzo: resta nota (scoperta); i giocatori scelti si ricalcolano
-  // (takeFromTurnPile). Se è la carta del turno in corso, il turno è annullato (waiting)
+  // Carta degli scarti nel mazzo: in cima ('top'), in fondo ('bottom') o, v212, in una posizione dalla cima (numero,
+  // rilasciata sulla rosa). Resta nota (scoperta); i giocatori scelti si ricalcolano (takeFromTurnPile). Se è la carta
+  // del turno in corso, il turno è annullato (waiting)
   pileToDeck(d, pos, where) {
     if (pos < 0 || pos >= d.drawn.length || turnPileLocked(d, pos)) return false;
     const wasCurrent = pos === turnDraftCurrent(d);
     const [kind] = takeFromTurnPile(d, [pos]);
-    if (where === 'top') { d.left.unshift(kind); d.known.unshift(true); } else { d.left.push(kind); d.known.push(true); }
+    const at = where === 'top' ? 0 : where === 'bottom' ? d.left.length : Math.max(0, Math.min(d.left.length, Number(where) || 0));
+    d.left.splice(at, 0, kind);
+    d.known.splice(at, 0, true);
     if (wasCurrent) d.waiting = true;
     return true;
   },
@@ -4018,6 +4037,31 @@ function saveTurnDraft(d) {
   render();
 }
 
+// v212: copia solo da guardare di un pezzo dell'app (testata, barra della fase): niente id, ruoli, tabindex, etichette
+function viewOnlyCopy(node) {
+  const copy = node.cloneNode(true);
+  [copy, ...copy.querySelectorAll('*')].forEach(n => {
+    ['id', 'role', 'tabindex', 'aria-label', 'aria-controls', 'aria-expanded', 'aria-live'].forEach(a => n.removeAttribute(a));
+  });
+  return copy;
+}
+// Copia della barra della fase con la bozza della finestra (carte note, turno annullato): per un attimo turnOrder è la
+// bozza, si disegna la barra e la si copia, poi si rimette tutto. ui.trackPreview evita scelta x/y e riquadro.
+function trackPreviewCopy(d) {
+  const real = turnOrder;
+  ui.trackPreview = true;
+  try {
+    turnOrder = Object.assign({}, real, { left: d.left, known: d.known, drawn: d.drawn, picks: d.picks,
+      waiting: !resolving && d.waiting && d.drawn.length > 0 });
+    renderTurnTrack();
+    return viewOnlyCopy(turnTrack);
+  } finally {
+    turnOrder = real;
+    renderTurnTrack();
+    ui.trackPreview = false;
+  }
+}
+
 const TURN_HOLD_MS = 300;
 let turnScreen = null; // finestra aperta (per le verifiche e per il ridisegno al cambio di misura)
 function openTurnScreen() {
@@ -4031,11 +4075,22 @@ function openTurnScreen() {
   let close = () => {};
   const dirty = () => turnDraftKey(d) !== turnDraftKey(initial);
 
-  const dialog = dialogShell(I18N_IT.turnN(turnOrder.round), I18N_IT.turnDeckTitle, () => tryClose());
+  // v212: il titolo è "Mazzo dei turni" ("Turno N" è nella copia della testata, sopra)
+  const dialog = dialogShell(I18N_IT.turnDeckTitle, '', () => tryClose());
   dialog.classList.add('ae-turn-screen');
   // Desktop: dentro la colonna centrale della partita (--ae-col)
   const col = app.style.getPropertyValue('--ae-col');
   if (col) dialog.style.setProperty('--ae-turn-col', col);
+  // v212: in cima una copia, solo da guardare, della testata (nome nemesi, Turno N, Mazzo, Scarti, Menu) e della barra
+  // della fase. La testata è copiata all'apertura; la barra mostra la bozza e si rifà a ogni modifica (trackCopy)
+  // (classi di #app da cui dipende lo stile della testata; non quelle di passaggio: scelta x/y, scossa, scorrimento)
+  const copyShell = el('div', ['ae-shell', ...['clear-header', 'is-nemesis-turn'].filter(c => app.classList.contains(c)), 'ae-turn-copy'].join(' '));
+  copyShell.appendChild(viewOnlyCopy(document.getElementById('topbar')));
+  const trackHolder = el('div', 'ae-turn-copy-track');
+  copyShell.appendChild(trackHolder);
+  copyShell.inert = true;
+  copyShell.setAttribute('aria-hidden', 'true');
+  dialog.prepend(copyShell);
 
   // Parte alta: mazzo a ventaglio (a destra la cima, a sinistra il fondo)
   const deckHead = el('div', 'ae-turn-screen-head');
@@ -4044,7 +4099,7 @@ function openTurnScreen() {
   revealAll.setAttribute('aria-label', I18N_IT.turnRevealAllLabel);
   revealAll.append(icon('eye'), el('span', '', I18N_IT.turnRevealAll));
   revealAll.addEventListener('click', () => { turnDraftOps.revealAll(d); draw(); });
-  deckHead.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnDeckTitle), revealAll);
+  deckHead.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnDeckLabel), revealAll);
   const fanRow = el('div', 'ae-turn-fan-row');
   const zoneBottom = el('button', 'ae-turn-zone ae-turn-zone--bottom', I18N_IT.turnBottomEnd);
   const zoneTop = el('button', 'ae-turn-zone ae-turn-zone--top', I18N_IT.turnTopEnd);
@@ -4138,43 +4193,63 @@ function openTurnScreen() {
     markTargets(sel);
     hint.textContent = sel ? I18N_IT.turnSelected(selName(sel)) : I18N_IT.turnHint;
     layoutFan();
+    trackHolder.replaceChildren(trackPreviewCopy(d));
   }
   function selName(s) {
     return s.source === 'deck' ? turnCardName(d.left[s.index], -1, d) : turnCardName(d.drawn[s.index], s.index, d);
   }
-  // Posizioni del ventaglio: order = indici di d.left nell'ordine da mostrare (dalla cima); la cima va a destra
-  function fanGeometry() {
-    const n = d.left.length;
+  // Posizioni del ventaglio: order = indici di d.left nell'ordine da mostrare (dalla cima); la cima va a destra.
+  // slots: posti nel ventaglio (uno in più, con un buco, mentre si trascina dentro una carta degli scarti).
+  // v212: le carte restano sempre sovrapposte (passo al massimo il 62% della carta), anche quando sono poche
+  function fanGeometry(slots = d.left.length) {
+    const n = slots;
     const width = fan.clientWidth || 240;
     const w = Math.min(64, Math.max(40, Math.floor(width / 4.4)));
-    const step = n > 1 ? Math.min(w + 8, (width - w) / (n - 1)) : 0;
+    const step = n > 1 ? Math.min(w * 0.62, (width - w) / (n - 1)) : 0;
     const offset = (width - (w + (n - 1) * step)) / 2;
-    return { n, w, step, offset };
+    return { n, w, step, offset, h: w * 88 / 63 };
   }
+  // order può contenere -1: il posto vuoto dove cadrà la carta trascinata dagli scarti
   function layoutFan(order = d.left.map((k, i) => i), lifted = -1) {
-    const g = fanGeometry();
+    const g = fanGeometry(order.length);
     fan.style.setProperty('--ae-turn-w', g.w + 'px');
+    fan.style.setProperty('--ae-fan-h', g.h + 'px');
+    const mid = (g.n - 1) / 2;
     order.forEach((idx, k) => {
-      const card = fanEls[idx];
-      if (!card) return;
       const v = g.n - 1 - k;
-      const mid = (g.n - 1) / 2;
+      const card = idx >= 0 ? fanEls[idx] : null;
+      if (!card) return;
       card.style.left = (g.offset + v * g.step) + 'px';
       card.style.setProperty('--ae-fan-rot', ((v - mid) * 5) + 'deg');
       card.style.setProperty('--ae-fan-y', (Math.pow(v - mid, 2) * 1.5) + 'px');
       card.style.zIndex = String(1 + v);
       card.classList.toggle('is-lifted', idx === lifted);
+      // v212: l'occhio sta sopra la carta in cima (al suo centro, con la stessa inclinazione)
+      if (idx === 0) {
+        // (44 x 44 con il centro al centro della carta; style.css ruota l'occhio attorno allo stesso punto della carta)
+        revealTop.style.left = (g.offset + v * g.step + g.w / 2 - 22) + 'px';
+        revealTop.style.top = `calc(var(--ae-fan-top) + ${g.h / 2 - 22}px)`;
+        revealTop.style.setProperty('--ae-fan-rot', ((v - mid) * 5) + 'deg');
+        revealTop.style.setProperty('--ae-fan-y', (Math.pow(v - mid, 2) * 1.5) + 'px');
+        revealTop.style.zIndex = String(2 + g.n);
+      }
     });
-    if (g.n) revealTop.style.left = (g.offset + (g.n - 1) * g.step + g.w / 2) + 'px';
+  }
+  // Posto nel ventaglio sotto il dito (0 = cima) su slots posti
+  function fanSlotAt(x, slots) {
+    const g = fanGeometry(slots);
+    const v = Math.max(0, Math.min(g.n - 1, Math.round((x - fan.getBoundingClientRect().left - g.offset - g.w / 2) / (g.step || 1))));
+    return g.n - 1 - v;
   }
 
-  // Zone di rilascio permesse per la carta s (solo quelle si evidenziano)
+  // Destinazioni permesse per la carta s (solo quelle si evidenziano): zone Cima e Fondo e, v212, la rosa anche per le
+  // carte degli scarti
   function markTargets(s) {
     const any = !!s;
     zoneTop.classList.toggle('is-target', any);
     zoneBottom.classList.toggle('is-target', any);
     zoneTop.disabled = zoneBottom.disabled = !any;
-    fan.classList.toggle('is-target', any && s.source === 'deck');
+    fan.classList.toggle('is-target', any);
     dialog.classList.toggle('is-choosing', any);
   }
   function dropOn(target, s) {
@@ -4182,21 +4257,22 @@ function openTurnScreen() {
     if (s.source === 'deck') {
       const to = target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
       ok = turnDraftOps.moveInDeck(d, s.index, to);
-    } else if (target.type === 'top' || target.type === 'bottom') {
-      ok = turnDraftOps.pileToDeck(d, s.index, target.type);
+    } else {
+      ok = turnDraftOps.pileToDeck(d, s.index, target.type === 'pos' ? target.index : target.type);
     }
     sel = null;
     draw();
     return ok;
   }
-  // Tocco / Invio: seleziona la carta; con una carta selezionata, toccare una carta del mazzo la sposta lì (solo
-  // carte del mazzo); toccare di nuovo la stessa carta toglie la selezione
+  // Tocco / Invio: seleziona la carta; con una carta selezionata, toccare una carta del mazzo la mette lì (carta del
+  // mazzo: al suo posto; carta degli scarti, v212: nella sua posizione, le altre scendono); toccare di nuovo la stessa
+  // carta toglie la selezione
   function onCardClick(e) {
     if (suppressClick) { suppressClick = false; return; }
     const source = e.currentTarget.dataset.source;
     const index = Number(e.currentTarget.dataset.index);
     if (sel && sel.source === source && sel.index === index) { sel = null; draw(); return; }
-    if (sel && sel.source === 'deck' && source === 'deck') { dropOn({ type: 'pos', index }, sel); return; }
+    if (sel && source === 'deck') { dropOn({ type: 'pos', index }, sel); return; }
     if (!e.currentTarget.classList.contains('is-movable')) return;
     sel = { source, index };
     draw();
@@ -4251,23 +4327,29 @@ function openTurnScreen() {
     if (!drag) return;
     e.preventDefault();
     drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px) rotate(-4deg) scale(1.08)`;
+    // La carta si porta ovunque nello schermo; il rilascio riesce solo su una destinazione valida: zone Cima e Fondo,
+    // rosa delle carte (v212 anche per le carte degli scarti, nel posto sotto il dito)
+    const fromPile = drag.source === 'pile';
     let target = null;
     if (hit(zoneTop.getBoundingClientRect(), e.clientX, e.clientY)) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), e.clientX, e.clientY)) target = { type: 'bottom' };
-    else if (drag.source === 'deck' && hit(fan.getBoundingClientRect(), e.clientX, e.clientY, 24)) {
-      const g = fanGeometry();
-      const v = Math.max(0, Math.min(g.n - 1, Math.round((e.clientX - fan.getBoundingClientRect().left - g.offset - g.w / 2) / (g.step || 1))));
-      target = { type: 'pos', index: g.n - 1 - v };
+    else if (hit(fan.getBoundingClientRect(), e.clientX, e.clientY, 24)) {
+      target = { type: 'pos', index: fanSlotAt(e.clientX, d.left.length + (fromPile ? 1 : 0)) };
     }
     drag.target = target;
     zoneTop.classList.toggle('is-over', !!target && target.type === 'top');
     zoneBottom.classList.toggle('is-over', !!target && target.type === 'bottom');
-    // Anteprima nel mazzo: le altre carte si spostano per fare posto
-    if (drag.source === 'deck') {
+    fan.classList.toggle('is-over', !!target && target.type === 'pos');
+    // Anteprima nel mazzo: le altre carte si spostano per fare posto (carta degli scarti: un posto vuoto, -1)
+    const order = d.left.map((k, i) => i);
+    if (!fromPile) {
       const to = !target ? drag.index : target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
-      const order = d.left.map((k, i) => i).filter(i => i !== drag.index);
+      order.splice(order.indexOf(drag.index), 1);
       order.splice(to, 0, drag.index);
       layoutFan(order, drag.index);
+    } else {
+      if (target) order.splice(target.type === 'top' ? 0 : target.type === 'bottom' ? order.length : target.index, 0, -1);
+      layoutFan(order);
     }
   }
   function endDrag(apply) {
@@ -4280,6 +4362,7 @@ function openTurnScreen() {
     dialog.classList.remove('is-dragging', 'is-dragging-deck', 'is-dragging-pile');
     zoneTop.classList.remove('is-over');
     zoneBottom.classList.remove('is-over');
+    fan.classList.remove('is-over');
     // Il click che segue il rilascio non deve selezionare la carta
     suppressClick = true;
     setTimeout(() => { suppressClick = false; }, 0);

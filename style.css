@@ -1083,6 +1083,8 @@ body { overflow: hidden; }
 .ae-turn-seg[data-kind="wild"] { --ae-seg: var(--ae-turn-wild); }
 .ae-turn-seg[data-kind="nemesis"] { --ae-seg: var(--ae-turn-red); }
 .ae-turn-seg.is-past { background: var(--ae-seg); opacity: .45; }
+/* v212: carta del mazzo dei turni nota (rivelata nella finestra del mazzo dei turni): il suo colore, più tenue */
+.ae-turn-seg.is-known { background: var(--ae-seg); opacity: .22; }
 /* v179: jolly = uno dei 3 giocatori, che cambia a ogni giro: strisce bianche e del suo colore */
 .ae-turn-seg[data-kind="wild"][data-owner="p1"] { --ae-seg: var(--ae-turn-p1); }
 .ae-turn-seg[data-kind="wild"][data-owner="p2"] { --ae-seg: var(--ae-turn-p2); }
@@ -1198,14 +1200,21 @@ body { overflow: hidden; }
 .ae-turn-eye .ae-icon { width: 20px; height: 20px; background: currentColor; }
 .ae-turn-eye:disabled { opacity: .35; cursor: default; }
 .ae-turn-eye[hidden] { display: none; }
-.ae-turn-eye--top { position: absolute; top: 0; padding: 0; width: 44px; transform: translateX(-50%); z-index: 20; }
+/* v212: occhio sopra la carta in cima, al suo centro; ruota attorno allo stesso punto della carta (130% della sua altezza) */
+.ae-turn-eye--top {
+  position: absolute; padding: 0; width: 44px; height: 44px; background: rgba(16, 17, 22, .78);
+  transform: translateY(var(--ae-fan-y, 0px)) rotate(var(--ae-fan-rot, 0deg));
+  transform-origin: 50% calc(22px + var(--ae-fan-h, 78px) * .8);
+  transition: left .18s ease, transform .18s ease;
+}
 /* Ventaglio: a sinistra il fondo, a destra la cima; ai due capi le zone di rilascio */
 .ae-turn-fan-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; align-items: stretch; }
-.ae-turn-fan { position: relative; height: calc(var(--ae-turn-w, 56px) * 88 / 63 + 64px); border-radius: 12px; }
+.ae-turn-fan { --ae-fan-top: 12px; position: relative; height: calc(var(--ae-turn-w, 56px) * 88 / 63 + 30px); border-radius: 12px; }
 .ae-turn-fan.is-target { box-shadow: inset 0 0 0 1px rgba(223, 174, 89, .35); }
-.ae-turn-fan-empty { position: absolute; inset: 48px 0 auto; text-align: center; }
+.ae-turn-fan.is-over { box-shadow: inset 0 0 0 2px var(--ae-gold); background: rgba(223, 174, 89, .08); }
+.ae-turn-fan-empty { position: absolute; inset: 24px 0 auto; text-align: center; }
 .ae-turn-fan .ae-turn-card {
-  position: absolute; top: 52px; width: var(--ae-turn-w, 56px); font-size: 18px;
+  position: absolute; top: var(--ae-fan-top); width: var(--ae-turn-w, 56px); font-size: 18px;
   transform: translateY(var(--ae-fan-y, 0px)) rotate(var(--ae-fan-rot, 0deg)); transform-origin: 50% 130%;
   transition: left .18s ease, transform .18s ease, opacity .15s;
 }
@@ -1241,6 +1250,19 @@ body { overflow: hidden; }
   box-shadow: 0 12px 28px rgba(0, 0, 0, .55); outline: none;
 }
 .ae-turn-hint { margin: 0; color: var(--ae-text-muted); font: 400 13px/18px var(--ae-font-ui); }
+/* v212: mentre si trascina la finestra non scorre (la carta si porta ovunque nello schermo) */
+.ae-modal.ae-turn-screen.is-dragging { overflow: hidden; touch-action: none; }
+/* v212: copia, solo da guardare, della testata e della barra della fase in cima alla finestra. Il contenitore ha le
+   classi di #app (lo stile della testata dipende da .ae-shell.clear-header) ma non la sua griglia, altezza e sfondo;
+   arriva ai bordi della finestra (margini negativi pari al padding) */
+.ae-shell.ae-turn-copy {
+  display: block; height: auto; overflow: visible; background: none; animation: none; transition: none; flex: 0 0 auto;
+  margin: calc(-12px - var(--ae-safe-top)) -16px 0; pointer-events: none;
+}
+.ae-shell.ae-turn-copy::before { display: none; }
+/* (da 768px la finestra ha un bordo di 1px a destra e a sinistra) */
+@media (min-width: 768px) { .ae-shell.ae-turn-copy { margin-left: -17px; margin-right: -17px; } }
+.ae-turn-copy .ae-turn-track { cursor: default; }
 .ae-turn-screen-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
 .ae-turn-screen-footer .ae-button { min-width: 0; min-height: 48px; }
 .ae-turn-screen-footer .ae-button--primary { grid-column: 1 / -1; }
@@ -1282,6 +1304,7 @@ body { overflow: hidden; }
 .ae-turn-mark[data-kind="p3"] { color: color-mix(in srgb, var(--ae-turn-p3) 45%, white); }
 .ae-turn-mark[data-kind="p4"] { color: color-mix(in srgb, var(--ae-turn-p4) 50%, white); }
 .ae-turn-mark.is-wild { color: #fff; }
+.ae-turn-mark.is-known { opacity: .4; }
 .ae-turn-label-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 @media (prefers-reduced-motion: reduce) {
   .ae-turn-seg { transition: none; }

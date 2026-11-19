@@ -148,23 +148,29 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   cima: così le carte che guardano o riordinano il mazzo dei turni vedono le carte vere.
   - **Finestra del mazzo dei turni** (v211, `openTurnScreen`; al posto del menu e delle tre finestre della v206).
     **Toccando la barra della fase** si apre una finestra **a tutto schermo** (su desktop larga quanto la colonna
-    della partita, `--ae-col`), con "Turno N" in alto e la X. È uno **strumento libero**: nessun vincolo per carta
-    (Hissing Acid, Flare, Quartz Shard, Sunder, Xaxos... li applicano i giocatori). Non si apre quando
-    `turnDeckBlocked()` lo impedisce.
-    - **In alto il mazzo** (`turnOrder.left`) **a ventaglio**: a **destra la cima**, a sinistra il fondo. Carte coperte
-      (dorso neutro a righe) o scoperte se **note**. Un **occhio sopra la carta in cima** la rivela; l'occhio
-      "**Rivela tutto**" sopra il ventaglio rivela tutto il mazzo. Ai due capi del ventaglio due **zone di rilascio**
-      ("Fondo" a sinistra, "Cima" a destra).
+    della partita, `--ae-col`). È uno **strumento libero**: nessun vincolo per carta (Hissing Acid, Flare, Quartz
+    Shard, Sunder, Xaxos... li applicano i giocatori). Non si apre quando `turnDeckBlocked()` lo impedisce.
+    - **In cima** (v212) una **copia solo da guardare** della testata (nome nemesi, Turno N, Mazzo, Scarti, Menu;
+      `viewOnlyCopy`, inerte, nella stessa posizione e misura dell'originale) e della **barra della fase**, che mostra
+      la **bozza** (carte note, turno annullato; `trackPreviewCopy`: per un attimo `turnOrder` è la bozza, con
+      `ui.trackPreview` niente scelta x/y né riquadro). Sotto, il titolo "Mazzo dei turni" con la X.
+    - **Il mazzo** (`turnOrder.left`) **a ventaglio**: a **destra la cima**, a sinistra il fondo. Le carte sono
+      **sempre sovrapposte** (v212: passo al massimo il 62% della carta, anche con poche carte, gruppo centrato).
+      Carte coperte (dorso neutro a righe) o scoperte se **note**. Un **occhio al centro della carta in cima** (v212,
+      sopra la carta, con la sua inclinazione) la rivela; l'occhio "**Rivela tutto**" sopra il ventaglio rivela tutto
+      il mazzo. Ai due capi del ventaglio due **zone di rilascio** ("Fondo" a sinistra, "Cima" a destra).
     - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti (colore del
       giocatore, N, J, 1/2 e 3/4 o il giocatore scelto). L'ultima è il **turno in corso**: bordo dorato e scritta
       "in corso".
-    - **Spostamenti**: tenendo premuta una carta per 0,3 s (eventi pointer, dito e mouse) si solleva e segue il dito; si
-      evidenziano solo le zone permesse; rilasciata fuori zona torna al suo posto. In alternativa si **tocca** (o Invio)
-      la carta e poi la destinazione; Esc annulla la selezione. Permessi:
-      - carta del mazzo **solo se nota**, **solo dentro il mazzo** (le altre carte si spostano per fare posto; o sulle
-        zone Cima/Fondo); la carta in cima appena rivelata si porta così in fondo;
-      - carta degli scarti **solo in cima o in fondo al mazzo** (le due zone). Lì resta **nota** e si sposta come le
-        rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
+    - **Spostamenti**: tenendo premuta una carta per 0,3 s (eventi pointer, dito e mouse) si solleva e segue il dito
+      **ovunque nello schermo** (la finestra non scorre); si evidenziano solo le destinazioni permesse; rilasciata fuori
+      da una destinazione valida torna al suo posto. In alternativa si **tocca** (o Invio) la carta e poi la
+      destinazione; Esc annulla la selezione. Destinazioni valide: zone **Cima** e **Fondo** e la **rosa** delle carte.
+      - Carta del mazzo **solo se nota**, **solo dentro il mazzo** (le altre carte si spostano per fare posto; o sulle
+        zone Cima/Fondo); la carta in cima appena rivelata si porta così in fondo.
+      - Carta degli scarti **in cima o in fondo** (le due zone) o, v212, **sulla rosa nel punto del dito** (la rosa
+        si allarga e lascia il posto; col tocco: carta degli scarti, poi una carta della rosa). Nel mazzo resta **nota**
+        e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. Nel **turno nemesi** la carta in corso **non si
         sposta** (simbolo di divieto): non si annulla un turno nemesi a metà.
@@ -176,6 +182,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Carte note** (`turnOrder.known`, array di true/false **parallelo a `left`**, segue gli spostamenti e
       `drawTurnCard`): nello stato, nel salvataggio e nell'undo; si azzerano con Mescola e a ogni giro nuovo
       (`shuffleTurnOrder`); un salvataggio senza il campo = nessuna carta nota. Riaprendo la finestra restano scoperte.
+      Dalla v212 (dopo "Salva") si vedono anche nella **barra della fase**: le caselle dopo le carte uscite sono le
+      carte del mazzo in ordine (casella `drawn.length + j` = `left[j]`); quelle note hanno il colore del giocatore
+      **tenue** (`.ae-turn-seg.is-known`) e sotto la sigla (1-4, N, J, 1/2) più chiara (`.ae-turn-mark.is-known`).
     - **Turno in corso rimesso nel mazzo** (solo nel turno giocatori): salvando, il turno è **annullato**
       (`turnOrder.waiting = true`, nel salvataggio e nell'undo). L'app va in **attesa** come a inizio giro:
       `awaitingTurnCard()` vale anche con `waiting`, `currentTurnCard()` è null, la barra non ha caselle accese (le
