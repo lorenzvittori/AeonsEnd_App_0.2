@@ -215,8 +215,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Facce delle carte turno** (v221, `turnCardFace`): l'immagine della carta vera, `Assets/ui/turn-cards/<carta>.webp`
       (p1, p2, p3, p4, p12, p34, nemesis, wild; 252 x 352, WebP 86, ritagliate a 63:88 dalle foto date dall'utente;
       style.css `.ae-turn-card[data-card]`). Sulle carte 1/2, 3/4 e Wild con il giocatore già deciso un **tondino** in
-      basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`). Anche le due scelte della finestra "Chi
-      gioca questo turno?" sono le carte dei giocatori (`.ae-pair-pick[data-kind]`). Le carte coperte del mazzo restano
+      basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`). Le due scelte della finestra "Chi gioca
+      questo turno?" invece sono i **token** dei giocatori (dalla v223: `Assets/ui/turn-tokens/p1…p4.webp`, 232 x 232
+      con angoli trasparenti, larghi 1,4 volte una carta piccola; `.ae-pair-pick[data-kind]`). Le carte coperte del mazzo restano
       col dorso neutro a righe.
     - **Spostamenti**: una carta si solleva e segue il dito **appena il dito si sposta** (dalla v219, `TURN_DRAG_PX` 6px;
       prima andava tenuta premuta 0,3 s; eventi pointer, dito e mouse); un tocco senza spostamento la seleziona. Segue il dito

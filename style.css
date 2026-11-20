@@ -1235,15 +1235,17 @@ body { overflow: hidden; }
 .ae-turn-card-who[data-kind="p2"] { --ae-player: var(--ae-turn-p2); }
 .ae-turn-card-who[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
 .ae-turn-card-who[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
-/* Finestra "Chi gioca questo turno?": le due scelte sono le carte dei giocatori */
+/* v223: finestra "Chi gioca questo turno?": le due scelte sono i token dei giocatori (Assets/ui/turn-tokens/, 232 x 232,
+   angoli trasparenti: il bagliore segue la forma con drop-shadow) */
 .ae-pair-pick[data-kind] {
-  border: 0; border-radius: 8% / 6%; color: transparent;
-  background: #1b1d24 var(--ae-turn-face) center / cover no-repeat;
+  width: calc(var(--ae-pick-w, 52px) * 1.4); aspect-ratio: 1; border: 0; border-radius: 18%; color: transparent;
+  background: transparent var(--ae-turn-face) center / contain no-repeat; box-shadow: none;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ae-player) 55%, transparent));
 }
-.ae-pair-pick[data-kind="p1"] { --ae-turn-face: url('Assets/ui/turn-cards/p1.webp'); }
-.ae-pair-pick[data-kind="p2"] { --ae-turn-face: url('Assets/ui/turn-cards/p2.webp'); }
-.ae-pair-pick[data-kind="p3"] { --ae-turn-face: url('Assets/ui/turn-cards/p3.webp'); }
-.ae-pair-pick[data-kind="p4"] { --ae-turn-face: url('Assets/ui/turn-cards/p4.webp'); }
+.ae-pair-pick[data-kind="p1"] { --ae-turn-face: url('Assets/ui/turn-tokens/p1.webp'); }
+.ae-pair-pick[data-kind="p2"] { --ae-turn-face: url('Assets/ui/turn-tokens/p2.webp'); }
+.ae-pair-pick[data-kind="p3"] { --ae-turn-face: url('Assets/ui/turn-tokens/p3.webp'); }
+.ae-pair-pick[data-kind="p4"] { --ae-turn-face: url('Assets/ui/turn-tokens/p4.webp'); }
 .ae-turn-subtitle { margin: 0; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
 .ae-turn-pile-empty, .ae-turn-fan-empty { color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
 /* v211: finestra del mazzo dei turni a tutto schermo (su desktop larga quanto la colonna della partita, --ae-turn-col) */
