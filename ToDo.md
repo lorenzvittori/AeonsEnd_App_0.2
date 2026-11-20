@@ -1,22 +1,40 @@
 # Grandi miglioramenti:
-- Aggiungere ordine turno
-- Implementare vita nemesi e vita gravehold
-- Implementare biblioteca carte e assistente per la creazione del mercato
+[x] Aggiungere ordine turno
+[] Implementare vita nemesi e vita gravehold
+[] Implementare biblioteca carte e assistente per la creazione del mercato
 
-# Ordine Turno 
+# Scheda Mazzo Turno 
 - Interazione necessarie (solo The New Age e Core Set):
 [x] vedere gli scarti: Hatch, Unrelenting Ire, Thunderous Tempest.
-[ ] rimescolare dagli scarti al mazzo una o più carte a scelta: Nothingness, Sunder, Lash, Talix.
-[ ] rivelare la prima carta e rimetterla in cima o in fondo: Flare, Xaxos’s Flare e Hissing Acid la rimettono solo in cima; Quartz Shard e Lash’s Quartz Shard permettono anche il fondo.
-[ ] rivelare tutto il mazzo e sceglierne l’ordine: Xaxos.
-- Posso cambiare l'ordine solo delle carte nel mazzo turno che ho rivelato nell'istanza attuale.
-- togli Salva Modifiche" ogni modifica è di per se attuata ma tieni Annulla Modifiche 
+[x] rimescolare dagli scarti al mazzo una o più carte a scelta: Nothingness, Sunder, Lash, Talix.
+[x] rivelare la prima carta e rimetterla in cima o in fondo: Flare, Xaxos’s Flare e Hissing Acid la rimettono solo in cima; Quartz Shard e Lash’s Quartz Shard permettono anche il fondo.
+[x] rivelare tutto il mazzo e sceglierne l’ordine: Xaxos.
+- le carte devono essere più visibili
+- quando devo scegliere chi gioca, mette il toke, non la carta
+- sce clicco su rivela tutto, deve diventare copri tutto
+- manca un'animazione di mescola
+- quando sto trascinando una carta quella spostarsi in alto, così il mio dito non la copre e avere un bordo colorato attorno
+- quando sto trascinando una carta nel mazzo turno non deve diventare trasparente, rimanere al 100%
+- quando entro nella scheda mazzo dei turni dopo aver scartato una carta, il mazzo scarti lampeggia. perchè succede? la schermata in alto deve essere sempre la stessa, non deve cambiare niente se non che non posso interagire con: mazzo pesca, mazzo scarti, barra dei turni
 
+
+
+
+# Barra dei turni
+quella che lo scheletro chiama barra della fase è la barra dei turni, non la barra delle carte turno. quindi servono queste modifiche:
+- se nella scheda mazzo turno sposto una carta dagli scarti in cima o in fondo al mazzo si compare in alto a destra come turno futuro ma non scompare come turno passato, lo stesso vale per la carta turno corrente, se io, durante il turno del giocatore 4, rimetto dentro la carta 3/4 del turno in corso in cima al deck deve rimanere "Giocatore 4" in viola e a destra il turno successivo. in questo caso il software dovrebbe dedurre che è obbligatoriamente il giocatore 3.
+- in questo modo in alto i turni possono essere molti più di 6
+
+
+# Palette
+- fare un file palette in cui ci sono tutte le palette del gioco
+. da capire se può essere dinamico, nel senso che tutti  file vanno a leggere da questo unico per capire i colori da usare
 
 
 # DOMDANDE:
 - quando gioco contro una nemesi devo usare solo le carte della wave della nemesi?
-- se devo rimettere in gioco la turn order card di un giocatore ma gioco con le regole di the new age e metto una carta 3/4, devo poi riscegliere chi gioca?
+    - NO
+- se devo rimettere in gioco la turn order card di un giocatore ma gioco con le regole di the new age e metto una carta 3/4, devo poi riscegliere chi gioca? No, segui la regole dei toke 1/2 e 3/4
 
 
 # Generale:
