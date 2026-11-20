@@ -210,8 +210,8 @@ const I18N_IT = {
   selectAll: 'Seleziona tutto',
   deselectAll: 'Deseleziona tutto',
   trackPlayer: n => `Turno del giocatore ${n}`,
-  trackWild: 'Turno jolly: sceglie il gruppo',
-  trackWildOf: n => `Turno jolly del giocatore ${n}`,
+  trackWild: 'Turno wild: sceglie il gruppo',
+  trackWildOf: n => `Turno wild del giocatore ${n}`,
   trackNemesisName: 'Nemesi',
   trackResolve: 'Risolvi',
   trackDraw: 'Pesca',
@@ -220,7 +220,7 @@ const I18N_IT = {
   trackPosition: (i, n) => `turno ${i} di ${n} del mazzo dei turni`,
   endTurn: 'Fine turno · Pesca ordine turno',
   trackPlayerName: n => `Giocatore ${n}`,
-  trackWildName: 'Jolly',
+  trackWildName: 'Wild',
   trackPairChoose: (a, b) => `Turno del giocatore ${a} o ${b}: scegliete chi gioca`,
   turnPairsOption: 'Carte turno 1/2 e 3/4',
   turnPairsHint: 'Ordine turno della wave 4, con 4 giocatori',
@@ -256,15 +256,11 @@ const I18N_IT = {
   turnExitText: 'Le modifiche al mazzo dei turni si perdono.',
   turnExitGo: 'Esci',
   turnSaved: 'Mazzo dei turni aggiornato',
-  chipReveal: 'Rivela la prima carta turno',
-  chipRevealNote: 'Hissing Acid: la carta resta in cima',
-  chipShuffle: 'Carte nemesi nel mazzo dei turni',
-  chipShuffleNote: n => `Sunder: ${n} negli scarti dei turni`,
-  chipPile: n => `Carte nemesi negli scarti dei turni: ${n}`,
-  chipPileNote: 'Thunderous Tempest: con 2 i danni sono 8, altrimenti 5',
-  chipOpen: 'Apri',
   pairChoiceLabel: n => `Giocatore ${n}`,
   ctaPutInPlayEnd: 'Metti in gioco · Fine turno nemesi',
+  // Minion con vita "?" (v218)
+  ctaSetHp: 'Imposta la vita',
+  setHpOf: name => `Imposta la vita di ${name}`,
   statsTime: 'Tempo di partita',
   statsTierTime: n => `Tempo nel Tier ${n}`,
   statsTimeUnknown: '—',
@@ -884,11 +880,17 @@ function isVariableMinion(data) {
 function hpUnset(entry) {
   return isVariableMinion(entry.data) && !entry.hpSet;
 }
-// Tetto del +1: vita della carta e vita di inizio turno (turno giocatori). Minion a vita variabile: nessun tetto
+// Vita massima: quella della carta o, per un minion a vita variabile, quella impostata la prima volta (hpMax, v218)
+function hpMaxOf(entry) {
+  return isVariableMinion(entry.data) ? entry.hpMax : entry.data.hp;
+}
+// Tetto del +1: vita massima e vita di inizio turno (turno giocatori). Minion a vita variabile non ancora impostata:
+// nessun tetto (si sceglie la vita); dopo, la vita impostata è la sua vita massima (v218)
 function hpCap(entry, nemesisTurn) {
-  if (isVariableMinion(entry.data)) return Infinity;
-  if (nemesisTurn) return entry.data.hp;
-  return Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
+  if (hpUnset(entry)) return Infinity;
+  const max = hpMaxOf(entry);
+  if (nemesisTurn) return max;
+  return Math.min(max, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -928,6 +930,7 @@ function hasHp(entry) {
 // Stato numerico della carta in parole (per i lettori di schermo)
 function statusText(entry) {
   if (hasHp(entry) && hpUnset(entry)) return I18N_IT.hpUnknown;
+  if (hasHp(entry) && typeof hpMaxOf(entry) === 'number') return I18N_IT.hpLong(entry.hp, hpMaxOf(entry));
   if (hasHp(entry) && typeof entry.data.hp !== 'number') return I18N_IT.hpOnly(entry.hp);
   if (hasHp(entry)) return I18N_IT.hpLong(entry.hp, entry.data.hp);
   if (entry.data.type === 'Power') return I18N_IT.tokens(entry.tokens);
@@ -1029,6 +1032,8 @@ function statusBadge(entry) {
     // (v214: vita variabile non ancora impostata: "?"; in bozza solo "x", senza "/X")
     const hpText = entry.isDraft ? (hpUnset(entry) ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.hpBefore))
       : hpUnset(entry) ? '?' : String(entry.hp);
+    // Box "?" toccabile: apre la scheda della carta per impostare la vita (v218, unsetHpClick)
+    if (hpUnset(entry) && !entry.isDraft) { badge.classList.add('is-unset'); badge.dataset.uid = String(entry.uid); }
     // Testo lungo (per esempio 13/17): nella fascia piccola il box si allarga e il testo si stringe
     if (hpText.length > 3) badge.classList.add('is-long');
     badge.append(icon('heart'), el('span', '', hpText));
@@ -1390,6 +1395,9 @@ function cardControls(entry) {
   if (hasHp(entry) && entry.hp <= 0 && !hpUnset(entry)) {
     // Minion ucciso (vita 0 salvata): grigio, va negli scarti al prossimo turno nemesi; si torna indietro con Undo
     box.appendChild(el('p', 'queue-note is-paid', I18N_IT.killedNote));
+  } else if (hasHp(entry) && hpUnset(entry)) {
+    // Minion con vita "?" (v218): al posto di −5 / −1 / +1 un pulsante che apre la scheda della carta (vita da impostare)
+    box.appendChild(ctl(I18N_IT.ctaSetHp, 'primary', 'sethp', I18N_IT.setHpOf(entry.data.name), () => openCardDialog(entry)));
   } else if (hasHp(entry)) {
     // I tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo); a 0 con Salva il minion è ucciso.
     // +1 si può usare solo per rimettere vita tolta in questo turno (fino alla vita di inizio turno): altrimenti è oscurato
@@ -1570,7 +1578,8 @@ function saveAllDrafts() {
           if (d.hp <= 0 && entry.hp > 0) mage.kills++;
         }
         entry.hp = d.hp;
-        if (firstSet && d.hp > 0) { entry.hpSet = true; entry.turnHp = d.hp; }
+        // (v218: la vita impostata la prima volta è la vita massima del minion: il +1 non la supera)
+        if (firstSet && d.hp > 0) { entry.hpSet = true; entry.turnHp = d.hp; entry.hpMax = d.hp; }
       }
       if (d.paid) {
         if (mage && !entry.paid) mage.powers++;
@@ -1665,9 +1674,10 @@ function buildHpPanel(dialog, panel, entry, close) {
   row.append(number, delta);
   const controls = el('div', 'ae-hp-controls');
   // Turno giocatori: −5, −1 e +1 (solo fino alla vita di inizio turno); turno nemesi: −1 e +1
+  // (v218: vita "?" da impostare: −5, −1, +1 e +5 nei due turni)
   const cap = hpCap(entry, resolving);
   const stepButtons = [];
-  (resolving ? [-1, 1] : [-5, -1, 1]).forEach(step => {
+  (unset ? [-5, -1, 1, 5] : resolving ? [-1, 1] : [-5, -1, 1]).forEach(step => {
     const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
       draft = Math.min(cap, Math.max(0, draft + step));
       update();
@@ -1723,7 +1733,8 @@ function buildHpPanel(dialog, panel, entry, close) {
     act(() => {
       entry.hp = value;
       // Prima impostazione della vita di un minion a vita variabile (v214): da qui valgono le regole normali
-      if (unset && value > 0) { entry.hpSet = true; entry.turnHp = value; }
+      // (v218: è anche la sua vita massima)
+      if (unset && value > 0) { entry.hpSet = true; entry.turnHp = value; entry.hpMax = value; }
       if (value <= 0 && !unset) {
         // turno nemesi: esce subito; turno giocatori: resta grigio fino al turno nemesi (isGone)
         if (resolving) removeWhileResolving(entry);
@@ -2838,7 +2849,8 @@ function snapshot() {
     discard: discard.map(c => c.id),
     queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid, bornTurn: e.bornTurn,
       // v214: vita impostata (solo i minion a vita variabile)
-      ...(isVariableMinion(e.data) ? { hpSet: !!e.hpSet } : {}) })),
+      // (v218: con la sua vita massima, quella impostata la prima volta)
+      ...(isVariableMinion(e.data) ? { hpSet: !!e.hpSet, hpMax: typeof e.hpMax === 'number' ? e.hpMax : null } : {}) })),
     resolving,
     currentIndex,
     newIndex,
@@ -2865,7 +2877,9 @@ function restore(s) {
   const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), {
     tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew, paid: !!q.paid,
     bornTurn: typeof q.bornTurn === 'number' ? q.bornTurn : s.turn
-  }, isVariableMinion(get(q.id)) ? { hpSet: !!q.hpSet } : {}));
+  }, isVariableMinion(get(q.id)) ? { hpSet: !!q.hpSet,
+    // Vita massima (v218); salvataggi della v214-v217 senza il campo: la più alta tra vita e vita di inizio turno
+    hpMax: typeof q.hpMax === 'number' ? q.hpMax : (q.hpSet ? Math.max(q.hp || 0, q.turnHp || 0) : undefined) } : {}));
 
   clearTransition();
   ui.drafts.clear();
@@ -3216,6 +3230,8 @@ function canDraw() {
 // un passo a parte, con il pulsante "Pesca".
 function actionText(entry, isNew) {
   const { data, tokens } = entry;
+  // Minion con vita "?" (v218): non si mette in gioco finché non si imposta la vita; il pulsante apre la sua scheda
+  if (hpUnset(entry)) return I18N_IT.ctaSetHp;
   // (ultima carta del giro dei turni: "Metti in gioco · Mischia mazzo", v194)
   if (isNew) return data.type === 'Attack' ? I18N_IT.ctaResolved
     : turnRoundOver() ? I18N_IT.ctaPutInPlayShuffle : I18N_IT.ctaPutInPlayEnd;
@@ -3307,6 +3323,8 @@ function focusStatus(entry) {
     // Solo la vita attuale: "x/X" si vede solo mentre si fa danno (box del turno giocatori e finestra della vita)
     // (v214: "?" per un minion a vita variabile non ancora impostata)
     status.append(icon('heart'), el('span', '', hpUnset(entry) ? '?' : String(entry.hp)));
+    // (v218: il box "?" si tocca e apre la scheda della carta, unsetHpClick)
+    if (hpUnset(entry)) { status.classList.add('is-unset'); status.dataset.uid = String(entry.uid); }
   } else if (entry.data.type === 'Power') {
     status.classList.add('is-token');
     status.appendChild(tokenIcons(entry.tokens));
@@ -3776,6 +3794,12 @@ function onResolveClick() {
   }
   const active = activeEntry();
   if (!active || ui.viewedUid !== active.uid) return;
+  // Minion con vita "?" (v218): "Imposta la vita" apre la scheda della carta; si va avanti solo dopo averla impostata
+  if (hpUnset(active)) {
+    if (ui.reveal && ui.reveal.uid === active.uid && ui.reveal.status !== 'done') return;
+    openCardDialog(active);
+    return;
+  }
   const ghostSource = focusEl.querySelector(`.ae-focus-slide[data-uid="${active.uid}"] .ae-focus-stage`);
   const wasNewStep = newIndex >= 0;
   const turnBefore = turn;
@@ -3971,6 +3995,21 @@ rail.addEventListener('click', e => {
   viewCard(Number(item.dataset.uid));
 });
 
+// Box della vita "?" di un minion a vita variabile (v218), ovunque compaia (carta grande, fascia piccola, riga del
+// turno nemesi): un tocco apre la scheda della carta per impostare la vita. In cattura, così la fascia o la coda non
+// fanno anche il loro tocco (scorrere, portare la carta al centro)
+function unsetHpClick(e) {
+  const box = e.target.closest && e.target.closest('.ae-status-badge.is-unset, .ae-focus-status.is-unset');
+  if (!box || ui.isTransitioning || modals.length) return;
+  const entry = entryByUid(Number(box.dataset.uid));
+  if (!entry || !hpUnset(entry)) return;
+  if (ui.reveal && ui.reveal.uid === entry.uid && ui.reveal.status !== 'done') return;
+  e.stopPropagation();
+  e.preventDefault();
+  openCardDialog(entry);
+}
+document.addEventListener('click', unsetHpClick, true);
+
 // Carosello del turno nemesi: toccando il retro della carta da pescare si pesca; toccando un minion (quello al centro)
 // si apre la stessa finestra del turno giocatori, con −1 e +1 alla vita
 focusEl.addEventListener('click', e => {
@@ -4108,7 +4147,6 @@ function renderTurnTrack() {
   if (ui.trackShuffle) {
     turnTrack.setAttribute('aria-label', I18N_IT.trackWaiting);
     renderPairChoice();
-    renderTurnChip();
     return;
   }
   // Scritta sotto la casella accesa, centrata sotto di lei (v196, anche alle due estremità)
@@ -4138,7 +4176,8 @@ function renderTurnTrack() {
   const labelKind = resolving ? 'nemesis' : (turnCardPlayer(currentTurnCard()) || currentTurnCard());
   if (labelKind && !choosing) turnTrackLabel.dataset.kind = labelKind;
   else delete turnTrackLabel.dataset.kind;
-  // Sotto le caselle dei turni già passati nel giro (v182): N = nemesi, 1-4 = giocatore, J = jolly, nel loro colore
+  // Sotto le caselle dei turni già passati nel giro (v182): N = nemesi, 1-4 = giocatore, W = wild (v218, prima J =
+  // jolly), nel loro colore
   turnTrackLabels.querySelectorAll('.ae-turn-mark').forEach(m => m.remove());
   // (v212: anche sotto le caselle future delle carte note del mazzo, più chiare)
   const marked = drawn.slice(0, pastCount).map((kind, i) => ({ kind, i, pos: i }));
@@ -4146,7 +4185,7 @@ function renderTurnTrack() {
   marked.forEach(({ kind, i, pos, known: isKnown }) => {
     // Carta x/y: il numero del giocatore che l'ha giocata (o "1/2" se non è stato scelto)
     const who = turnCardPlayer(kind, pos);
-    const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J'
+    const mark = el('span', 'ae-turn-mark', kind === 'nemesis' ? 'N' : kind === 'wild' ? 'W'
       : isPairCard(kind) ? (who ? who.slice(1) : kind.slice(1).split('').join('/')) : kind.slice(1));
     mark.setAttribute('aria-hidden', 'true');
     mark.dataset.kind = who || kind;
@@ -4177,28 +4216,21 @@ function renderTurnTrack() {
   // (v212: niente scelta x/y né riquadro mentre la finestra del mazzo dei turni disegna la sua copia della barra)
   if (ui.trackPreview) return;
   renderPairChoice();
-  renderTurnChip();
 }
 
 // --- Mazzo dei turni: finestra unica (v211, al posto del menu e delle tre finestre della v206) ---
-// Carte nemesi dell'app che agiscono sul mazzo dei turni: nel turno nemesi, quando sono la carta da risolvere, sopra il
-// pulsante compare un riquadro con la loro regola e "Apri", che apre la finestra del mazzo dei turni. Le carte dei
-// giocatori (Flare, Quartz Shard, Xaxos...) non sono nell'app: si usa la stessa finestra (tocco sulla barra della fase).
-// La finestra è uno strumento libero: nessun vincolo per carta, le regole le applicano i giocatori.
-const TURN_DECK_CARDS = {
-  'Hissing Acid': { action: 'reveal' },
-  'Sunder': { action: 'shuffle' },
-  'Thunderous Tempest': { action: 'pile' }
-};
+// Si apre toccando la barra della fase. È uno strumento libero: nessun vincolo per carta, le regole delle carte che
+// agiscono sul mazzo dei turni (Hissing Acid, Sunder, Thunderous Tempest, Flare, Quartz Shard, Xaxos...) le applicano i
+// giocatori. (v218: tolto il riquadro sopra il pulsante del turno nemesi per le carte nemesi che agiscono sul mazzo)
 // Carta del mazzo dei turni disegnata come una piccola carta: colore del giocatore (scurito), numero nero al centro;
-// N = nemesi, J = jolly, 1/2 e 3/4 finché non si sa il giocatore. i: posizione negli scarti (drawn), -1 = nel mazzo.
+// N = nemesi, W = wild (v218, prima J = jolly), 1/2 e 3/4 finché non si sa il giocatore. i: posizione negli scarti (drawn), -1 = nel mazzo.
 // order: turnOrder o la bozza della finestra
 function turnCardFace(kind, i, tag = 'span', order = turnOrder) {
   const who = turnCardPlayer(kind, i, order);
   const face = el(tag, 'ae-turn-card');
   face.dataset.kind = who || kind;
   if (kind === 'wild') face.classList.add('is-wild');
-  face.textContent = kind === 'nemesis' ? 'N' : kind === 'wild' ? 'J'
+  face.textContent = kind === 'nemesis' ? 'N' : kind === 'wild' ? 'W'
     : isPairCard(kind) ? (who ? who.slice(1) : pairOptions(kind).map(p => p.slice(1)).join('/')) : kind.slice(1);
   face.setAttribute('aria-label', turnCardName(kind, i, order));
   return face;
@@ -4649,27 +4681,6 @@ function openTurnScreen() {
   draw();
   fitPhaseName(copyShell);
   turnScreen = { dialog, get draft() { return d; }, dirty, tryClose, onCancel };
-}
-
-// Riquadro sopra il pulsante nel turno nemesi, se la carta da risolvere agisce sul mazzo dei turni
-const turnChip = el('div', 'ae-turn-chip');
-turnChip.hidden = true;
-resolveBtn.before(turnChip);
-function renderTurnChip() {
-  const active = resolving && !isDrawStep() ? activeEntry() : null;
-  const effect = active && ui.viewedUid === active.uid ? TURN_DECK_CARDS[active.data.name] : null;
-  turnChip.hidden = !effect;
-  if (!effect) { delete turnChip.dataset.card; return; }
-  const key = active.data.name + ':' + turnOrder.left.length + ':' + turnOrder.drawn.join(',');
-  if (turnChip.dataset.card === key) return;
-  turnChip.dataset.card = key;
-  const nemesisInPile = turnOrder.drawn.filter(k => k === 'nemesis').length;
-  const text = el('span', 'ae-turn-chip-text');
-  if (effect.action === 'reveal') text.append(el('strong', '', I18N_IT.chipReveal), el('span', '', I18N_IT.chipRevealNote));
-  else if (effect.action === 'shuffle') text.append(el('strong', '', I18N_IT.chipShuffle), el('span', '', I18N_IT.chipShuffleNote(nemesisInPile)));
-  else text.append(el('strong', '', I18N_IT.chipPile(nemesisInPile)), el('span', '', I18N_IT.chipPileNote));
-  // v211: il riquadro apre la finestra del mazzo dei turni e basta
-  turnChip.replaceChildren(text, button(I18N_IT.chipOpen, 'primary', () => openTurnScreen()));
 }
 
 // Finestra "Chi gioca questo turno?" (v193): esce una carta 1/2 o 3/4 senza giocatore. Al centro due carte grandi come
@@ -6189,8 +6200,8 @@ const SCENARI = [
     turnOrder: { left: ['p12', 'nemesis', 'p34', 'p12', 'nemesis'], drawn: ['p34'], picks: { 0: 'p4' }, round: 1 }
   },
   {
-    id: 'wild-round', name: 'Jolly e fine giro',
-    desc: '3 giocatori, ultima carta del giro (il jolly è il giocatore 2): "Fine turno · Mischia mazzo"',
+    id: 'wild-round', name: 'Wild e fine giro',
+    desc: '3 giocatori, ultima carta del giro (il wild è il giocatore 2): "Fine turno · Mischia mazzo"',
     players: 3, nemesis: 'Maggoth', phase: 'players', turn: 4, maxTier: 2,
     queue: [{ name: 'Volcanic Zala', hp: 6 }],
     deck: ['Gore', 'Eliminate', 'Crushing Storm'],

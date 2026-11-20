@@ -89,7 +89,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     Queen, Maggot Engine e Mindguzzler in cima, pronto a pescare), Cambio Tier (prima carta di Tier 2 e poi di Tier 3),
     Coda piena (10 carte: minion pieni e danneggiati, poteri da 1 a 4 segnalini, forzati a 5 e 7, non rimovibili e con
     TO DISCARD), Vittoria (un minion a 1 di vita, una carta nel mazzo), Carte 1/2 e 3/4 (4 giocatori, la prossima carta
-    turno è 1/2), Jolly e fine giro (3 giocatori, ultima carta del giro, jolly = giocatore 2), Statistiche piene (turno 8,
+    turno è 1/2), Wild e fine giro (3 giocatori, ultima carta del giro, wild = giocatore 2), Statistiche piene (turno 8,
     giro 3, statistiche riempite), Mazzo nemesi vuoto (un minion in gioco).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
@@ -236,9 +236,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `awaitingTurnCard()` vale anche con `waiting`, `currentTurnCard()` è null, la barra non ha caselle accese (le
       carte già uscite restano passate) e il pulsante è "**Pesca carta turno**" (`drawFirstTurn` estrae la cima e
       toglie l'attesa). Le modifiche non salvate del turno giocatori (`ui.drafts`) si perdono, come a fine turno.
-    Le carte dei giocatori non sono nell'app. Le tre carte nemesi che ci sono (`TURN_DECK_CARDS`: Hissing Acid, Sunder,
-    Thunderous Tempest) quando sono la carta da risolvere mostrano un **riquadro sopra il pulsante**
-    (`renderTurnChip`) con la loro regola e **Apri**, che apre la finestra del mazzo dei turni e basta.
+    Le carte che agiscono sul mazzo dei turni (nemesi: Hissing Acid, Sunder, Thunderous Tempest; giocatori: Flare, Quartz
+    Shard, Xaxos...) non hanno niente di loro nell'app: si usa questa finestra (tocco sulla barra della fase). Il
+    riquadro sopra il pulsante del turno nemesi per le tre carte nemesi (v206-v217, `renderTurnChip`) è stato tolto nella
+    v218.
   - **Fine giro** (v194, `turnRoundOver`, `nextTurnCard`, `shuffleTurnOrder`): all'ultima carta del giro il pulsante è
     "**Fine turno · Mischia mazzo**" (nel turno nemesi "**Metti in gioco · Mischia mazzo**"). Toccandolo il mazzo dei
     turni si mischia (giro nuovo, "Turno N" sale) e parte l'animazione (`playTurnShuffle`): le scritte sotto la barra
@@ -249,9 +250,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   (`awaitingTurnCard`, nessuna carta estratta o, dalla v211, turno annullato; barra tutta grigia) e il pulsante principale è "**Pesca carta turno**"
   (fondo grigio chiaro tenue); toccandolo si estrae il primo turno (`drawFirstTurn`, con undo): se è la nemesi parte
   subito il turno nemesi. Salvataggi vecchi senza mazzo dei turni: giro nuovo con il turno in corso già estratto.
-  - **Jolly** (v179, solo con 3 giocatori): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
-    caso, poi a ogni giro passa al giocatore dopo: (jolly mod 3) + 1, cioè 1→2→3→1. I turni del jolly valgono per quel
-    giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: jolly a caso.
+  - **Wild** (v179, solo con 3 giocatori; si chiamava "Jolly" fino alla v217: dalla v218 la scritta è "**Wild**", la
+    sigla e la carta turno **W** invece di J): è uno dei 3 giocatori (`turnOrder.wild`, 1-3). Al primo giro si sceglie a
+    caso, poi a ogni giro passa al giocatore dopo: (wild mod 3) + 1, cioè 1→2→3→1. I turni del wild valgono per quel
+    giocatore (`turnCardPlayer`): colore, scritta, pulsante e Statistiche maghi. Salvataggi di prima: wild a caso.
   - **Carte 1/2 e 3/4** (v192, wave 4; solo con 4 giocatori): con l'opzione "**Carte turno 1/2 e 3/4**" nelle
     **Opzioni del menu iniziale** (v193; nella v192 era nel Menu della partita; interruttore, attivo di default;
     preferenza del browser `aeonsend-app-0.2-turn-pairs`; a partita in corso vale dal prossimo giro) il mazzo è 1/2,
@@ -287,7 +289,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     giocatore che è jolly in quel giro (`data-owner`); le bianche sono spesse la metà delle colorate (v180: 3px e 6px).
   - Sotto la casella accesa, **sempre centrata** sotto di lei anche alla prima e all'ultima casella (v196; prima lì
     era allineata al bordo della barra): nel turno di un giocatore "**Giocatore N**" nel colore del giocatore (v169); nel turno
-    del jolly "**Jolly · N**" (v179; "Jolly" in bianco dalla v181; dalla v183 solo il numero del giocatore, senza "Giocatore"); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
+    del wild "**Wild · N**" (v179; "Jolly" fino alla v217, poi "Wild"; in bianco dalla v181; dalla v183 solo il numero del giocatore, senza "Giocatore"); nel turno nemesi "**Nemesi · Risolvi**" o "**Nemesi · Pesca**". Nascosta durante "Crea mazzo".
   - Sotto le caselle dei turni già passati nel giro una sigla (v182, `.ae-turn-mark`): **N** = nemesi, **1-4** =
     giocatore, **J** = jolly (bianca), nel colore del turno e velata.
   - Quando dopo un giocatore tocca a un altro giocatore la casella accesa pulsa una volta.
@@ -306,10 +308,15 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     Carapace Queen e Mindguzzler di Prince of Gluttons): entra in gioco **senza vita** (`hp` 0, `turnHp` null,
     `hpSet` false, `makeEntry`) e mostra **"?"** ovunque (box della carta grande e della fascia piccola, finestra,
     riga del turno nemesi) finché non la si imposta una volta (`hpUnset`). Finché è "?" non muore a 0 e non va negli
-    scarti con "Salva modifiche". Si imposta con la finestra della vita che c'è già (tocco sulla carta, anche nel passo
-    Pesca sulla carta NUOVA) o con i comandi sotto la carta grande: si parte da 0 e il **+1 non ha tetto** (né la vita
-    della carta né quella di inizio turno, `hpCap`), anche dopo; −1 / −5 come sempre. Dopo la prima impostazione
-    (`hpSet` true, nella partita, nel salvataggio e nell'undo) valgono le regole normali (a 0 muore). Senza vita di
+    scarti con "Salva modifiche". Si imposta nella **scheda della carta** (la finestra della vita), che si apre:
+    toccando la carta (anche nel passo Pesca sulla carta NUOVA), toccando il **box "?"** (v218, carta grande, fascia
+    piccola, riga del turno nemesi: `unsetHpClick`), con il pulsante **"Imposta la vita"** sotto la carta grande del turno
+    giocatori (al posto di −5 / −1 / +1) e, nel turno nemesi, con il pulsante in basso, che per un minion "?" è
+    **"Imposta la vita"**: il minion **non si mette in gioco** finché la vita non è impostata (v218). Nella scheda di un
+    minion "?" ci sono **−5, −1, +1 e +5** e si parte da 0; con "Conferma modifiche" quella vita diventa la sua **vita
+    massima** (`hpMax`, v218): da lì il +1 non la supera (`hpCap`: nel turno giocatori anche la vita di inizio turno,
+    come gli altri minion). Dopo la prima impostazione (`hpSet` e `hpMax` nella partita, nel salvataggio e nell'undo;
+    salvataggi v214-v217 senza `hpMax`: la più alta tra vita e vita di inizio turno) valgono le regole normali (a 0 muore). Senza vita di
     riferimento niente "/X" (solo "x" e "HP x"). La prima impostazione non conta come danno nelle statistiche dei
     maghi; nelle Statistiche, per un minion ucciso a vita variabile, la vita della carta è "*";
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;

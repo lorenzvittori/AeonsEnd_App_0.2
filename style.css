@@ -1048,6 +1048,8 @@ body { overflow: hidden; }
    stanno tutti: la lista scorre. Prima (colonna flex con altezza limitata) i blocchi scendevano a 64px e le descrizioni
    su più righe uscivano dal blocco */
 .collection-body > * { flex-shrink: 0; }
+/* v218: box della vita "?" (minion a vita variabile da impostare): si tocca e apre la scheda della carta */
+.ae-status-badge.is-unset, .ae-focus-status.is-unset { cursor: pointer; pointer-events: auto; }
 .test-scenario-error { color: #F08A88; font: 600 13px/18px var(--ae-font-ui); }
 .test-scenario-error[hidden] { display: none; }
 /* v213: opzioni del mazzo (Modalità battaglia, Unisci le carte della collezione), sopra la wave */
@@ -1289,15 +1291,6 @@ body { overflow: hidden; }
 .ae-turn-screen-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
 .ae-turn-screen-footer .ae-button { min-width: 0; min-height: 48px; }
 .ae-turn-screen-footer .ae-button--primary { grid-column: 1 / -1; }
-/* Riquadro sopra il pulsante nel turno nemesi: la carta da risolvere agisce sul mazzo dei turni */
-.ae-turn-chip {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 8px 8px 12px; border-radius: 12px;
-  background: rgba(223, 174, 89, .1); border: 1px solid rgba(223, 174, 89, .45);
-}
-.ae-turn-chip[hidden] { display: none; }
-.ae-turn-chip-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; font: 400 12px/16px var(--ae-font-ui); color: var(--ae-text-muted); }
-.ae-turn-chip-text strong { color: var(--ae-text); font: 600 13px/18px var(--ae-font-ui); }
-.ae-turn-chip .ae-button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; }
 /* v200: scelta ridotta nel pulsante grande in basso, diviso in due ("Giocatore x | Giocatore y") */
 /* v202: due pulsanti separati (prima uno solo diviso in due) */
 .ae-pair-dock { display: flex; gap: 10px; width: 100%; }
