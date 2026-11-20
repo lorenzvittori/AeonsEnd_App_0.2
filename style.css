@@ -1044,6 +1044,10 @@ body { overflow: hidden; }
   color: #E9A23B; font: 700 10px/14px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase;
 }
 .test-scenario { gap: 2px; text-align: left; }
+/* v217: nelle schermate a tutto schermo (Test, Opzioni, La mia collezione) i blocchi non si schiacciano quando non ci
+   stanno tutti: la lista scorre. Prima (colonna flex con altezza limitata) i blocchi scendevano a 64px e le descrizioni
+   su più righe uscivano dal blocco */
+.collection-body > * { flex-shrink: 0; }
 .test-scenario-error { color: #F08A88; font: 600 13px/18px var(--ae-font-ui); }
 .test-scenario-error[hidden] { display: none; }
 /* v213: opzioni del mazzo (Modalità battaglia, Unisci le carte della collezione), sopra la wave */
