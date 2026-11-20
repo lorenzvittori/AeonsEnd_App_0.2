@@ -44,6 +44,8 @@ const I18N_IT = {
   types: { Minion: 'Minion', Power: 'Potere', Attack: 'Attacco' },
   hp: (hp, max) => `${hp}/${max}`,
   hpLong: (hp, max) => `${hp} punti vita su ${max}`,
+  hpOnly: hp => `${hp} punti vita`,
+  hpUnknown: 'Vita da impostare: tocca la carta',
   tokens: n => (n === 1 ? '1 token' : `${n} token`),
   tokensLeft: n => (n === 1 ? '1 token rimasto' : `${n} token rimasti`),
   cardOf: (i, n) => `carta ${i} di ${n}`,
@@ -385,7 +387,7 @@ let products = {};
 
 // Scelte della pagina iniziale: giocatori, nemesi (da cui dipende la battaglia) e se usare le Upgraded Basic
 let settings = { players: 2, nemesis: null, includeUpgraded: true };
-// Immagini delle nemesi per il menu (Assets/nemesis/nemesis-art.json, fatto da tools/build-nemesis-art.py):
+// Immagini delle nemesi per il menu (Assets/nemesis/nemesis-art.json, fatto da tools/import-db.py):
 // { "Arachnos": { card, portrait, ratio } }. Facoltativo: se manca, i pulsanti restano senza illustrazione.
 let nemesisArt = {};
 let startOptions = null;
@@ -570,18 +572,14 @@ function cardAllowed(card) {
   return !card.boxCode || ownsProduct(card.boxCode);
 }
 
-// Nemesi con un minion a vita variabile (hpVariable, la decidono i giocatori) nel suo mazzo: per ora (v210) non si
-// può giocare (manca il box per inserire la vita). Si calcola dai dati, non dai nomi.
-function hasVariableMinion(name) {
-  return allCards.some(c => c.category === 'Specific' && c.nemesis === name && c.inNemesisDeck === true
-    && c.type === 'Minion' && c.hpVariable === true);
-}
+// (v210-v213: le nemesi con un minion a vita variabile nel mazzo non si potevano giocare; dalla v214 sì: il minion entra
+// in gioco con la vita "?" e la si imposta nella finestra della vita, vedi makeEntry / hpUnset)
 
-// Un boss si può scegliere solo se ha un prodotto e una battaglia, le sue carte sono nel progetto (senza minion a vita
-// variabile) e il suo prodotto è nella collezione
+// Un boss si può scegliere solo se ha un prodotto e una battaglia, le sue carte sono nel progetto e il suo prodotto è
+// nella collezione
 function isPlayable(info) {
   return !!info.boxCode && info.battle !== null && ownsProduct(productOfNemesis(info))
-    && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name) && !hasVariableMinion(info.name);
+    && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
 }
 
 // --- Opzioni del mazzo (v213), nella pagina Nuova partita sopra la wave ---
@@ -854,7 +852,25 @@ function makeEntry(data) {
   // turnHp: vita del minion all'inizio del turno dei giocatori (per mostrare il danno o la cura del turno)
   // paid: potere con costo pagato (salvato nel turno giocatori), grigio fino al turno nemesi, poi negli scarti
   // bornTurn: turno nemesi in cui la carta è stata pescata (per i turni in gioco dei minion nelle statistiche)
+  // hpSet (v214): minion con vita variabile (data.hpVariable, la decidono i giocatori): entra in gioco senza vita ("?",
+  // hp 0, turnHp null) finché non la si imposta una volta; prima non muore a 0
+  if (isVariableMinion(data)) {
+    return { uid: nextUid++, data, tokens: data.powerTokens, hp: 0, turnHp: null, hpSet: false, isNew: false, paid: false, bornTurn: turn };
+  }
   return { uid: nextUid++, data, tokens: data.powerTokens, hp: data.hp, turnHp: data.hp, isNew: false, paid: false, bornTurn: turn };
+}
+// Minion con vita variabile (v214) e minion la cui vita non è ancora stata impostata ("?")
+function isVariableMinion(data) {
+  return data.type === 'Minion' && data.hpVariable === true;
+}
+function hpUnset(entry) {
+  return isVariableMinion(entry.data) && !entry.hpSet;
+}
+// Tetto del +1: vita della carta e vita di inizio turno (turno giocatori). Minion a vita variabile: nessun tetto
+function hpCap(entry, nemesisTurn) {
+  if (isVariableMinion(entry.data)) return Infinity;
+  if (nemesisTurn) return entry.data.hp;
+  return Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
 }
 
 // Toglie la carta dalla coda e la mette nella pila degli scarti
@@ -893,6 +909,8 @@ function hasHp(entry) {
 
 // Stato numerico della carta in parole (per i lettori di schermo)
 function statusText(entry) {
+  if (hasHp(entry) && hpUnset(entry)) return I18N_IT.hpUnknown;
+  if (hasHp(entry) && typeof entry.data.hp !== 'number') return I18N_IT.hpOnly(entry.hp);
   if (hasHp(entry)) return I18N_IT.hpLong(entry.hp, entry.data.hp);
   if (entry.data.type === 'Power') return I18N_IT.tokens(entry.tokens);
   return '';
@@ -952,7 +970,8 @@ function tokenIcons(n) {
 // Carta che va negli scarti all'inizio del prossimo turno nemesi: potere con costo pagato o minion ucciso (vita 0 salvata).
 // Nel turno giocatori resta in coda, grigia.
 function isGone(entry) {
-  return !!entry.paid || (hasHp(entry) && entry.hp <= 0);
+  // (v214: un minion a vita variabile non ancora impostata non muore a 0)
+  return !!entry.paid || (hasHp(entry) && entry.hp <= 0 && !hpUnset(entry));
 }
 
 // Turno giocatori: modifiche non ancora salvate di una carta (vita in bozza, costo pagato in bozza)
@@ -989,7 +1008,9 @@ function statusBadge(entry) {
   if (hasHp(entry)) {
     badge.classList.add('ae-status-badge--danger');
     // Vita + goccia; con una modifica non ancora salvata: vita / vita prima del danno
-    const hpText = entry.isDraft ? I18N_IT.hp(entry.hp, entry.hpBefore) : String(entry.hp);
+    // (v214: vita variabile non ancora impostata: "?"; in bozza solo "x", senza "/X")
+    const hpText = entry.isDraft ? (hpUnset(entry) ? String(entry.hp) : I18N_IT.hp(entry.hp, entry.hpBefore))
+      : hpUnset(entry) ? '?' : String(entry.hp);
     // Testo lungo (per esempio 13/17): nella fascia piccola il box si allarga e il testo si stringe
     if (hpText.length > 3) badge.classList.add('is-long');
     badge.append(icon('heart'), el('span', '', hpText));
@@ -1348,14 +1369,15 @@ function cardControls(entry) {
       || queueList.querySelector(`.queue-controls [data-uid="${uid}"]`);
     if (target) target.focus({ preventScroll: true });
   };
-  if (hasHp(entry) && entry.hp <= 0) {
+  if (hasHp(entry) && entry.hp <= 0 && !hpUnset(entry)) {
     // Minion ucciso (vita 0 salvata): grigio, va negli scarti al prossimo turno nemesi; si torna indietro con Undo
     box.appendChild(el('p', 'queue-note is-paid', I18N_IT.killedNote));
   } else if (hasHp(entry)) {
     // I tocchi cambiano una bozza, "Salva" sulla carta la conferma (un passo di undo); a 0 con Salva il minion è ucciso.
     // +1 si può usare solo per rimettere vita tolta in questo turno (fino alla vita di inizio turno): altrimenti è oscurato
+    // (v214: minion a vita variabile, si parte da 0 e il +1 non ha tetto)
     const shown = draftHp(entry);
-    const cap = Math.min(entry.data.hp, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
+    const cap = hpCap(entry, false);
     [-5, -1, 1].forEach(step => {
       const key = String(step);
       // −5 con il contorno rosso, diverso da −1 e +1: è il tocco sbagliato più costoso
@@ -1522,11 +1544,15 @@ function saveAllDrafts() {
       const entry = entryByUid(uid);
       if (!entry) return;
       if (d.hp !== undefined) {
-        if (mage && entry.data.type === 'Minion') {
+        // (v214) Prima impostazione della vita di un minion a vita variabile: non è danno; diventa anche la vita di
+        // riferimento del turno
+        const firstSet = hpUnset(entry);
+        if (mage && entry.data.type === 'Minion' && !firstSet) {
           mage.damage += Math.max(0, entry.hp - d.hp);
           if (d.hp <= 0 && entry.hp > 0) mage.kills++;
         }
         entry.hp = d.hp;
+        if (firstSet && d.hp > 0) { entry.hpSet = true; entry.turnHp = d.hp; }
       }
       if (d.paid) {
         if (mage && !entry.paid) mage.powers++;
@@ -1607,7 +1633,8 @@ function openCardDialog(entry) {
 // Annulla, X, Esc o tocco fuori lasciano la vita com'era
 // Riga: "HP x / y" a sinistra, danno o cura della bozza a destra; sotto i pulsanti −5 −1 +1.
 function buildHpPanel(dialog, panel, entry, close) {
-  const max = entry.data.hp;
+  // (v214: minion a vita variabile non ancora impostata: si parte da 0, niente "/X", a 0 non muore)
+  const unset = hpUnset(entry);
   // Turno giocatori: si parte dalla vita in bozza e la conferma scrive una bozza (si salva con "Salva modifiche")
   const original = resolving ? entry.hp : draftHp(entry);
   let draft = original;
@@ -1620,7 +1647,7 @@ function buildHpPanel(dialog, panel, entry, close) {
   row.append(number, delta);
   const controls = el('div', 'ae-hp-controls');
   // Turno giocatori: −5, −1 e +1 (solo fino alla vita di inizio turno); turno nemesi: −1 e +1
-  const cap = resolving ? max : Math.min(max, entry.turnHp === undefined || entry.turnHp === null ? entry.hp : entry.turnHp);
+  const cap = hpCap(entry, resolving);
   const stepButtons = [];
   (resolving ? [-1, 1] : [-5, -1, 1]).forEach(step => {
     const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
@@ -1640,17 +1667,19 @@ function buildHpPanel(dialog, panel, entry, close) {
   // "HP x / X": X è la vita prima del danno (la vita salvata), non la vita massima della carta
   const before = entry.hp;
   function update() {
-    number.textContent = `HP ${draft} / ${before}`;
+    // Vita di riferimento non ancora impostata: solo "HP x" (v214)
+    number.textContent = unset ? `HP ${draft}` : `HP ${draft} / ${before}`;
     const change = draft - original;
+    const dies = draft === 0 && !unset;
     delta.className = 'ae-hp-delta' + (change < 0 ? ' is-loss' : change > 0 ? ' is-gain' : '');
     delta.replaceChildren();
-    if (draft === 0) delta.append(icon('heart'), el('span', '', I18N_IT.willBeDeleted));
-    else if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
+    if (dies) delta.append(icon('heart'), el('span', '', I18N_IT.willBeDeleted));
+    else if (change !== 0 && !unset) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
     stepButtons.forEach(([step, b]) => {
       if (step > 0 && !resolving) { b.disabled = draft >= cap; b.classList.toggle('is-dimmed', draft >= cap); }
     });
-    confirm.textContent = draft === 0 ? I18N_IT.deleteMinion : I18N_IT.confirmHp;
-    confirm.className = 'ae-button ' + (draft === 0 ? 'ae-button--danger' : 'ae-button--primary');
+    confirm.textContent = dies ? I18N_IT.deleteMinion : I18N_IT.confirmHp;
+    confirm.className = 'ae-button ' + (dies ? 'ae-button--danger' : 'ae-button--primary');
   }
 
   function commit() {
@@ -1675,7 +1704,9 @@ function buildHpPanel(dialog, panel, entry, close) {
     const wasResolving = resolving;
     act(() => {
       entry.hp = value;
-      if (value <= 0) {
+      // Prima impostazione della vita di un minion a vita variabile (v214): da qui valgono le regole normali
+      if (unset && value > 0) { entry.hpSet = true; entry.turnHp = value; }
+      if (value <= 0 && !unset) {
         // turno nemesi: esce subito; turno giocatori: resta grigio fino al turno nemesi (isGone)
         if (resolving) removeWhileResolving(entry);
       }
@@ -2133,10 +2164,9 @@ function renderBosses() {
   unavailable.hidden = others.length === 0;
   unavailable.replaceChildren(...others.map(info => {
     // Nemesi che l'app ha (battaglia e carte) ma il cui prodotto non è nella collezione: niente "!", la scritta
-    // "Non in collezione" a destra. Le altre (senza battaglia, senza carte o con un minion a vita variabile, v210)
-    // restano con il "!" rosso.
+    // "Non in collezione" a destra. Le altre (senza battaglia o senza carte) restano con il "!" rosso.
     const notOwned = info.battle !== null && !ownsProduct(productOfNemesis(info))
-      && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name) && !hasVariableMinion(info.name);
+      && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name);
     const li = el('li', 'nemesis-locked' + (notOwned ? ' is-not-owned' : ''));
     li.setAttribute('aria-label', notOwned ? I18N_IT.notInCollectionNemesis(info.name) : I18N_IT.unavailableNemesis(info.name));
     li.appendChild(el('span', '', info.name));
@@ -2783,7 +2813,9 @@ function snapshot() {
     turn,
     deck: deck.map(c => c.id),
     discard: discard.map(c => c.id),
-    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid, bornTurn: e.bornTurn })),
+    queue: queue.map(e => ({ id: e.data.id, tokens: e.tokens, hp: e.hp, turnHp: e.turnHp, isNew: !!e.isNew, paid: !!e.paid, bornTurn: e.bornTurn,
+      // v214: vita impostata (solo i minion a vita variabile)
+      ...(isVariableMinion(e.data) ? { hpSet: !!e.hpSet } : {}) })),
     resolving,
     currentIndex,
     newIndex,
@@ -2810,7 +2842,7 @@ function restore(s) {
   const newQueue = s.queue.map(q => Object.assign(makeEntry(get(q.id)), {
     tokens: q.tokens, hp: q.hp, turnHp: q.turnHp === undefined ? q.hp : q.turnHp, isNew: !!q.isNew, paid: !!q.paid,
     bornTurn: typeof q.bornTurn === 'number' ? q.bornTurn : s.turn
-  }));
+  }, isVariableMinion(get(q.id)) ? { hpSet: !!q.hpSet } : {}));
 
   clearTransition();
   ui.drafts.clear();
@@ -3207,7 +3239,8 @@ function focusStatus(entry) {
   if (hasHp(entry)) {
     status.classList.add('is-hp');
     // Solo la vita attuale: "x/X" si vede solo mentre si fa danno (box del turno giocatori e finestra della vita)
-    status.append(icon('heart'), el('span', '', String(entry.hp)));
+    // (v214: "?" per un minion a vita variabile non ancora impostata)
+    status.append(icon('heart'), el('span', '', hpUnset(entry) ? '?' : String(entry.hp)));
   } else if (entry.data.type === 'Power') {
     status.classList.add('is-token');
     status.appendChild(tokenIcons(entry.tokens));
@@ -5023,7 +5056,8 @@ function statsCardStrip(cards, label) {
     const item = el('button', 'ae-stats-card');
     item.type = 'button';
     item.setAttribute('role', 'listitem');
-    const hp = data.type === 'Minion' && typeof data.hp === 'number' ? data.hp : null;
+    // (v214: minion a vita variabile: "*", come sulla carta)
+    const hp = isVariableMinion(data) ? '*' : data.type === 'Minion' && typeof data.hp === 'number' ? data.hp : null;
     item.setAttribute('aria-label', [data.name, typeName(data), hp !== null ? I18N_IT.statsHp(hp) : ''].filter(Boolean).join(', '));
     item.appendChild(cardArt(data, { thumb: true, lazy: true }));
     if (hp !== null) {

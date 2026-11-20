@@ -120,9 +120,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Le nemesi non giocabili sono in piccoli box non cliccabili: quelle che l'app ha (battaglia e carte) ma fuori dalla
     collezione hanno a destra la scritta "Non in collezione"; le altre (senza battaglia o senza carte) un "!" rosso
     (nella v204 per sbaglio l'icona di divieto, tolta nella v205).
-  - Dalla v210 hanno il "!" (e il dado non le sceglie) anche le nemesi con un **minion a vita variabile** nel mazzo
-    (carta Specific con `inNemesisDeck`, `type` Minion e `hpVariable`, `hasVariableMinion`): oggi Carapace Queen (Maggot
-    Engine) e Prince of Gluttons (Mindguzzler). Manca ancora il box per inserire la vita (ToDo.md).
+  - Nelle v210-v213 avevano il "!" anche le nemesi con un minion a vita variabile nel mazzo (Carapace Queen, Prince of
+    Gluttons); dalla v214 sono giocabili (vedi **Minion a vita variabile** nel turno giocatori).
   - Le nemesi Promo (`boxCode` null) non sono in nessuna wave e non si vedono.
 - **Partite salvate prima della v210** (carte con gli id vecchi): si ignorano e si cancellano senza errori; il
   salvataggio ha ora `version` (`SAVE_VERSION = 2`).
@@ -273,6 +272,16 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     "x/X", con X = la vita che aveva prima del danno (non la vita massima della carta), e sulla carta "HP: −n"; senza
     danno in corso si vede solo la vita. Lo stesso nella finestra della vita ("HP x / X") e, nel turno nemesi, la riga
     sopra la carta mostra solo la vita;
+  - **Minion a vita variabile** (v214; `data.hpVariable`, la vita la decidono i giocatori: oggi Maggot Engine di
+    Carapace Queen e Mindguzzler di Prince of Gluttons): entra in gioco **senza vita** (`hp` 0, `turnHp` null,
+    `hpSet` false, `makeEntry`) e mostra **"?"** ovunque (box della carta grande e della fascia piccola, finestra,
+    riga del turno nemesi) finché non la si imposta una volta (`hpUnset`). Finché è "?" non muore a 0 e non va negli
+    scarti con "Salva modifiche". Si imposta con la finestra della vita che c'è già (tocco sulla carta, anche nel passo
+    Pesca sulla carta NUOVA) o con i comandi sotto la carta grande: si parte da 0 e il **+1 non ha tetto** (né la vita
+    della carta né quella di inizio turno, `hpCap`), anche dopo; −1 / −5 come sempre. Dopo la prima impostazione
+    (`hpSet` true, nella partita, nel salvataggio e nell'undo) valgono le regole normali (a 0 muore). Senza vita di
+    riferimento niente "/X" (solo "x" e "HP x"). La prima impostazione non conta come danno nelle statistiche dei
+    maghi; nelle Statistiche, per un minion ucciso a vita variabile, la vita della carta è "*";
   - **potere con "TO DISCARD":** "Rimuovi · costo pagato" (la carta diventa grigia), con "Annulla" per tornare indietro;
   - **poteri con 4 o 5 token** (v176, ovunque si vedono i token): i token si rimpiccioliscono di 3/n (`zoom`,
     `tokenIcons`), così il box resta largo come con 3 token; dalla v178 lo spazio libero si divide in parti uguali tra
@@ -554,7 +563,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - `nemesis.json`: `name`, `boxCode` (codice del prodotto della nemesi; null per le Promo, mai giocabili), `waveOrder`,
   `battle`, `flagBattle5`, `owned` (dalla v194 non si usa più: la collezione iniziale è vuota).
   - Una nemesi è giocabile (`isPlayable`) se ha `boxCode` e battaglia, il suo prodotto è nella collezione, ha carte
-    Specific e nessun minion a vita variabile nel mazzo (`hasVariableMinion`).
+    Specific.
 - `deck-setup.json`: la tabella del Nemesis Deck Setup.
 - **Immagini:**
   - `Data/Nemesis/...`: scansioni in WebP qualità 90 (larghe al massimo 1640 px), generate dal ponte. Gli originali sono
@@ -576,8 +585,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
     kit): recuperabili dal tag `v147-prima-della-pulizia`.
 - **Nemesi complete:** le 7 di The New Age: Maggoth, Arachnos, Ageless Walker e Fenrix (scatola base); The Wailing,
   The Wanderer e Necroswarm (mini espansioni). Wave 1 (v210): Rageborne, Crooked Mask (scatola base), Horde-Crone (The
-  Depths), Blight Lord e Wayward One (The Nameless); Carapace Queen e Prince of Gluttons hanno le carte ma non sono
-  giocabili (minion a vita variabile). Il Core Set non ha Upgraded: con la sola wave 1, dalla battaglia 2 il mazzo è
+  Depths), Blight Lord e Wayward One (The Nameless); Carapace Queen e Prince of Gluttons (minion a vita variabile)
+  giocabili dalla v214. Il Core Set non ha Upgraded: con la sola wave 1, dalla battaglia 2 il mazzo è
   più corto di quanto dice deck-setup.json (domanda aperta).
 
 ### Script in `tools/` (Python + Pillow, da lanciare dalla cartella del repo)
@@ -588,8 +597,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - `convert-webp.py`: converte JPG/PNG di `Data/` in WebP 90 e aggiorna `cards.json`.
 - `build-thumbs.py`: rifà tutte le miniature. Attenzione: rigenerandole dai WebP cambiano anche quelle esistenti, quindi
   si fa commit solo delle nuove.
-- `build-nemesis-art.py`: legge `Assets/nemesis/src/<Nome>.jpg` e `<Nome> - back.jpg` (esclusi da git) e crea carta,
-  retro, ritaglio e manifest.
+- Le immagini delle nemesi del menu (`Assets/nemesis/`: carta, retro, ritaglio e `nemesis-art.json`) le genera
+  `import-db.py` dal DataBase (commit fa171d5); il vecchio `build-nemesis-art.py` è stato tolto nella v214.
 
 ## 8. Pubblicazione
 
