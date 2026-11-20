@@ -1038,6 +1038,17 @@ body { overflow: hidden; }
 /* Freccia della nemesi scelta: a cavallo del bordo in basso del pulsante. La regola v155 ".nemesis-toggle { position:
    relative }" la rimetteva nel flusso, sotto il pulsante e spostata di altri 13px: per questo sembrava staccata */
 .nemesis-toggle.nemesis-expand { position: absolute; }
+/* v213: opzioni del mazzo (Modalità battaglia, Unisci le carte della collezione), sopra la wave */
+.start-deck-options .ae-switch-row { min-height: 56px; }
+.deck-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.deck-option-label { color: var(--ae-text); font: 600 15px/20px var(--ae-font-ui); }
+.deck-option-note { color: var(--ae-text-muted); font: 500 12px/16px var(--ae-font-ui); }
+.deck-option.is-locked { cursor: not-allowed; }
+.deck-option.is-locked .ae-switch { opacity: .55; }
+.deck-option-lock { margin: 0 0 4px; color: var(--ae-gold); font-size: 13px; line-height: 18px; }
+.deck-option-lock[hidden], .deck-short[hidden] { display: none; }
+/* Riga di avviso prima di "Inizia partita": il mazzo esce più corto di deck-setup.json */
+.deck-short { margin: 0 0 4px; color: var(--ae-gold); font-size: 13px; line-height: 18px; text-align: center; }
 /* "Inizia partita": sopra il pulsante 16px di nero pieno, poi la sfumatura di prima (20px) */
 .start-actions { padding-top: 36px; background: linear-gradient(to bottom, rgba(16, 17, 22, 0), var(--ae-bg) 20px); }
 /* La mia collezione: interruttori delle mini espansioni più piccoli e un po' più a sinistra di quello della wave */

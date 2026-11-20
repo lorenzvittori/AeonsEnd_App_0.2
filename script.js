@@ -166,6 +166,14 @@ const I18N_IT = {
   slideToBuildLabel: 'Crea mazzo: trascina a destra',
   specificTitle: 'Carte Nemesi Specifiche',
   restartGame: 'Ricomincia la partita',
+  // Opzioni del mazzo nella pagina Nuova partita (v213)
+  deckOptions: 'Mazzo nemesi',
+  battleMode: 'Modalità battaglia',
+  battleModeNote: 'Carte della battaglia della nemesi. Spenta: setup standard (battaglia 1, solo Basic)',
+  mergeCollection: 'Unisci le carte della collezione',
+  mergeCollectionNote: 'Basic e Upgraded di tutta la collezione. Spenta: solo della wave della nemesi',
+  mergeLocked: wave => `La wave ${wave} non ha carte Upgraded: si usano quelle della collezione`,
+  deckShort: (have, want) => `Il mazzo avrà ${have} carte Basic e Upgraded invece di ${want}: nella collezione non ce ne sono abbastanza`,
   gameSetupTitle: 'Impostazioni della partita',
   options: 'Opzioni',
   mainMenu: 'Menu iniziale',
@@ -576,29 +584,95 @@ function isPlayable(info) {
     && allCards.some(c => c.category === 'Specific' && c.nemesis === info.name) && !hasVariableMinion(info.name);
 }
 
+// --- Opzioni del mazzo (v213), nella pagina Nuova partita sopra la wave ---
+// battleMode ("Modalità battaglia"): attivo = numeri di deck-setup.json per la battaglia della nemesi (Basic +
+//   Upgraded); spento = setup standard, sempre la riga della battaglia 1 (solo Basic), qualunque sia la battaglia.
+// mergeCollection ("Unisci le carte della collezione"): attivo = Basic e Upgraded da tutti i prodotti della collezione;
+//   spento = solo dai prodotti della collezione della stessa wave della nemesi (scatola base + mini espansioni).
+// Preferenza del browser (DECK_OPTIONS_KEY), ricordata tra le partite e copiata in settings della partita (salvataggio,
+// "Ricomincia la partita"). Salvataggi senza i campi: entrambe attive (come prima della v213); il vecchio
+// settings.includeUpgraded non si usa più.
+const DECK_OPTIONS_KEY = 'aeonsend-app-0.2-deck-options';
+function loadDeckOptions() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(DECK_OPTIONS_KEY)); } catch (err) { /* predefinite */ }
+  return { battleMode: !(saved && saved.battleMode === false), mergeCollection: !(saved && saved.mergeCollection === false) };
+}
+function saveDeckOptions() {
+  try {
+    localStorage.setItem(DECK_OPTIONS_KEY, JSON.stringify({ battleMode: settings.battleMode !== false, mergeCollection: settings.mergeCollection !== false }));
+  } catch (err) { console.warn(err); }
+}
+// Riga di deck-setup.json usata dal mazzo: la battaglia della nemesi o, senza "Modalità battaglia", la battaglia 1
+// (con le Upgraded a 0). null se la nemesi non ha battaglia
+function deckSetupRow(s = settings) {
+  const battleMode = s.battleMode !== false;
+  const battle = deckSetup.battles.find(b => b.battle === (battleMode ? battleOf(s.nemesis) : 1));
+  const row = battle && battle.players[String(s.players)];
+  if (!row) return null;
+  return battleMode ? row : { basic: row.basic, upgradedBasic: { 1: 0, 2: 0, 3: 0 } };
+}
+// Carte Upgraded del mazzo nemesi nei prodotti posseduti di una wave
+function ownedUpgradedInWave(wave) {
+  return allCards.some(c => c.category === 'Upgraded' && c.inNemesisDeck === true && c.boxCode
+    && waveOfCode(c.boxCode) === wave && ownsProduct(c.boxCode));
+}
+// Conflitto (decisione dell'utente): con "Modalità battaglia" la battaglia chiede carte Upgraded ma la wave della
+// nemesi, nella collezione, non ne ha: "Unisci" resta acceso e bloccato. Restituisce la wave (o null se non c'è blocco)
+function mergeLockedWave(s = settings) {
+  if (s.battleMode === false) return null;
+  const info = nemeses.find(n => n.name === s.nemesis);
+  const row = deckSetupRow(s);
+  if (!info || !info.boxCode || !row) return null;
+  const wantsUpgraded = [1, 2, 3].some(t => (row.upgradedBasic[t] || 0) > 0);
+  const wave = waveOfNemesis(info);
+  return wantsUpgraded && !ownedUpgradedInWave(wave) ? wave : null;
+}
+function mergeActive(s = settings) {
+  return s.mergeCollection !== false || !!mergeLockedWave(s);
+}
+// Carte Basic / Upgraded che possono entrare nel mazzo per un Tier: della collezione e, senza "Unisci", della wave
+// della nemesi
+function deckPool(category, tier, s = settings) {
+  const info = nemeses.find(n => n.name === s.nemesis);
+  const wave = info ? waveOfNemesis(info) : null;
+  const merge = mergeActive(s);
+  return allCards.filter(c => c.category === category && c.inNemesisDeck === true && c.tier === tier && cardAllowed(c)
+    && (merge || waveOfCode(c.boxCode) === wave));
+}
+// Carte che mancano rispetto a deck-setup.json (per la riga di avviso prima di "Inizia partita"): { want, have }
+function deckShortfall(s = settings) {
+  const row = deckSetupRow(s);
+  if (!row) return null;
+  let want = 0;
+  let have = 0;
+  [1, 2, 3].forEach(t => {
+    const b = row.basic[t] || 0;
+    const u = row.upgradedBasic[t] || 0;
+    want += b + u;
+    have += Math.min(b, deckPool('Basic', t, s).length) + Math.min(u, deckPool('Upgraded', t, s).length);
+  });
+  return have < want ? { want, have } : null;
+}
+
 // Mazzo per la battaglia del boss scelto (Nemesis Deck Setup): per ogni Tier si estraggono a caso le carte base e
-// potenziate indicate nella tabella e si aggiungono le carte specifiche del nemico di quel Tier.
-// Senza "Include Upgraded Basic" al posto delle potenziate si prendono altrettante carte base diverse, dello stesso
-// Tier: il numero di carte resta uguale.
+// potenziate indicate nella tabella (deckSetupRow, con le opzioni del mazzo) e si aggiungono le carte specifiche del
+// nemico di quel Tier. Se le carte della collezione non bastano, il Tier esce più corto.
 // Ogni Tier è mescolato a parte; si pesca dalla fine, quindi in cima c'è il Tier 1 e in fondo il Tier 3.
-// Restano fuori le carte senza Tier (World Devourer, Rending Claw) e la maledizione dei giocatori.
+// Restano fuori le carte che non sono del mazzo nemesi (inNemesisDeck false: World Devourer, maledizione...).
 // Ultimo mazzo creato: carte prese da ogni mazzo (Tier × Base / Potenziate / Specifiche)
 let deckPlan = [];
 function buildDeck() {
   deckPlan = [];
-  const battle = deckSetup.battles.find(b => b.battle === battleOf(settings.nemesis));
   // Nessuna nemesi giocabile (per esempio collezione vuota, v194): mazzo vuoto, si sceglie dopo
-  const setup = battle && battle.players[String(settings.players)];
+  const setup = deckSetupRow();
   if (!setup) return [];
   const result = [];
   [3, 2, 1].forEach(tier => {
     // solo le carte del mazzo nemesi (inNemesisDeck) di quel Tier
     const ofTier = c => c.inNemesisDeck === true && c.tier === tier;
-    const basicCount = setup.basic[tier] + (settings.includeUpgraded ? 0 : setup.upgradedBasic[tier]);
-    const upgradedCount = settings.includeUpgraded ? setup.upgradedBasic[tier] : 0;
-    // solo le carte dei prodotti della collezione
-    const basic = pickRandom(allCards.filter(c => c.category === 'Basic' && ofTier(c) && cardAllowed(c)), basicCount);
-    const upgraded = pickRandom(allCards.filter(c => c.category === 'Upgraded' && ofTier(c) && cardAllowed(c)), upgradedCount);
+    const basic = pickRandom(deckPool('Basic', tier), setup.basic[tier] || 0);
+    const upgraded = pickRandom(deckPool('Upgraded', tier), setup.upgradedBasic[tier] || 0);
     const specific = allCards.filter(c => c.category === 'Specific' && c.nemesis === settings.nemesis && ofTier(c));
     // Quante carte vengono da ognuno dei 9 mazzi (per la schermata "Crea mazzo")
     deckPlan.push({ tier, kind: 'basic', count: basic.length }, { tier, kind: 'upgraded', count: upgraded.length },
@@ -1683,6 +1757,8 @@ function renderPlayers() {
     b.addEventListener('click', () => {
       settings.players = value;
       renderPlayers();
+      // (le opzioni del mazzo dipendono anche dai giocatori: blocco di "Unisci" e riga di avviso, v213)
+      if (startOptions && document.getElementById('deck-options')) renderDeckOptions();
       container.querySelector('[aria-pressed="true"]').focus();
     });
     return b;
@@ -2084,8 +2160,6 @@ function renderStartChoices() {
   ensureWaveGroup();
   renderWavePills();
   renderBosses();
-  // "Includi carte base potenziate" tolto (per ora non serve): le carte potenziate sono sempre incluse
-  settings.includeUpgraded = true;
 }
 
 // Pagina iniziale in due modi:
@@ -2168,6 +2242,8 @@ function startSetupHead() {
 function setStartMode(mode, focus) {
   const saved = readSave();
   startMode = mode === 'setup' ? 'setup' : 'home';
+  // Pagina Nuova partita: le opzioni del mazzo ripartono dalla preferenza del browser (v213)
+  if (startMode === 'setup') Object.assign(settings, loadDeckOptions());
   const panel = startChoicePanel();
   const home = startHomeActions();
   const isHome = startMode === 'home';
@@ -2216,6 +2292,70 @@ function updateStartActions() {
   startBtn.className = 'ae-button ae-button--full ae-button--primary';
   startBtn.disabled = !settings.nemesis || !battleOf(settings.nemesis);
   startBtn.title = startBtn.disabled ? I18N_IT.chooseNemesis : '';
+  renderDeckOptions();
+}
+
+// Opzioni del mazzo (v213): due interruttori sopra la wave ("Modalità battaglia", "Unisci le carte della collezione"),
+// con il blocco di "Unisci" (mergeLockedWave) e, prima di "Inizia partita", una riga se il mazzo esce più corto
+function deckOptionsGroup() {
+  let group = document.getElementById('deck-options');
+  if (group) return group;
+  group = el('section', 'start-group start-deck-options');
+  group.id = 'deck-options';
+  group.setAttribute('aria-labelledby', 'deck-options-label');
+  const label = el('h2', 'start-label', I18N_IT.deckOptions);
+  label.id = 'deck-options-label';
+  const row = (key, text, note) => {
+    const r = el('label', 'ae-switch-row deck-option');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('role', 'switch');
+    input.dataset.option = key;
+    const sw = el('span', 'ae-switch');
+    sw.setAttribute('aria-hidden', 'true');
+    const texts = el('span', 'deck-option-text');
+    texts.append(el('span', 'deck-option-label', text), el('span', 'deck-option-note', note));
+    r.append(texts, input, sw);
+    input.addEventListener('change', () => {
+      if (input.disabled) return;
+      settings[key] = input.checked;
+      saveDeckOptions();
+      renderDeckOptions();
+    });
+    return r;
+  };
+  const lockNote = el('p', 'start-note deck-option-lock');
+  lockNote.id = 'deck-option-lock';
+  group.append(label, row('battleMode', I18N_IT.battleMode, I18N_IT.battleModeNote),
+    row('mergeCollection', I18N_IT.mergeCollection, I18N_IT.mergeCollectionNote), lockNote);
+  ensureWaveGroup().before(group);
+  return group;
+}
+function renderDeckOptions() {
+  if (!deckSetup || !nemeses.length) return;
+  const group = deckOptionsGroup();
+  const battle = group.querySelector('[data-option="battleMode"]');
+  const merge = group.querySelector('[data-option="mergeCollection"]');
+  const lockNote = group.querySelector('.deck-option-lock');
+  battle.checked = settings.battleMode !== false;
+  const locked = mergeLockedWave();
+  merge.checked = mergeActive();
+  merge.disabled = !!locked;
+  merge.closest('.ae-switch-row').classList.toggle('is-locked', !!locked);
+  merge.setAttribute('aria-describedby', locked ? lockNote.id : '');
+  lockNote.hidden = !locked;
+  lockNote.textContent = locked ? I18N_IT.mergeLocked(waveLabel(locked).split(' - ')[0]) : '';
+  // Riga di avviso prima di "Inizia partita": il mazzo esce più corto di deck-setup.json
+  let warn = document.getElementById('deck-short');
+  if (!warn) {
+    warn = el('p', 'start-note deck-short');
+    warn.id = 'deck-short';
+    warn.setAttribute('role', 'status');
+    startBtn.before(warn);
+  }
+  const short = settings.nemesis ? deckShortfall() : null;
+  warn.hidden = !short;
+  warn.textContent = short ? I18N_IT.deckShort(short.have, short.want) : '';
 }
 
 // Wave nella scelta della nemesi: solo quelle della collezione (se nessuna, tutte)
@@ -2229,7 +2369,7 @@ function buildStartPage() {
   loadCollection();
   startOptions = { players: Object.keys(deckSetup.battles[0].players).map(Number), waves: ownedWaves() };
   const firstPlayable = nemeses.find(isPlayable);
-  settings = { players: startOptions.players[0], nemesis: firstPlayable ? firstPlayable.name : null, includeUpgraded: true };
+  settings = Object.assign({ players: startOptions.players[0], nemesis: firstPlayable ? firstPlayable.name : null }, loadDeckOptions());
   renderStartChoices();
 }
 

@@ -85,6 +85,23 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     "4.1", ...). Una collezione salvata prima della v210 ("4 - The New Age|Shattered Dreams") si converte da sola nei
     codici all'avvio e si risalva (`convertCollectionKey`).
 - **Giocatori:** 2, 3 o 4 (dalle colonne di `deck-setup.json`).
+- **Mazzo nemesi** (v213, `deckOptionsGroup` / `renderDeckOptions`): due interruttori **sopra la wave**, stile degli
+  interruttori della collezione. Sono una **preferenza del browser** (`aeonsend-app-0.2-deck-options`, ricordata tra le
+  partite; la pagina Nuova partita riparte da lì) e si **copiano in `settings`** della partita (`battleMode`,
+  `mergeCollection`): il salvataggio e "Ricomincia la partita" le ripetono; la finestra del nome della nemesi in "Crea
+  mazzo" non le cambia. Salvataggi senza i campi (con il vecchio `includeUpgraded`): entrambe attive.
+  - **Modalità battaglia** (predefinita attiva): attiva = numeri di `deck-setup.json` per la battaglia della nemesi
+    (Basic + Upgraded); spenta = **setup standard**, sempre la riga della **battaglia 1** (solo Basic), qualunque sia la
+    battaglia (`deckSetupRow`).
+  - **Unisci le carte della collezione** (predefinita attiva): attiva = Basic e Upgraded da tutti i prodotti della
+    collezione; spenta = solo dai prodotti della collezione della **stessa wave della nemesi** (scatola base + mini
+    espansioni, `deckPool`).
+  - **Blocco** (`mergeLockedWave`): con la Modalità battaglia attiva, se la battaglia chiede carte Upgraded e nei
+    prodotti posseduti della wave della nemesi non ce ne sono (calcolato dai dati), "Unisci" resta **acceso e
+    bloccato** con sotto "La wave I non ha carte Upgraded: si usano quelle della collezione". Si aggiorna cambiando
+    nemesi, giocatori, opzioni o collezione.
+  - Se il mazzo esce comunque più corto di `deck-setup.json` (`deckShortfall`), prima di "Inizia partita" una riga di
+    avviso: "Il mazzo avrà N carte Basic e Upgraded invece di M…".
 - **Wave:** menu a tendina con una casella per wave (solo quelle della collezione), **anche più di una**
   (`selectedWaves`); resta sempre almeno una wave. Le wave si mostrano in **cifre romane** (`waveLabel`: "IV - The New
   Age": numero romano del codice + nome in `products.json`), qui e nella collezione.
@@ -109,8 +126,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   - Le nemesi Promo (`boxCode` null) non sono in nessuna wave e non si vedono.
 - **Partite salvate prima della v210** (carte con gli id vecchi): si ignorano e si cancellano senza errori; il
   salvataggio ha ora `version` (`SAVE_VERSION = 2`).
-- L'interruttore **Includi carte base potenziate** è stato tolto in v156 (per ora non serve): le Upgraded Basic sono
-  sempre incluse (`settings.includeUpgraded` resta `true`; la logica in `buildDeck` c'è ancora).
+- L'interruttore **Includi carte base potenziate** è stato tolto in v156; dalla v213 la sua logica in `buildDeck`
+  (Upgraded sostituite da Basic) non c'è più: al suo posto le opzioni del mazzo qui sopra.
 
 **Inizio partita**
 - "Inizia partita": la pagina iniziale esce a sinistra e la partita entra da destra.
@@ -473,7 +490,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
   `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
   `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
-- Impostazioni: `settings = { players, nemesis, includeUpgraded }`; collezione in `collection` (Set di codici
+- Impostazioni: `settings = { players, nemesis, battleMode, mergeCollection }` (v213; i salvataggi vecchi possono avere
+  ancora `includeUpgraded`, che si ignora); collezione in `collection` (Set di codici
   prodotto di `products.json`: `"4"` scatola base, `"4.1"` mini espansione; la wave è la parte prima del punto,
   `waveOfCode`).
 - `ui`: stato solo visivo, dichiarato tutto nell'oggetto `ui` in cima (viewedUid, holdUid, isTransitioning con
@@ -481,7 +499,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - **Undo e salvataggio:** `act(fn)` fa `snapshot()` per l'undo, esegue l'azione e salva.
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
   - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione),
-    `aeonsend-app-0.2-background` (sfondo) e `aeonsend-app-0.2-card-back` (dorso delle carte), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48 con in più
+    `aeonsend-app-0.2-background` (sfondo), `aeonsend-app-0.2-card-back` (dorso delle carte) e, dalla v213,
+    `aeonsend-app-0.2-deck-options` (opzioni del mazzo della pagina Nuova partita), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48 con in più
     `version` (v210, `SAVE_VERSION`): `readSave` cancella i salvataggi di un'altra versione.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
@@ -497,9 +516,9 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 ### Regole di gioco nel codice
 
 - **Mazzo** (`buildDeck`): per ogni Tier 1-3 si prendono solo carte con `inNemesisDeck` e quel `tier`: a caso
-  Basic e Upgraded dei prodotti della collezione (`boxCode`), nel numero indicato da
-  `deck-setup.json[battaglia][giocatori]` (se le carte non bastano, il Tier esce più corto), più le carte Specific della
-  nemesi. Ogni Tier è mescolato a parte, con il Tier 1 in cima.
+  Basic e Upgraded dei prodotti della collezione (`boxCode`; senza "Unisci", solo della wave della nemesi: `deckPool`),
+  nel numero indicato dalla riga di `deck-setup.json` (`deckSetupRow`: battaglia della nemesi, o battaglia 1 senza
+  "Modalità battaglia"; se le carte non bastano, il Tier esce più corto), più le carte Specific della nemesi. Ogni Tier è mescolato a parte, con il Tier 1 in cima.
 - **Risoluzione** (`resolveCurrent`): potere con più di 1 token: −1 token e avanti; minion: resta e avanti; attacco o
   potere all'ultimo token: negli scarti.
 - **Pesca** (`drawNewCard`): solo con "Pesca". Il mazzo **non** si rimescola: vuoto = niente pesca.
