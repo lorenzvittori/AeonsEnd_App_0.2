@@ -208,7 +208,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti (colore del
       giocatore, N, J, 1/2 e 3/4 o il giocatore scelto). L'ultima è il **turno in corso**: bordo dorato e scritta
       "in corso".
-    - **Spostamenti**: tenendo premuta una carta per 0,3 s (eventi pointer, dito e mouse) si solleva e segue il dito
+    - **Spostamenti**: una carta si solleva e segue il dito **appena il dito si sposta** (dalla v219, `TURN_DRAG_PX` 6px;
+      prima andava tenuta premuta 0,3 s; eventi pointer, dito e mouse); un tocco senza spostamento la seleziona. Segue il dito
       **ovunque nello schermo** (la finestra non scorre); si evidenziano solo le destinazioni permesse; rilasciata fuori
       da una destinazione valida torna al suo posto. In alternativa si **tocca** (o Invio) la carta e poi la
       destinazione; Esc annulla la selezione. Destinazioni valide: zone **Cima** e **Fondo** e la **rosa** delle carte.

@@ -248,7 +248,7 @@ const I18N_IT = {
   turnDeckCardLabel: (name, n, total) => `${name}, carta ${n} di ${total} dalla cima`,
   turnPileCardLabel: (name, current) => current ? `${name}, turno in corso` : name,
   turnLockedLabel: name => `${name}, turno nemesi in corso: resta negli scarti`,
-  turnHint: 'Tieni premuta una carta scoperta e trascinala, oppure toccala e poi tocca dove metterla.',
+  turnHint: 'Trascina una carta scoperta, oppure toccala e poi tocca dove metterla.',
   turnSelected: name => `Selezionata: ${name}. Tocca dove metterla.`,
   turnShuffleDeck: 'Mescola',
   turnResetAll: 'Annulla tutte le modifiche',
@@ -4333,7 +4333,9 @@ function trackPreviewCopy(d) {
   }
 }
 
-const TURN_HOLD_MS = 300;
+// v219: niente più "tieni premuto" (prima 300ms): la carta parte appena il dito si sposta di TURN_DRAG_PX; un tocco
+// senza spostamento resta un tocco (seleziona la carta)
+const TURN_DRAG_PX = 6;
 let turnScreen = null; // finestra aperta (per le verifiche e per il ridisegno al cambio di misura)
 function openTurnScreen() {
   if (turnDeckBlocked()) return;
@@ -4551,12 +4553,11 @@ function openTurnScreen() {
     if (again) again.focus({ preventScroll: true });
   }
 
-  // Trascinamento: si tiene premuto TURN_HOLD_MS, la carta si solleva e segue il dito
+  // Trascinamento: la carta si solleva e segue il dito appena il dito si sposta (v219, senza tenere premuto)
   function onPointerDown(e) {
     if (e.button > 0 || drag || press) return;
     const card = e.currentTarget;
     press = { card, source: card.dataset.source, index: Number(card.dataset.index), x: e.clientX, y: e.clientY, id: e.pointerId };
-    press.timer = setTimeout(startDrag, TURN_HOLD_MS);
     window.addEventListener('pointermove', onPointerMove, { passive: false });
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerCancel);
@@ -4591,9 +4592,9 @@ function openTurnScreen() {
   }
   function onPointerMove(e) {
     if (press && !drag) {
-      // Il dito si è mosso prima del tempo: non è un trascinamento
-      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.timer); press = null; stopListening(); }
-      return;
+      // Il dito si è spostato: parte il trascinamento (v219); finché è fermo resta un tocco
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < TURN_DRAG_PX) return;
+      startDrag();
     }
     if (!drag) return;
     e.preventDefault();
@@ -4625,7 +4626,7 @@ function openTurnScreen() {
   }
   function endDrag(apply) {
     stopListening();
-    if (press) { clearTimeout(press.timer); press = null; }
+    if (press) press = null;
     if (!drag) return;
     const { source, index, target, ghost } = drag;
     ghost.remove();
