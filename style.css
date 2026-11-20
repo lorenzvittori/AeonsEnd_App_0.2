@@ -1385,6 +1385,10 @@ body { overflow: hidden; }
 /* Testata: a sinistra nome della nemesi e, sotto, battaglia | giocatori | turno; a destra mazzo e scarti, poi il Menu */
 .ae-shell.clear-header > .ae-header { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 10px; padding-left: 16px; }
 .ae-shell.clear-header > .ae-header > .ae-phase { order: 1; justify-self: start; align-items: flex-start; text-align: left; }
+/* v216: il blocco del nome della nemesi non supera la sua colonna (prima si allargava quanto il testo e finiva sotto
+   mazzo e scarti); se il nome non ci sta il carattere scende (script.js fitPhaseName). L'ellissi resta come rete */
+.ae-shell.clear-header > .ae-header > .ae-phase { max-width: 100%; }
+.ae-phase-name--button { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ae-shell.clear-header > .ae-header > .ae-header-piles { order: 2; justify-self: end; margin-left: 0; margin-right: 6px; }
 .ae-shell.clear-header > .ae-header > .ae-menu-button { order: 3; }
 /* Menu iniziale: solo le scritte, senza il box dei pulsanti */

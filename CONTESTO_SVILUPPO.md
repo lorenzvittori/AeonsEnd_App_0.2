@@ -178,6 +178,15 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   sinistra, nome al centro.) Dalla v169 **Turno N** conta i **giri del mazzo dei turni** (`turnOrder.round`, sale a
   ogni rimescolamento; salvataggi della v168: si parte dai turni nemesi giocati), non più i turni nemesi (`turn`, che
   resta per le statistiche e per i turni passati dai minion).
+- **Nome della nemesi con carattere che si adatta alla colonna** (v216, `fitPhaseName`): il blocco del nome (`.ae-phase`)
+  è largo al massimo quanto la sua colonna della griglia (`max-width: 100%`), quindi non finisce più sotto mazzo e
+  scarti. Se a 18px il nome non ci sta, il carattere scende in proporzione finché ci sta tutto, **senza limite
+  inferiore** (Prince of Gluttons: 15,77px a 360, 17,39px a 375, 18px a desktop; il nome più lungo, "Crooked Mask (9 -
+  Beyond the Breach)", 7,43px a 360). I nomi che ci stanno restano a 18px. L'altezza della riga resta 24px (la testata
+  non cambia altezza né posizione) e il letter-spacing in em segue la dimensione. Si ricalcola a ogni `render`, al
+  ridimensionamento (evento `resize` e ResizeObserver sulla testata) e dopo `document.fonts.ready`. Una sola funzione,
+  anche per il nome toccabile di "Crea mazzo" (`.ae-phase-name--button`) e per la copia della testata nella finestra del
+  mazzo dei turni. L'ellissi resta solo come rete di sicurezza: dopo l'adattamento non scatta.
 - **Mazzo dei turni** (v168; `turnOrder` nello stato, nel salvataggio e nell'undo; `drawTurnCard`): 6 carte come nel
   gioco. 2 giocatori: G1, G1, G2, G2; 3 giocatori: G1, G2, G3 e il **jolly** (sceglie il gruppo); 4 giocatori: G1-G4;
   sempre 2 carte nemesi. Alla fine di ogni turno si estrae a caso una carta tra quelle rimaste. Dalla v206 il mazzo è

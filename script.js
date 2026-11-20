@@ -3063,6 +3063,44 @@ function buzz(pattern) {
 }
 
 // Disegna tutto in base allo stato
+// Nome della nemesi in testata (v216): il blocco è largo al massimo quanto la sua colonna (style.css .ae-phase
+// max-width) e, se a 18px il nome non ci sta, il carattere scende in proporzione finché ci sta tutto, senza limite
+// inferiore. L'altezza della riga resta 24px (line-height in px) e il letter-spacing in em segue la dimensione.
+// root: la testata della partita o la sua copia (finestra del mazzo dei turni). Vale anche per il nome toccabile di
+// "Crea mazzo" (.ae-phase-name--button). Si ricalcola a ogni render, al ridimensionamento e dopo il caricamento dei
+// caratteri (document.fonts.ready), così non si misura con il carattere di riserva.
+function fitPhaseName(root = phaseLabel) {
+  const name = root && root.querySelector('.ae-phase-name');
+  if (!name || !name.isConnected) return;
+  name.style.fontSize = '';
+  const style = getComputedStyle(name);
+  const pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  const room = name.clientWidth - pad;
+  const text = name.scrollWidth - pad;
+  // Nome nascosto (pagina iniziale sopra, testata non disegnata) o che ci sta già: carattere di base
+  if (room <= 0 || text <= room + 0.5) return;
+  const base = parseFloat(style.fontSize) || 18;
+  let size = Math.floor(base * room / text * 100) / 100;
+  name.style.fontSize = size + 'px';
+  // Arrotondamenti del testo: si scende ancora di poco finché non c'è più niente di nascosto
+  for (let i = 0; i < 12 && name.scrollWidth > name.clientWidth; i++) {
+    size = Math.floor(size * 98) / 100;
+    name.style.fontSize = size + 'px';
+  }
+}
+window.addEventListener('resize', () => fitPhaseName());
+// (la larghezza della testata cambia anche senza l'evento resize: rotazione, colonna del desktop, barra di scorrimento)
+if (window.ResizeObserver) {
+  let lastHeaderWidth = 0;
+  new ResizeObserver(entries => {
+    const width = Math.round(entries[0].contentRect.width);
+    if (width === lastHeaderWidth) return;
+    lastHeaderWidth = width;
+    fitPhaseName();
+  }).observe(document.getElementById('topbar'));
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitPhaseName());
+
 function render() {
   // Nel turno nemesi l'intestazione ha sempre il numero del turno
   // Tra Undo e Menu: il nome della nemesi della partita, in entrambi i turni
@@ -3136,6 +3174,7 @@ function render() {
     nameBtn.addEventListener('click', openGameSetup);
     phaseName.replaceWith(nameBtn);
   }
+  fitPhaseName();
   if (cancelDraftsBtn) {
     cancelDraftsBtn.hidden = !saving || ui.deckBuilding;
     cancelDraftsBtn.parentElement.hidden = resolving;
@@ -4599,7 +4638,8 @@ function openTurnScreen() {
     if (sel) { sel = null; draw(); return; }
     tryClose();
   }
-  function onResize() { if (!drag) layoutFan(); }
+  // (v216: anche il nome della nemesi nella copia della testata si adatta alla colonna, fitPhaseName)
+  function onResize() { if (!drag) layoutFan(); fitPhaseName(copyShell); }
 
   // Tenendo premuta una carta il telefono non deve aprire il menu del browser
   dialog.addEventListener('contextmenu', e => { if (e.target.closest('.ae-turn-card')) e.preventDefault(); });
@@ -4607,6 +4647,7 @@ function openTurnScreen() {
   dialog.parentNode.classList.add('ae-turn-screen-backdrop');
   window.addEventListener('resize', onResize);
   draw();
+  fitPhaseName(copyShell);
   turnScreen = { dialog, get draft() { return d; }, dirty, tryClose, onCancel };
 }
 
