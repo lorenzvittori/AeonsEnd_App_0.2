@@ -89,7 +89,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     Queen, Maggot Engine e Mindguzzler in cima, pronto a pescare), Cambio Tier (prima carta di Tier 2 e poi di Tier 3),
     Coda piena (10 carte: minion pieni e danneggiati, poteri da 1 a 4 segnalini, forzati a 5 e 7, non rimovibili e con
     TO DISCARD), Vittoria (un minion a 1 di vita, una carta nel mazzo), Carte 1/2 e 3/4 (4 giocatori, la prossima carta
-    turno è 1/2), Wild e fine giro (3 giocatori, ultima carta del giro, wild = giocatore 2), Statistiche piene (turno 8,
+    turno è 1/2), Memoria 1/2 tra i giri (v220: 4 giocatori, memoria p12 = 'p2', la prossima 1/2 la gioca il 2 senza
+    scelta), Wild e fine giro (3 giocatori, ultima carta del giro, wild = giocatore 2), Statistiche piene (turno 8,
     giro 3, statistiche riempite), Mazzo nemesi vuoto (un minion in gioco).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
@@ -275,7 +276,22 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     22%, troppo scuro), con la scritta bianca in grassetto. Dalla v202 sono **due pulsanti separati** (10px tra i due,
     angoli tondi ognuno), non più un pulsante diviso in due. La scelta (`chooseTurnPlayer`) si annulla con l'undo; scelto il giocatore,
     casella, scritta e pulsante prendono il suo colore.
-    L'altra carta x/y del giro va da sola all'altro giocatore (`turnOrder.picks`, posizione nel giro → giocatore).
+    **Memoria per coppia tra i giri** (v220, al posto di "l'altra carta x/y dello stesso giro va all'altro giocatore"):
+    per ogni coppia (1/2 e 3/4) `turnOrder.pairNext` dice a chi tocca la prossima carta della coppia.
+    - "nessuno" (null): quando esce una carta della coppia si sceglie (finestra "Chi gioca questo turno?"); scelto X, la
+      memoria diventa l'altro giocatore della coppia (`chooseTurnPlayer`).
+    - giocatore Y: quando esce una carta della coppia gioca Y **senza scelta** (carta OBBLIGATA, `drawTurnCard`) e la
+      memoria torna a "nessuno".
+    - La memoria si aggiorna quando la carta viene assegnata; **non si azzera** a fine giro né mescolando il mazzo dei
+      turni (`shuffleTurnOrder`); riparte da "nessuno" con Nuova partita e "Ricomincia la partita" (`newGame`). Senza
+      manipolazioni del mazzo dei turni il risultato è identico a prima; cambia quando carte 1/2 o 3/4 tornano nel mazzo
+      o passano al giro dopo.
+    - Turno annullato dalla finestra del mazzo dei turni (carta in corso rimessa nel mazzo): se era SCELTA la memoria
+      torna a "nessuno", se era OBBLIGATA torna a chi l'ha giocata. Una carta della coppia già giocata rimessa nel mazzo
+      non cambia la memoria e torna nel mazzo senza giocatore. Undo riporta memoria e carta allo stato di prima.
+    - Variante spenta a partita in corso: dal giro dopo non ci sono carte 1/2 e 3/4 e la memoria non si usa.
+    - Ogni carta della coppia negli scarti dei turni ricorda chi l'ha giocata: `turnOrder.picks[pos] = { player, forced }`
+      (`pickOf`; i picks di prima della v220 erano stringhe = scelte). `turnCardPlayer` legge solo questo.
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si
     sceglie, quello che si salva non va nelle Statistiche maghi.
 - **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
@@ -537,6 +553,12 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
   `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
   `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
+- Mazzo dei turni: `turnOrder = { left, drawn, round, wild, picks, known, waiting, pairNext }`. Dalla v220
+  `picks = { posizione in drawn: { player: 'p1'..'p4', forced: true|false } }` (solo carte 1/2 e 3/4; prima stringhe)
+  e `pairNext = { p12: null | 'p1' | 'p2', p34: null | 'p3' | 'p4' }` (memoria per coppia). Entrano in snapshot,
+  restore, salvataggio, undo e nella bozza della finestra del mazzo dei turni (`turnDraftFrom`). Salvataggi senza
+  `pairNext`: picks convertiti, la seconda carta della coppia del giro (che prima si deduceva) diventa obbligata e la
+  memoria si ricostruisce dalle carte del giro.
 - Impostazioni: `settings = { players, nemesis, battleMode, mergeCollection }` (v213; i salvataggi vecchi possono avere
   ancora `includeUpgraded`, che si ignora); collezione in `collection` (Set di codici
   prodotto di `products.json`: `"4"` scatola base, `"4.1"` mini espansione; la wave è la parte prima del punto,
@@ -668,7 +690,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   - **Aggiungere uno scenario:** un oggetto in più nell'elenco `SCENARI` (`script.js`, sezione "Modalità test"; i
     campi sono descritti nel commento sopra l'elenco): `id`, `name`, `desc`, `players`, `nemesis`, `phase`
     ('players' / 'nemesis'), `deck` (dalla cima), `queue` (nome o `{ name, hp, tokens, hpSet, bornTurn }`), `discard`,
-    `turnOrder` (`left` dalla cima, `drawn`, `round`, `wild`, `picks`), facoltativi `turnCards`, `pairs`, `turn`,
+    `turnOrder` (`left` dalla cima, `drawn`, `round`, `wild`, `picks` come `{ pos: { player, forced } }`, `pairNext`),
+    facoltativi `turnCards`, `pairs`, `turn`,
     `maxTier`, `stats`. Carte per nome, con `{ name, boxCode }` se il nome è di più carte (oggi Sunder, Needlemaw,
     Doom Aegis, Topple). `buildScenarioState` lo trasforma in una fotografia come `snapshot()` e `restore()` la applica:
     niente altro codice da scrivere. Poi una prova: lo scenario compare nella schermata Test e parte senza errori.

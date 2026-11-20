@@ -699,7 +699,7 @@ function newGame() {
   stats = emptyStats(deck.length);
   stats.startedAt = Date.now();
   // Mazzo dei turni ancora da cominciare (v193): finito "Crea mazzo" si aspetta "Pesca carta turno" (drawFirstTurn)
-  turnOrder = { left: [], drawn: [], round: 0, picks: {}, known: [], waiting: false };
+  turnOrder = { left: [], drawn: [], round: 0, picks: {}, known: [], waiting: false, pairNext: emptyPairNext() };
 }
 // Attesa della carta turno: nessuna carta turno pescata, oppure (v211, waiting) la carta del turno in corso è stata
 // rimessa nel mazzo dalla finestra del mazzo dei turni e il turno è annullato
@@ -751,7 +751,9 @@ function shuffleTurnOrder() {
   // che guardano o riordinano il mazzo dei turni (Hissing Acid, Quartz Shard, Xaxos...) vedono le carte vere
   // known (v211): nessuna carta del mazzo è nota (scoperta) in un giro nuovo
   const left = shuffle(turnOrderCards(settings.players));
-  turnOrder = { left, drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {}, known: left.map(() => false), waiting: false };
+  // pairNext (v220): la memoria delle carte 1/2 e 3/4 NON si azzera a fine giro né quando si mescola
+  turnOrder = { left, drawn: [], round: (turnOrder.round || 0) + 1, wild, picks: {}, known: left.map(() => false), waiting: false,
+    pairNext: emptyPairNext(turnOrder.pairNext) };
 }
 // Turno in corso = ultima carta del giro (v194): finendolo si mischia il mazzo e si aspetta "Pesca la prima carta turno"
 function turnRoundOver() {
@@ -771,7 +773,34 @@ function drawTurnCard(pick) {
   if (Array.isArray(turnOrder.known)) turnOrder.known.splice(at, 1);
   turnOrder.drawn.push(card);
   turnOrder.waiting = false;
+  // Carta 1/2 o 3/4 (v220): se la memoria della coppia dice a chi tocca, gioca lui senza scelta (OBBLIGATA) e la
+  // memoria torna a "nessuno"; altrimenti si sceglie nella finestra "Chi gioca questo turno?" (chooseTurnPlayer)
+  if (isPairCard(card)) {
+    turnOrder.pairNext = emptyPairNext(turnOrder.pairNext);
+    const next = turnOrder.pairNext[card];
+    if (next) {
+      turnOrder.picks = Object.assign({}, turnOrder.picks, { [turnOrder.drawn.length - 1]: { player: next, forced: true } });
+      turnOrder.pairNext[card] = null;
+    }
+  }
   return card;
+}
+
+// --- Carte turno 1/2 e 3/4: memoria per coppia (v220) ---
+// pairNext: { p12: null | 'p1' | 'p2', p34: null | 'p3' | 'p4' } = a chi tocca la prossima carta della coppia (null:
+// si sceglie). Dura tra un giro e l'altro; riparte da "nessuno" con Nuova partita e "Ricomincia la partita" (newGame).
+// picks[pos] = { player, forced } per ogni carta della coppia negli scarti dei turni: chi l'ha giocata e se era scelta
+// (forced false) o obbligata dalla memoria (forced true). I picks di prima della v220 sono stringhe (scelte).
+function emptyPairNext(old) {
+  return { p12: old && old.p12 ? old.p12 : null, p34: old && old.p34 ? old.p34 : null };
+}
+function pickOf(order, i) {
+  const p = order.picks && order.picks[i];
+  if (!p) return null;
+  return typeof p === 'string' ? { player: p, forced: false } : (p.player ? p : null);
+}
+function otherOfPair(kind, player) {
+  return pairOptions(kind).find(p => p !== player) || null;
 }
 
 // --- Mazzo dei turni (v206, finestra unica dalla v211) ---
@@ -799,16 +828,14 @@ function currentTurnCard() {
 }
 // Giocatore a cui va una carta del mazzo dei turni: 'p1'..'p4'; il jolly va al giocatore che è jolly in questo giro
 // (null per la nemesi)
-// Carta x/y (v192): il giocatore scelto (picks, per posizione nel giro); se è stata scelta l'altra carta x/y del giro,
-// questa va all'altro giocatore; altrimenti null (ancora da scegliere). i: posizione della carta in turnOrder.drawn
-// order: turnOrder o la bozza della finestra del mazzo dei turni (v211)
+// Carta x/y (v192; v220): il giocatore che l'ha giocata, scelto o obbligato dalla memoria della coppia (picks, per
+// posizione negli scarti dei turni); null se è ancora da scegliere o se la carta è nel mazzo (i = -1).
+// i: posizione della carta in turnOrder.drawn. order: turnOrder o la bozza della finestra del mazzo dei turni (v211)
 function turnCardPlayer(kind, i = turnOrder.drawn.length - 1, order = turnOrder) {
   if (kind === 'wild') return turnOrder.wild ? 'p' + turnOrder.wild : null;
   if (isPairCard(kind)) {
-    const picks = order.picks || {};
-    if (picks[i]) return picks[i];
-    const j = order.drawn.findIndex((k, x) => x !== i && k === kind && picks[x]);
-    return j >= 0 ? pairOptions(kind).find(p => p !== picks[j]) : null;
+    const pick = i >= 0 ? pickOf(order, i) : null;
+    return pick ? pick.player : null;
   }
   return kind && kind !== 'nemesis' ? kind : null;
 }
@@ -816,7 +843,12 @@ function turnCardPlayer(kind, i = turnOrder.drawn.length - 1, order = turnOrder)
 function chooseTurnPlayer(player) {
   const cur = turnOrder.drawn.length - 1;
   if (resolving || ui.isTransitioning || turnOrder.waiting || !isPairCard(turnOrder.drawn[cur]) || turnCardPlayer(turnOrder.drawn[cur], cur)) return;
-  act(() => { turnOrder.picks = Object.assign({}, turnOrder.picks, { [cur]: player }); });
+  // (v220) Carta SCELTA: la prossima carta della coppia tocca all'altro giocatore (memoria). Undo riporta tutto
+  act(() => {
+    const kind = turnOrder.drawn[cur];
+    turnOrder.picks = Object.assign({}, turnOrder.picks, { [cur]: { player, forced: false } });
+    turnOrder.pairNext = Object.assign(emptyPairNext(turnOrder.pairNext), { [kind]: otherOfPair(kind, player) });
+  });
   render();
   announce(turnTrack.getAttribute('aria-label'));
   nemesisBtn.focus({ preventScroll: true });
@@ -2858,7 +2890,9 @@ function snapshot() {
     maxTierDrawn,
     stats: JSON.parse(JSON.stringify(stats)),
     turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round, wild: turnOrder.wild || null,
-      picks: Object.assign({}, turnOrder.picks),
+      picks: JSON.parse(JSON.stringify(turnOrder.picks || {})),
+      // v220: memoria delle carte 1/2 e 3/4 (a chi tocca la prossima carta della coppia)
+      pairNext: emptyPairNext(turnOrder.pairNext),
       // v211: carte del mazzo note (parallelo a left) e turno annullato in attesa della carta turno
       known: turnOrder.left.map((k, i) => !!(turnOrder.known && turnOrder.known[i])), waiting: !!turnOrder.waiting }
   };
@@ -2945,8 +2979,28 @@ function restore(s) {
     const known = Array.isArray(savedOrder.known) && savedOrder.known.length === turnOrder.left.length ? savedOrder.known : [];
     turnOrder.known = turnOrder.left.map((k, i) => !!known[i]);
     turnOrder.waiting = !!savedOrder.waiting && !resolving && turnOrder.drawn.length > 0;
+    // Carte 1/2 e 3/4 (v220): picks come { player, forced } e memoria per coppia. Salvataggi di prima (picks a stringhe,
+    // senza pairNext): la seconda carta della coppia nel giro non aveva un pick (si deduceva dalla prima): si ricostruisce
+    // come obbligata, e la memoria dalle carte del giro
+    if (savedOrder.pairNext && typeof savedOrder.pairNext === 'object') {
+      const picks = {};
+      Object.keys(turnOrder.picks).forEach(i => { const p = pickOf(turnOrder, Number(i)); if (p) picks[i] = { player: p.player, forced: !!p.forced }; });
+      turnOrder.picks = picks;
+      turnOrder.pairNext = emptyPairNext(savedOrder.pairNext);
+    } else {
+      const picks = {};
+      const next = { p12: null, p34: null };
+      turnOrder.drawn.forEach((kind, i) => {
+        if (!isPairCard(kind)) return;
+        const p = pickOf(turnOrder, i);
+        if (p) { picks[i] = { player: p.player, forced: false }; next[kind] = otherOfPair(kind, p.player); }
+        else if (next[kind]) { picks[i] = { player: next[kind], forced: true }; next[kind] = null; }
+      });
+      turnOrder.picks = picks;
+      turnOrder.pairNext = next;
+    }
   } else {
-    turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1, known: [], waiting: false };
+    turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1, known: [], waiting: false, pairNext: emptyPairNext() };
     drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
   }
 }
@@ -4247,13 +4301,15 @@ function turnDeckBlocked() {
 }
 
 // Bozza della finestra: copia di mazzo (left, left[0] = cima), carte note (known, parallelo a left), scarti (drawn),
-// giocatori scelti (picks) e attesa (waiting: nessun turno in corso). Niente act() finché non si salva.
+// giocatori delle carte 1/2 e 3/4 (picks), memoria delle coppie (pairNext, v220) e attesa (waiting: nessun turno in
+// corso). Niente act() finché non si salva.
 function turnDraftFrom(order) {
   return { left: order.left.slice(), known: order.left.map((k, i) => !!(order.known && order.known[i])),
-    drawn: order.drawn.slice(), picks: Object.assign({}, order.picks), waiting: !!order.waiting };
+    drawn: order.drawn.slice(), picks: JSON.parse(JSON.stringify(order.picks || {})), waiting: !!order.waiting,
+    pairNext: emptyPairNext(order.pairNext) };
 }
 function turnDraftKey(d) {
-  return JSON.stringify([d.left, d.known, d.drawn, d.picks, d.waiting]);
+  return JSON.stringify([d.left, d.known, d.drawn, d.picks, d.waiting, d.pairNext]);
 }
 // Posizione negli scarti della carta del turno in corso (-1 = nessuna)
 function turnDraftCurrent(d) {
@@ -4282,6 +4338,13 @@ const turnDraftOps = {
   pileToDeck(d, pos, where) {
     if (pos < 0 || pos >= d.drawn.length || turnPileLocked(d, pos)) return false;
     const wasCurrent = pos === turnDraftCurrent(d);
+    // Carta 1/2 o 3/4 del turno in corso rimessa nel mazzo (turno annullato, v220): se era SCELTA la memoria della coppia
+    // torna a "nessuno", se era OBBLIGATA torna a chi l'ha giocata. Una carta già giocata (non in corso) non cambia la
+    // memoria: quel turno è stato giocato; torna nel mazzo senza giocatore
+    if (wasCurrent && isPairCard(d.drawn[pos])) {
+      const pick = pickOf(d, pos);
+      if (pick) d.pairNext = Object.assign(emptyPairNext(d.pairNext), { [d.drawn[pos]]: pick.forced ? pick.player : null });
+    }
     const [kind] = takeFromTurnPile(d, [pos]);
     const at = where === 'top' ? 0 : where === 'bottom' ? d.left.length : Math.max(0, Math.min(d.left.length, Number(where) || 0));
     d.left.splice(at, 0, kind);
@@ -4301,7 +4364,8 @@ function saveTurnDraft(d) {
     turnOrder.left = d.left.slice();
     turnOrder.known = d.known.slice();
     turnOrder.drawn = d.drawn.slice();
-    turnOrder.picks = Object.assign({}, d.picks);
+    turnOrder.picks = JSON.parse(JSON.stringify(d.picks));
+    turnOrder.pairNext = emptyPairNext(d.pairNext);
     turnOrder.waiting = !resolving && d.waiting && d.drawn.length > 0;
     if (cancelled) { ui.drafts.clear(); ui.pairMinimized = null; }
   });
@@ -4322,7 +4386,7 @@ function trackPreviewCopy(d) {
   const real = turnOrder;
   ui.trackPreview = true;
   try {
-    turnOrder = Object.assign({}, real, { left: d.left, known: d.known, drawn: d.drawn, picks: d.picks,
+    turnOrder = Object.assign({}, real, { left: d.left, known: d.known, drawn: d.drawn, picks: d.picks, pairNext: d.pairNext,
       waiting: !resolving && d.waiting && d.drawn.length > 0 });
     renderTurnTrack();
     return viewOnlyCopy(turnTrack);
@@ -6142,7 +6206,8 @@ async function prefetchDeckImages() {
 //   discard                   pila degli scarti (dalla prima scartata)
 //   (carte per NOME; { name, boxCode } quando il nome è di più carte, per esempio Sunder "1" e "4")
 //   turnOrder                 { left: dalla cima, drawn: scarti dei turni (l'ultima è il turno in corso), round, wild,
-//                             picks } con 'p1'..'p4', 'wild', 'nemesis', 'p12', 'p34'
+//                             picks: { pos: { player, forced } }, pairNext: { p12, p34 } } con 'p1'..'p4', 'wild',
+//                             'nemesis', 'p12', 'p34' (picks e pairNext: carte 1/2 e 3/4, v220)
 //   turnCards                 (facoltativo) carte del mazzo dei turni per i giri nuovi, al posto di quelle normali
 //   pairs                     (facoltativo) carte 1/2 e 3/4 attive o no solo per lo scenario
 //   turn, maxTier             turni nemesi giocati e Tier più alto già uscito (per la scritta "Tier N")
@@ -6198,7 +6263,18 @@ const SCENARI = [
     players: 4, nemesis: 'Maggoth', phase: 'players', turn: 1, maxTier: 1, pairs: true,
     queue: ['Carriode Colony'],
     deck: ['Drillbeak Wurm', 'Rend', 'Disorient', 'Blind Enigma'],
-    turnOrder: { left: ['p12', 'nemesis', 'p34', 'p12', 'nemesis'], drawn: ['p34'], picks: { 0: 'p4' }, round: 1 }
+    // (v220: il 4 ha scelto la 3/4, quindi la prossima 3/4 tocca al 3; nessuno per la 1/2: si sceglie)
+    turnOrder: { left: ['p12', 'nemesis', 'p34', 'p12', 'nemesis'], drawn: ['p34'], picks: { 0: { player: 'p4', forced: false } },
+      pairNext: { p12: null, p34: 'p3' }, round: 1 }
+  },
+  {
+    id: 'pair-memory', name: 'Memoria 1/2 tra i giri',
+    desc: '4 giocatori: il giocatore 1 ha giocato una 1/2 nel giro prima; la prossima 1/2 è del 2, senza scelta',
+    players: 4, nemesis: 'Maggoth', phase: 'players', turn: 3, maxTier: 1, pairs: true,
+    queue: ['Carriode Colony'],
+    deck: ['Drillbeak Wurm', 'Rend', 'Disorient', 'Blind Enigma'],
+    turnOrder: { left: ['p12', 'nemesis', 'p34', 'p12', 'nemesis'], drawn: ['p34'], picks: { 0: { player: 'p3', forced: false } },
+      pairNext: { p12: 'p2', p34: 'p4' }, round: 2 }
   },
   {
     id: 'wild-round', name: 'Wild e fine giro',
@@ -6286,7 +6362,8 @@ function buildScenarioState(sc) {
     maxTierDrawn: sc.maxTier || 0,
     stats,
     turnOrder: { left: (order.left || []).slice(), drawn: (order.drawn || []).slice(), round: order.round || 1,
-      wild: order.wild || null, picks: Object.assign({}, order.picks), known: (order.left || []).map(() => false), waiting: false }
+      wild: order.wild || null, picks: JSON.parse(JSON.stringify(order.picks || {})), known: (order.left || []).map(() => false),
+      waiting: false, pairNext: emptyPairNext(order.pairNext) }
   };
 }
 // Avvia (o riavvia) uno scenario. Restituisce null se è partito, altrimenti il motivo (per esempio una carta che manca)
