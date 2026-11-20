@@ -70,6 +70,27 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (in una riga: la scritta a
   sinistra e, piccola a destra, la miniatura del dorso scelto, `cardBackChoiceButton` con `compact`; si tocca per la
   griglia) e *Sfondo* (stessa riga con l'anteprima piccola a destra; si tocca per le anteprime di tutti gli sfondi).
+- **Test** (v215, sotto Opzioni, solo scritta come le altre voci): **Modalità test**. Apre la schermata degli
+  **scenari** (`openTestScreen`; nome e una riga di descrizione); toccandone uno parte una partita di test già nello stato
+  dello scenario (`startScenario`). Se una carta dello scenario non è in `cards.json` (o il nome è di più carte senza
+  `boxCode`) lo scenario non parte e sotto il suo nome compare il motivo.
+  - Durante il test, nella testata sotto il nome della nemesi, la scritta **"TEST · <scenario>"** (`.ae-phase-test`,
+    la testata si alza di 8px; non copre comandi). Nel Menu **"Ricomincia lo scenario"** (di nuovo dallo stato iniziale,
+    undo vuoto) e **"Esci dal test"** al posto di "Esci dalla partita" (stessa conferma, poi il menu iniziale). Il tasto
+    Indietro e l'undo funzionano come in partita.
+  - **Isolamento:** con un test in corso (`testRun`) `save()` non scrive niente: la partita salvata vera e "Riprendi
+    partita" non cambiano (la chiave `aeonsend-app-0.2-test-save` non si usa). La collezione non conta (le carte le
+    sceglie lo scenario). Le preferenze non si toccano: lo scenario può solo sostituire, finché dura, le carte 1/2 e 3/4
+    (`testRun.pairs`, letto da `turnPairsOn`) e il mazzo dei turni dei giri nuovi (`testRun.turnCards`, in
+    `turnOrderCards`). Uscendo (`openStart` → `endTest`, anche da "Menu iniziale" della Vittoria) tornano le scelte di
+    prima della pagina iniziale.
+  - **Scenari** (elenco `SCENARI` in `script.js`, sezione "Modalità test"): Carte sul mazzo dei turni (solo carte
+    nemesi nel mazzo dei turni; Hissing Acid, Sunder "4", Thunderous Tempest in cima), Minion a vita variabile (Carapace
+    Queen, Maggot Engine e Mindguzzler in cima, pronto a pescare), Cambio Tier (prima carta di Tier 2 e poi di Tier 3),
+    Coda piena (10 carte: minion pieni e danneggiati, poteri da 1 a 4 segnalini, forzati a 5 e 7, non rimovibili e con
+    TO DISCARD), Vittoria (un minion a 1 di vita, una carta nel mazzo), Carte 1/2 e 3/4 (4 giocatori, la prossima carta
+    turno è 1/2), Jolly e fine giro (3 giocatori, ultima carta del giro, jolly = giocatore 2), Statistiche piene (turno 8,
+    giro 3, statistiche riempite), Mazzo nemesi vuoto (un minion in gioco).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
@@ -623,6 +644,17 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - **Funzioni utili da console:** sono globali, per esempio `queue`, `allCards`, `makeEntry`, `act()`, `render()`,
   `undo()`, `startGame()`, `onNemesisClick()`, `onResolveClick()`, `viewCard()`, `isDrawStep()`, `centredFocusUid()`.
 - Dopo le prove si toglie la partita di test: `localStorage.removeItem('aeonsend-app-0.2-save')`.
+- **Scenari della Modalità test** (v215): servono anche alle verifiche degli operatori, per arrivare subito al momento
+  da provare senza costruire lo stato a mano. Da console: `startScenario(SCENARI.find(s => s.id === 'tier'))`
+  (restituisce `null` se è partito, altrimenti il motivo), `restartScenario()`, `openStart()` per uscire. Il test non
+  salva niente, quindi dopo non c'è da pulire la partita salvata.
+  - **Aggiungere uno scenario:** un oggetto in più nell'elenco `SCENARI` (`script.js`, sezione "Modalità test"; i
+    campi sono descritti nel commento sopra l'elenco): `id`, `name`, `desc`, `players`, `nemesis`, `phase`
+    ('players' / 'nemesis'), `deck` (dalla cima), `queue` (nome o `{ name, hp, tokens, hpSet, bornTurn }`), `discard`,
+    `turnOrder` (`left` dalla cima, `drawn`, `round`, `wild`, `picks`), facoltativi `turnCards`, `pairs`, `turn`,
+    `maxTier`, `stats`. Carte per nome, con `{ name, boxCode }` se il nome è di più carte (oggi Sunder, Needlemaw,
+    Doom Aegis, Topple). `buildScenarioState` lo trasforma in una fotografia come `snapshot()` e `restore()` la applica:
+    niente altro codice da scrivere. Poi una prova: lo scenario compare nella schermata Test e parte senza errori.
 
 ## 10. Punti di ripristino (tag git)
 

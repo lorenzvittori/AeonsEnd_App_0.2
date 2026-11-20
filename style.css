@@ -1038,6 +1038,14 @@ body { overflow: hidden; }
 /* Freccia della nemesi scelta: a cavallo del bordo in basso del pulsante. La regola v155 ".nemesis-toggle { position:
    relative }" la rimetteva nel flusso, sotto il pulsante e spostata di altri 13px: per questo sembrava staccata */
 .nemesis-toggle.nemesis-expand { position: absolute; }
+/* v215: Modalità test. Scritta "TEST · <scenario>" sotto il nome della nemesi nella testata; schermata degli scenari */
+.ae-phase-test {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #E9A23B; font: 700 10px/14px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase;
+}
+.test-scenario { gap: 2px; text-align: left; }
+.test-scenario-error { color: #F08A88; font: 600 13px/18px var(--ae-font-ui); }
+.test-scenario-error[hidden] { display: none; }
 /* v213: opzioni del mazzo (Modalità battaglia, Unisci le carte della collezione), sopra la wave */
 .start-deck-options .ae-switch-row { min-height: 56px; }
 .deck-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
