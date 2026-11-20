@@ -9,6 +9,9 @@
 [ ] rimescolare dagli scarti al mazzo una o più carte a scelta: Nothingness, Sunder, Lash, Talix.
 [ ] rivelare la prima carta e rimetterla in cima o in fondo: Flare, Xaxos’s Flare e Hissing Acid la rimettono solo in cima; Quartz Shard e Lash’s Quartz Shard permettono anche il fondo.
 [ ] rivelare tutto il mazzo e sceglierne l’ordine: Xaxos.
+- Posso cambiare l'ordine solo delle carte nel mazzo turno che ho rivelato nell'istanza attuale.
+- togli Salva Modifiche" ogni modifica è di per se attuata ma tieni Annulla Modifiche 
+
 
 
 # DOMDANDE:
