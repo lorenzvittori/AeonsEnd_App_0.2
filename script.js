@@ -4279,13 +4279,20 @@ function renderTurnTrack() {
 // Carta del mazzo dei turni disegnata come una piccola carta: colore del giocatore (scurito), numero nero al centro;
 // N = nemesi, W = wild (v218, prima J = jolly), 1/2 e 3/4 finché non si sa il giocatore. i: posizione negli scarti (drawn), -1 = nel mazzo.
 // order: turnOrder o la bozza della finestra
+// v221: la faccia è l'immagine della carta vera (Assets/ui/turn-cards/<carta>.webp, style.css [data-card]); sulle carte
+// 1/2, 3/4 e Wild con il giocatore già deciso, un tondino con il suo numero nel suo colore (.ae-turn-card-who)
 function turnCardFace(kind, i, tag = 'span', order = turnOrder) {
   const who = turnCardPlayer(kind, i, order);
   const face = el(tag, 'ae-turn-card');
   face.dataset.kind = who || kind;
+  face.dataset.card = kind;
   if (kind === 'wild') face.classList.add('is-wild');
-  face.textContent = kind === 'nemesis' ? 'N' : kind === 'wild' ? 'W'
-    : isPairCard(kind) ? (who ? who.slice(1) : pairOptions(kind).map(p => p.slice(1)).join('/')) : kind.slice(1);
+  if (who && (isPairCard(kind) || kind === 'wild')) {
+    const badge = el('span', 'ae-turn-card-who', who.slice(1));
+    badge.dataset.kind = who;
+    badge.setAttribute('aria-hidden', 'true');
+    face.appendChild(badge);
+  }
   face.setAttribute('aria-label', turnCardName(kind, i, order));
   return face;
 }

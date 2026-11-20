@@ -206,9 +206,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       Carte coperte (dorso neutro a righe) o scoperte se **note**. Un **occhio al centro della carta in cima** (v212,
       sopra la carta, con la sua inclinazione) la rivela; l'occhio "**Rivela tutto**" sopra il ventaglio rivela tutto
       il mazzo. Ai due capi del ventaglio due **zone di rilascio** ("Fondo" a sinistra, "Cima" a destra).
-    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti (colore del
-      giocatore, N, J, 1/2 e 3/4 o il giocatore scelto). L'ultima è il **turno in corso**: bordo dorato e scritta
-      "in corso".
+    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti. L'ultima è il
+      **turno in corso**: bordo dorato e scritta "in corso".
+    - **Facce delle carte turno** (v221, `turnCardFace`): l'immagine della carta vera, `Assets/ui/turn-cards/<carta>.webp`
+      (p1, p2, p3, p4, p12, p34, nemesis, wild; 252 x 352, WebP 86, ritagliate a 63:88 dalle foto date dall'utente;
+      style.css `.ae-turn-card[data-card]`). Sulle carte 1/2, 3/4 e Wild con il giocatore già deciso un **tondino** in
+      basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`). Anche le due scelte della finestra "Chi
+      gioca questo turno?" sono le carte dei giocatori (`.ae-pair-pick[data-kind]`). Le carte coperte del mazzo restano
+      col dorso neutro a righe.
     - **Spostamenti**: una carta si solleva e segue il dito **appena il dito si sposta** (dalla v219, `TURN_DRAG_PX` 6px;
       prima andava tenuta premuta 0,3 s; eventi pointer, dito e mouse); un tocco senza spostamento la seleziona. Segue il dito
       **ovunque nello schermo** (la finestra non scorre); si evidenziano solo le destinazioni permesse; rilasciata fuori

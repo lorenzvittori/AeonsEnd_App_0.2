@@ -1207,6 +1207,39 @@ body { overflow: hidden; }
 .ae-turn-card[data-kind="nemesis"] { --ae-player: hsl(356 58% 52%); }
 .ae-turn-card[data-kind="p12"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p1) 70%, #000), color-mix(in srgb, var(--ae-turn-p2) 70%, #000)); font-size: 12px; }
 .ae-turn-card[data-kind="p34"] { background: linear-gradient(90deg, color-mix(in srgb, var(--ae-turn-p3) 70%, #000), color-mix(in srgb, var(--ae-turn-p4) 70%, #000)); font-size: 12px; }
+/* v221: carte turno con l'immagine della carta vera (Assets/ui/turn-cards/, 252 x 352); il tondino dice chi ha giocato
+   una carta 1/2, 3/4 o Wild */
+.ae-turn-card[data-card] {
+  border: 0; border-radius: 8% / 6%; color: transparent;
+  background: #1b1d24 var(--ae-turn-face) center / cover no-repeat;
+}
+.ae-turn-card[data-card="p1"] { --ae-turn-face: url('Assets/ui/turn-cards/p1.webp'); }
+.ae-turn-card[data-card="p2"] { --ae-turn-face: url('Assets/ui/turn-cards/p2.webp'); }
+.ae-turn-card[data-card="p3"] { --ae-turn-face: url('Assets/ui/turn-cards/p3.webp'); }
+.ae-turn-card[data-card="p4"] { --ae-turn-face: url('Assets/ui/turn-cards/p4.webp'); }
+.ae-turn-card[data-card="p12"] { --ae-turn-face: url('Assets/ui/turn-cards/p12.webp'); }
+.ae-turn-card[data-card="p34"] { --ae-turn-face: url('Assets/ui/turn-cards/p34.webp'); }
+.ae-turn-card[data-card="nemesis"] { --ae-turn-face: url('Assets/ui/turn-cards/nemesis.webp'); }
+.ae-turn-card[data-card="wild"] { --ae-turn-face: url('Assets/ui/turn-cards/wild.webp'); }
+.ae-turn-card-who {
+  --ae-player: var(--ae-turn-wild);
+  position: absolute; right: -5px; bottom: -5px; min-width: 20px; height: 20px; padding: 0 4px; box-sizing: border-box;
+  display: grid; place-items: center; border-radius: 10px; border: 2px solid #111218; background: var(--ae-player);
+  color: #000; font: 800 11px/1 var(--ae-font-ui);
+}
+.ae-turn-card-who[data-kind="p1"] { --ae-player: var(--ae-turn-p1); }
+.ae-turn-card-who[data-kind="p2"] { --ae-player: var(--ae-turn-p2); }
+.ae-turn-card-who[data-kind="p3"] { --ae-player: var(--ae-turn-p3); }
+.ae-turn-card-who[data-kind="p4"] { --ae-player: var(--ae-turn-p4); }
+/* Finestra "Chi gioca questo turno?": le due scelte sono le carte dei giocatori */
+.ae-pair-pick[data-kind] {
+  border: 0; border-radius: 8% / 6%; color: transparent;
+  background: #1b1d24 var(--ae-turn-face) center / cover no-repeat;
+}
+.ae-pair-pick[data-kind="p1"] { --ae-turn-face: url('Assets/ui/turn-cards/p1.webp'); }
+.ae-pair-pick[data-kind="p2"] { --ae-turn-face: url('Assets/ui/turn-cards/p2.webp'); }
+.ae-pair-pick[data-kind="p3"] { --ae-turn-face: url('Assets/ui/turn-cards/p3.webp'); }
+.ae-pair-pick[data-kind="p4"] { --ae-turn-face: url('Assets/ui/turn-cards/p4.webp'); }
 .ae-turn-subtitle { margin: 0; color: var(--ae-text-muted); font: 700 12px/16px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; }
 .ae-turn-pile-empty, .ae-turn-fan-empty { color: var(--ae-text-muted); font: 400 14px/20px var(--ae-font-ui); }
 /* v211: finestra del mazzo dei turni a tutto schermo (su desktop larga quanto la colonna della partita, --ae-turn-col) */
