@@ -1085,9 +1085,10 @@ body { overflow: hidden; }
    già giocati nel giro; grigie quelle da estrarre. Colori: giocatori 1-4 verde, giallo, blu, viola; jolly grigio
    chiaro; nemesi rosso scuro. Sotto la casella accesa, solo nel turno nemesi, "Nemesi · Risolvi" / "Nemesi · Pesca" */
 :root {
-  /* v174: palette dell'utente (giocatori 1-4: lime, arancio, blu, viola) */
-  --ae-turn-p1: #BDD21C; --ae-turn-p2: #D78E1C; --ae-turn-p3: #1C518D;
-  --ae-turn-p4: #7C158E; --ae-turn-wild: hsl(40 14% 84%); --ae-turn-red: hsl(356 58% 42%);
+  /* v174: palette dell'utente (giocatori 1-4: lime, arancio, blu, viola); v222: nuovi colori dell'utente, presi dalle
+     carte turno vere */
+  --ae-turn-p1: #86811D; --ae-turn-p2: #CF892B; --ae-turn-p3: #007591;
+  --ae-turn-p4: #773067; --ae-turn-wild: hsl(40 14% 84%); --ae-turn-red: hsl(356 58% 42%);
   --ae-turn-red-text: hsl(356 62% 70%); --ae-turn-off: rgba(236, 232, 222, .14);
 }
 .ae-turn-track { flex: 0 0 auto; padding: 10px 16px 0; }
@@ -1098,7 +1099,10 @@ body { overflow: hidden; }
   /* v172: larghezza esplicita (non flex: 1 1 0), così il passaggio a casella accesa si anima da 42px a 104px e non
      da 0. 5 caselle normali + 1 accesa (doppia) + 5 spazi da 6px = 100% */
   /* v184: le 5 caselle normali si dividono lo spazio lasciato dalla casella accesa (122px) e dai 5 spazi da 6px */
-  flex: 0 0 calc((100% - 152px) / 5); min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
+  /* v222: le caselle sono i turni del giro, anche più di 6 (--ae-seg-n, script.js renderTurnTrack): le altre n-1 si
+     dividono lo spazio lasciato dalla casella accesa (122px) e dagli n-1 spazi da 6px */
+  flex: 0 0 calc((100% - 122px - (var(--ae-seg-n, 6) - 1) * 6px) / (var(--ae-seg-n, 6) - 1));
+  min-width: 0; height: 3px; border-radius: 2px; background: var(--ae-turn-off);
   transition: height .3s ease-out, flex-basis .3s ease-out, background-color .3s ease-out, box-shadow .3s ease-out, opacity .3s ease-out;
 }
 .ae-turn-seg[data-kind="p1"] { --ae-seg: var(--ae-turn-p1); }
@@ -1132,7 +1136,7 @@ body { overflow: hidden; }
 }
 .ae-turn-seg[data-pair][data-kind="p12"]::after, .ae-turn-seg[data-pair][data-kind="p34"]::after { opacity: 1; }
 /* v194: nessun turno in corso (attesa della carta turno, mazzo appena mischiato): 6 caselle uguali */
-.ae-turn-track-bar.is-idle .ae-turn-seg { flex-basis: calc((100% - 30px) / 6); }
+.ae-turn-track-bar.is-idle .ae-turn-seg { flex-basis: calc((100% - (var(--ae-seg-n, 6) - 1) * 6px) / var(--ae-seg-n, 6)); }
 /* v194: mazzo dei turni mischiato: scritte e sigle sotto la barra svaniscono */
 .ae-turn-labels > * { transition: opacity .3s ease-out; }
 .ae-turn-track.is-shuffling .ae-turn-labels > * { opacity: 0 !important; }
@@ -1302,10 +1306,12 @@ body { overflow: hidden; }
 /* Carte che si spostano: tenere premuto per trascinare, oppure tocco per selezionare */
 .ae-turn-card.is-movable { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .ae-turn-card.is-selected { outline: 3px solid var(--ae-gold); outline-offset: 2px; }
-.ae-turn-card.is-dragging, .ae-turn-fan .ae-turn-card.is-lifted { opacity: .25; }
+/* v222: mentre si trascina nessuna carta diventa trasparente: la carta resta al 100% anche nel posto dove cadrà (nella
+   rosa, con il bordo dorato tratteggiato); quella che segue il dito sta sopra il dito, con un bordo dorato */
+.ae-turn-fan .ae-turn-card.is-lifted { outline: 2px dashed var(--ae-gold); outline-offset: 2px; }
 .ae-turn-ghost {
   position: fixed; z-index: 1000; margin: 0; pointer-events: none; transition: none; transform-origin: center;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .55); outline: none;
+  box-shadow: 0 0 0 3px var(--ae-gold), 0 12px 28px rgba(0, 0, 0, .55); outline: none;
 }
 .ae-turn-hint { margin: 0; color: var(--ae-text-muted); font: 400 13px/18px var(--ae-font-ui); }
 /* v212: mentre si trascina la finestra non scorre (la carta si porta ovunque nello schermo) */
@@ -1318,6 +1324,9 @@ body { overflow: hidden; }
   margin: calc(-12px - var(--ae-safe-top)) -16px 0; pointer-events: none;
 }
 .ae-shell.ae-turn-copy::before { display: none; }
+/* v222: la copia è ferma come l'originale: nessuna animazione o transizione (prima, aprendo la finestra dopo uno scarto,
+   la copia della pila degli scarti rifaceva il lampo .is-bump e la barra le sue transizioni) */
+.ae-turn-copy, .ae-turn-copy * { animation: none !important; transition: none !important; }
 /* (da 768px la finestra ha un bordo di 1px a destra e a sinistra) */
 @media (min-width: 768px) { .ae-shell.ae-turn-copy { margin-left: -17px; margin-right: -17px; } }
 .ae-turn-copy .ae-turn-track { cursor: default; }
@@ -1429,6 +1438,11 @@ body { overflow: hidden; }
 .start-home .ae-button--secondary { color: var(--ae-text); }
 .start-home .ae-button:hover:not(:disabled), .start-choice .start-choice-resume:hover { filter: none; text-decoration: underline; text-underline-offset: 6px; }
 .start-home { gap: 4px; }
+/* v222: nel menu iniziale la voce "Test" sta in fondo allo schermo, staccata dalle altre (la pagina è alta quanto lo
+   schermo e il gruppo dei pulsanti occupa lo spazio che resta) */
+.start-screen:not(.is-setup) .start-box { min-height: 100%; }
+.start-screen:not(.is-setup) .start-home { flex: 1 1 auto; }
+.start-home .start-home-test { margin-top: auto; margin-bottom: 12px; }
 /* La mia collezione: Seleziona tutto / Deseleziona tutto */
 .collection-bulk { display: flex; gap: 8px; }
 .collection-bulk .ae-button { flex: 1 1 0; min-width: 0; min-height: 44px; font-size: 14px; }

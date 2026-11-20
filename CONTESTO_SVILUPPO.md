@@ -70,7 +70,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Opzioni:** *La mia collezione* (con il riepilogo wave · prodotti), *Dorso delle carte* (in una riga: la scritta a
   sinistra e, piccola a destra, la miniatura del dorso scelto, `cardBackChoiceButton` con `compact`; si tocca per la
   griglia) e *Sfondo* (stessa riga con l'anteprima piccola a destra; si tocca per le anteprime di tutti gli sfondi).
-- **Test** (v215, sotto Opzioni, solo scritta come le altre voci): **Modalità test**. Apre la schermata degli
+- **Test** (v215, solo scritta come le altre voci; dalla v222 in fondo allo schermo, staccata dalle altre voci:
+  `.start-home-test` con `margin-top: auto`, la pagina iniziale è alta quanto lo schermo): **Modalità test**. Apre la schermata degli
   **scenari** (`openTestScreen`; nome e una riga di descrizione); toccandone uno parte una partita di test già nello stato
   dello scenario (`startScenario`). Se una carta dello scenario non è in `cards.json` (o il nome è di più carte senza
   `boxCode`) lo scenario non parte e sotto il suo nome compare il motivo.
@@ -205,9 +206,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       **sempre sovrapposte** (v212: passo al massimo il 62% della carta, anche con poche carte, gruppo centrato).
       Carte coperte (dorso neutro a righe) o scoperte se **note**. Un **occhio al centro della carta in cima** (v212,
       sopra la carta, con la sua inclinazione) la rivela; l'occhio "**Rivela tutto**" sopra il ventaglio rivela tutto
-      il mazzo. Ai due capi del ventaglio due **zone di rilascio** ("Fondo" a sinistra, "Cima" a destra).
-    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti. L'ultima è il
-      **turno in corso**: bordo dorato e scritta "in corso".
+      il mazzo e, con tutto scoperto, diventa "**Copri tutto**" (v222, ricopre tutto senza mescolare). Ai due capi del
+      ventaglio due **zone di rilascio** ("Fondo" a sinistra, "Cima" a destra).
+    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti. La carta del
+      **turno in corso** (se è ancora negli scarti): bordo dorato e scritta "in corso".
+    - **Testata e barra copiate** in cima: ferme come l'originale (v222: niente animazioni né transizioni nella copia; prima
+      la copia della pila degli scarti rifaceva il lampo dello scarto). Mazzo, scarti e barra non si toccano.
     - **Facce delle carte turno** (v221, `turnCardFace`): l'immagine della carta vera, `Assets/ui/turn-cards/<carta>.webp`
       (p1, p2, p3, p4, p12, p34, nemesis, wild; 252 x 352, WebP 86, ritagliate a 63:88 dalle foto date dall'utente;
       style.css `.ae-turn-card[data-card]`). Sulle carte 1/2, 3/4 e Wild con il giocatore già deciso un **tondino** in
@@ -217,7 +221,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Spostamenti**: una carta si solleva e segue il dito **appena il dito si sposta** (dalla v219, `TURN_DRAG_PX` 6px;
       prima andava tenuta premuta 0,3 s; eventi pointer, dito e mouse); un tocco senza spostamento la seleziona. Segue il dito
       **ovunque nello schermo** (la finestra non scorre); si evidenziano solo le destinazioni permesse; rilasciata fuori
-      da una destinazione valida torna al suo posto. In alternativa si **tocca** (o Invio) la carta e poi la
+      da una destinazione valida torna al suo posto. Dalla v222 la carta trascinata sta **sopra il dito** (centrata, il
+      bordo inferiore 16px sopra il dito) con un **bordo dorato**, e conta dove sta la carta (il suo centro), non il dito;
+      nessuna carta diventa trasparente (nella rosa il posto dove cadrà ha la carta al 100% con un bordo tratteggiato). In alternativa si **tocca** (o Invio) la carta e poi la
       destinazione; Esc annulla la selezione. Destinazioni valide: zone **Cima** e **Fondo** e la **rosa** delle carte.
       - Carta del mazzo **solo se nota**, **solo dentro il mazzo** (le altre carte si spostano per fare posto; o sulle
         zone Cima/Fondo); la carta in cima appena rivelata si porta così in fondo.
@@ -225,8 +231,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         si allarga e lascia il posto; col tocco: carta degli scarti, poi una carta della rosa). Nel mazzo resta **nota**
         e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
-      - vietati: mazzo → scarti, scarti → scarti, carta coperta. Nel **turno nemesi** la carta in corso **non si
-        sposta** (simbolo di divieto): non si annulla un turno nemesi a metà.
+      - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
+        spostava; dalla v222 si sposta anche lei, perché il turno continua.)
     - **Bozza**: tutto resta nella finestra (copia di left, known, drawn, picks e attesa, `turnDraftFrom`) finché non si
       preme **Salva modifiche** = **un solo** `act()` (un passo di undo, `saveTurnDraft`). **Annulla tutte le
       modifiche** torna allo stato di apertura (la finestra resta aperta). **Mescola** mischia il mazzo e lo ricopre
@@ -235,14 +241,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Carte note** (`turnOrder.known`, array di true/false **parallelo a `left`**, segue gli spostamenti e
       `drawTurnCard`): nello stato, nel salvataggio e nell'undo; si azzerano con Mescola e a ogni giro nuovo
       (`shuffleTurnOrder`); un salvataggio senza il campo = nessuna carta nota. Riaprendo la finestra restano scoperte.
-      Dalla v212 (dopo "Salva") si vedono anche nella **barra della fase**: le caselle dopo le carte uscite sono le
-      carte del mazzo in ordine (casella `drawn.length + j` = `left[j]`); quelle note hanno il colore del giocatore
-      **tenue** (`.ae-turn-seg.is-known`) e sotto la sigla (1-4, N, J, 1/2) più chiara (`.ae-turn-mark.is-known`).
-    - **Turno in corso rimesso nel mazzo** (solo nel turno giocatori): salvando, il turno è **annullato**
-      (`turnOrder.waiting = true`, nel salvataggio e nell'undo). L'app va in **attesa** come a inizio giro:
-      `awaitingTurnCard()` vale anche con `waiting`, `currentTurnCard()` è null, la barra non ha caselle accese (le
-      carte già uscite restano passate) e il pulsante è "**Pesca carta turno**" (`drawFirstTurn` estrae la cima e
-      toglie l'attesa). Le modifiche non salvate del turno giocatori (`ui.drafts`) si perdono, come a fine turno.
+      Dalla v212 (dopo "Salva") si vedono anche nella **barra dei turni**: le caselle dopo i turni del giro sono le
+      carte del mazzo in ordine; quelle note hanno il colore del giocatore **tenue** (`.ae-turn-seg.is-known`) e sotto
+      la sigla (1-4, N, W, 1/2) più chiara (`.ae-turn-mark.is-known`). Dalla v222 per le 1/2 e 3/4 note il giocatore è
+      quello dedotto dalla memoria delle coppie (`predictedPairPlayers`), se si sa.
+    - **Carta degli scarti rimessa nel mazzo** (v222): il turno giocato con quella carta **resta** nella barra come turno
+      passato e la carta compare anche come turno futuro. Anche la carta del **turno in corso**: il turno **continua**
+      (per esempio "Giocatore 4" resta acceso) e la carta diventa un turno futuro. Nelle v211-v221 il turno si annullava
+      (`turnOrder.waiting`, attesa di "Pesca carta turno"); `waiting` resta solo per leggere quei salvataggi.
     Le carte che agiscono sul mazzo dei turni (nemesi: Hissing Acid, Sunder, Thunderous Tempest; giocatori: Flare, Quartz
     Shard, Xaxos...) non hanno niente di loro nell'app: si usa questa finestra (tocco sulla barra della fase). Il
     riquadro sopra il pulsante del turno nemesi per le tre carte nemesi (v206-v217, `renderTurnChip`) è stato tolto nella
@@ -291,16 +297,24 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       turni (`shuffleTurnOrder`); riparte da "nessuno" con Nuova partita e "Ricomincia la partita" (`newGame`). Senza
       manipolazioni del mazzo dei turni il risultato è identico a prima; cambia quando carte 1/2 o 3/4 tornano nel mazzo
       o passano al giro dopo.
-    - Turno annullato dalla finestra del mazzo dei turni (carta in corso rimessa nel mazzo): se era SCELTA la memoria
-      torna a "nessuno", se era OBBLIGATA torna a chi l'ha giocata. Una carta della coppia già giocata rimessa nel mazzo
-      non cambia la memoria e torna nel mazzo senza giocatore. Undo riporta memoria e carta allo stato di prima.
+    - Carta della coppia rimessa nel mazzo dalla finestra del mazzo dei turni (anche quella del turno in corso, dalla v222):
+      la memoria **non cambia** (quel turno è stato giocato) e la carta torna nel mazzo senza giocatore. Esempio: il 4 ha
+      scelto la 3/4 (memoria "tocca al 3") e la rimette in cima durante il suo turno: il turno del 4 continua e la 3/4
+      in cima è del 3 (la barra lo mostra già, dedotto). (v220-v221: rimettere la carta in corso annullava il turno e
+      riportava la memoria a prima.) Undo riporta memoria e carta allo stato di prima.
     - Variante spenta a partita in corso: dal giro dopo non ci sono carte 1/2 e 3/4 e la memoria non si usa.
     - Ogni carta della coppia negli scarti dei turni ricorda chi l'ha giocata: `turnOrder.picks[pos] = { player, forced }`
       (`pickOf`; i picks di prima della v220 erano stringhe = scelte). `turnCardPlayer` legge solo questo.
     Sigla sotto la casella passata: il numero del giocatore (o "1/2" / "3/4" se non era stato scelto). Finché non si
     sceglie, quello che si salva non va nelle Statistiche maghi.
-- **Barra della fase** (v168; `renderTurnTrack`, `.ae-turn-track`), subito sotto la testata: **6 caselle**, una per
-  carta del mazzo dei turni, nell'ordine di estrazione.
+- **Barra dei turni** (v168, chiamata "barra della fase" fino alla v221; `renderTurnTrack`, `.ae-turn-track`), subito
+  sotto la testata. Dalla v222 è la **storia dei turni del giro** (`turnOrder.history`), non la fila delle carte: prima
+  i turni giocati, poi il turno in corso, poi le carte del mazzo dei turni (turni futuri). Una carta rimessa nel mazzo
+  resta come turno passato e compare anche come futura, quindi le caselle possono essere **più di 6**: si stringono
+  (`--ae-seg-n`; la casella accesa resta 122px). La storia riparte vuota a ogni giro. (Fino alla v221: 6 caselle, una
+  per carta del mazzo dei turni, nell'ordine di estrazione.)
+  - **Colori dei giocatori** (v222, dalle carte turno vere): 1 `#86811D`, 2 `#CF892B`, 3 `#007591`, 4 `#773067`
+    (`--ae-turn-p1..p4`, style.css).
   - La casella del turno in corso è **accesa** (8px, colore pieno e un bagliore leggero: dalla v203 4px al 25%, prima 12px al 60%) e più lunga delle altre: dalla v184
     **122px fissi**, abbastanza per la scritta più lunga ("Nemesi · Risolvi", circa 114px); le altre 5 si dividono lo
     spazio che resta (circa 38px su un telefono da 375px). (v170: il doppio di una casella normale.) Quelle dei turni già giocati nel giro
@@ -558,7 +572,11 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
   `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
   `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
-- Mazzo dei turni: `turnOrder = { left, drawn, round, wild, picks, known, waiting, pairNext }`. Dalla v220
+- Mazzo dei turni: `turnOrder = { left, drawn, round, wild, picks, known, waiting, pairNext, history }`. Dalla v222
+  `history = [{ kind, player, forced, pos }]`: un turno per ogni carta pescata nel giro (l'ultimo è il turno in corso,
+  `currentTurn()`; `pos` = posizione negli scarti dei turni o null se la carta è tornata nel mazzo); salvataggi senza:
+  un turno per ogni carta negli scarti (`historyFromPile`). `currentTurnCard()` e `turnCardPlayer(kind)` senza
+  posizione leggono il turno in corso dalla storia. Dalla v220
   `picks = { posizione in drawn: { player: 'p1'..'p4', forced: true|false } }` (solo carte 1/2 e 3/4; prima stringhe)
   e `pairNext = { p12: null | 'p1' | 'p2', p34: null | 'p3' | 'p4' }` (memoria per coppia). Entrano in snapshot,
   restore, salvataggio, undo e nella bozza della finestra del mazzo dei turni (`turnDraftFrom`). Salvataggi senza
