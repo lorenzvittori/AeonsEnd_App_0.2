@@ -30,13 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Solo i file che servono al sito (niente tools/, README, .gitignore)
+      # Solo i file che servono al sito (niente tools/, package.json, node_modules, README, .gitignore)
       - name: Prepara i file del sito
         run: |
           mkdir _site
           cp index.html script.js style.css version.json cards.json products.json deck-setup.json nemesis.json sw.js manifest.webmanifest _site/
+          # js/: il codice dell'app, caricato in ordine da script.js
           # scheletri/: pagina con lo scheletro dell'app misurato dal vivo (non fa parte dell'app)
-          cp -r css Assets Data thumbs scheletri _site/
+          cp -r js css Assets Data thumbs scheletri _site/
           du -sh _site
 
       - uses: actions/configure-pages@v5

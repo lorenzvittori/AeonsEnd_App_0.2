@@ -12,3 +12,6 @@ Assets/nemesis/src/
 
 # Immagini dell'anteprima dei ritagli nemesi (si rifanno con: python tools/import-db.py --anteprima)
 tools/anteprima-nemesi/*.webp
+
+# Strumenti di sviluppo con Node (tools/check-js-order.mjs usa acorn): i pacchetti si installano con npm install
+node_modules/
