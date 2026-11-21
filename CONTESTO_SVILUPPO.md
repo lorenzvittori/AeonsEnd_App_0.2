@@ -243,7 +243,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       (`.is-old`, `filter: brightness(.4)`) e **ferme**, tranne quando sono **in cima** (`turnDeckMovable`). Le carte
       scoperte o rimesse nel mazzo mentre la finestra è aperta restano chiare e spostabili fino alla chiusura.
     - **Mescola** (v224) sta **sotto il mazzo, al centro** (`.ae-turn-shuffle-row`), con un'**animazione**: le carte
-      si raccolgono al centro, si mischiano due volte (metà a sinistra e metà a destra) e si riaprono coperte (`runShuffle`,
+      si raccolgono al centro raddrizzandosi (v225: si animano anche inclinazione e arco, al centro sono tutte
+      verticali), si mischiano due volte (metà a sinistra e metà a destra) e si riaprono coperte (`runShuffle`,
       proprietà CSS `translate` con Web Animations; finestra non toccabile durante, `.is-shuffling`).
     - **Apertura e chiusura** (v224): la copia della testata e della barra resta ferma (opaca, sopra) e tutto il resto è
       un **foglio** (`.ae-turn-sheet`) che **scende da sotto la barra dei turni** (`translateY(-100%)` → 0, 320ms); la

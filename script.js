@@ -4892,9 +4892,12 @@ function openTurnScreen() {
     dialog.classList.add('is-shuffling');
     const cx = g.offset + (g.n - 1) * g.step / 2;
     const toCenter = c => (cx - parseFloat(c.style.left)) + 'px';
-    const gather = fanEls.map(c => c.animate([{ translate: '0 0' }, { translate: toCenter(c) + ' 0' }],
-      { duration: 200, easing: 'ease-in', fill: 'forwards' }));
-    animDone(gather, 200).then(() => {
+    // v225: anche l'inclinazione e l'arco del ventaglio si animano: al centro le carte sono tutte dritte
+    const fanT = c => `translateY(${c.style.getPropertyValue('--ae-fan-y') || '0px'}) rotate(${c.style.getPropertyValue('--ae-fan-rot') || '0deg'})`;
+    const gather = fanEls.map(c => c.animate([{ translate: '0 0', transform: fanT(c) },
+      { translate: toCenter(c) + ' 0', transform: 'translateY(0px) rotate(0deg)' }],
+      { duration: 220, easing: 'ease-in', fill: 'forwards' }));
+    animDone(gather, 220).then(() => {
       if (closing || !dialog.isConnected) { shuffling = false; return; }
       turnDraftOps.shuffle(d);
       sel = null;
@@ -4904,9 +4907,11 @@ function openTurnScreen() {
         const dx = toCenter(c);
         const side = (i % 2 ? 1 : -1) * s;
         const off = `calc(${dx} + ${side}px) -6px`;
+        const flat = 'translateY(0px) rotate(0deg)';
         return c.animate([
-          { translate: dx + ' 0', offset: 0 }, { translate: off, offset: .16 }, { translate: dx + ' 0', offset: .32 },
-          { translate: off, offset: .48 }, { translate: dx + ' 0', offset: .64 }, { translate: '0 0', offset: 1 }
+          { translate: dx + ' 0', transform: flat, offset: 0 }, { translate: off, transform: flat, offset: .16 },
+          { translate: dx + ' 0', transform: flat, offset: .32 }, { translate: off, transform: flat, offset: .48 },
+          { translate: dx + ' 0', transform: flat, offset: .64 }, { translate: '0 0', transform: fanT(c), offset: 1 }
         ], { duration: 820, easing: 'ease-in-out' });
       });
       return animDone(riffle, 820);
