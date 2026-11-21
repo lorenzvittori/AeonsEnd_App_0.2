@@ -4424,14 +4424,16 @@ const turnDraftOps = {
   revealTop(d) { if (d.left.length) d.known[0] = true; },
   revealAll(d) { d.known = d.left.map(() => true); },
   // v222: "Copri tutto" (dopo "Rivela tutto"): tutto il mazzo torna coperto, senza mescolare
-  coverAll(d) { d.known = d.left.map(() => false); },
-  // Carta del mazzo (solo se nota) spostata nel mazzo: from e to sono posizioni dalla cima
+  coverAll(d) { d.known = d.left.map(() => false); if (d.old) d.old = d.left.map(() => false); },
+  // Carta del mazzo (solo se nota) spostata nel mazzo: from e to sono posizioni dalla cima. v224: una carta già nota
+  // all'apertura della finestra (d.old) si sposta solo se è in cima
   moveInDeck(d, from, to) {
-    if (!d.known[from] || from === to || to < 0 || to >= d.left.length) return false;
+    if (!turnDeckMovable(d, from) || from === to || to < 0 || to >= d.left.length) return false;
     const [kind] = d.left.splice(from, 1);
     const [known] = d.known.splice(from, 1);
     d.left.splice(to, 0, kind);
     d.known.splice(to, 0, known);
+    if (d.old) { const [old] = d.old.splice(from, 1); d.old.splice(to, 0, old); }
     return true;
   },
   // Carta degli scarti nel mazzo: in cima ('top'), in fondo ('bottom') o, v212, in una posizione dalla cima (numero,
@@ -4444,11 +4446,17 @@ const turnDraftOps = {
     const at = where === 'top' ? 0 : where === 'bottom' ? d.left.length : Math.max(0, Math.min(d.left.length, Number(where) || 0));
     d.left.splice(at, 0, kind);
     d.known.splice(at, 0, true);
+    if (d.old) d.old.splice(at, 0, false);
     return true;
   },
   // Mescola: mazzo mischiato e tutto coperto
-  shuffle(d) { d.left = shuffle(d.left); d.known = d.left.map(() => false); }
+  shuffle(d) { d.left = shuffle(d.left); d.known = d.left.map(() => false); if (d.old) d.old = d.left.map(() => false); }
 };
+// v224: carta del mazzo che si può spostare: nota e, se era già nota all'apertura della finestra (d.old, scurita),
+// solo quando è in cima
+function turnDeckMovable(d, i) {
+  return !!d.known[i] && (!(d.old && d.old[i]) || i === 0);
+}
 
 // Scrive la bozza nel mazzo dei turni: un solo passo di undo (v222: il turno in corso continua sempre)
 function saveTurnDraft(d) {
@@ -4492,13 +4500,24 @@ function trackPreviewCopy(d) {
 // senza spostamento resta un tocco (seleziona la carta)
 const TURN_DRAG_PX = 6;
 let turnScreen = null; // finestra aperta (per le verifiche e per il ridisegno al cambio di misura)
+// v224: le modifiche valgono subito (niente "Salva modifiche"): ogni modifica della bozza è un act (un passo di undo)
+const TURN_SHEET_MS = 320;
+// Fine di un gruppo di animazioni, con un tempo massimo (se il browser non le fa girare, si va avanti lo stesso)
+function animDone(anims, ms) {
+  return Promise.race([Promise.all(anims.map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, ms + 150))]);
+}
 function openTurnScreen() {
   if (turnDeckBlocked()) return;
-  const initial = turnDraftFrom(turnOrder);
-  let d = turnDraftFrom(turnOrder);
+  // d.old: carte già note all'apertura (scurite, si spostano solo dalla cima); parallelo a d.left, solo nella finestra
+  const fresh = order => { const x = turnDraftFrom(order); x.old = x.known.slice(); return x; };
+  const initial = fresh(turnOrder);
+  let d = fresh(turnOrder);
+  let savedKey = turnDraftKey(d);
   let sel = null;   // carta selezionata senza trascinamento: { source: 'deck' | 'pile', index }
   let press = null; // dito o mouse premuto su una carta, prima che parta il trascinamento
   let drag = null;  // trascinamento in corso
+  let shuffling = false; // animazione della mescola in corso
+  let closing = false;
   let suppressClick = false;
   let close = () => {};
   const dirty = () => turnDraftKey(d) !== turnDraftKey(initial);
@@ -4506,6 +4525,9 @@ function openTurnScreen() {
   // v212: il titolo è "Mazzo dei turni" ("Turno N" è nella copia della testata, sopra)
   const dialog = dialogShell(I18N_IT.turnDeckTitle, '', () => tryClose());
   dialog.classList.add('ae-turn-screen');
+  // v224: tutto tranne la copia della testata sta in un foglio che scende da sotto la barra dei turni
+  const sheet = el('div', 'ae-turn-sheet');
+  sheet.appendChild(dialog.firstChild); // titolo e X
   // Desktop: dentro la colonna centrale della partita (--ae-col)
   const col = app.style.getPropertyValue('--ae-col');
   if (col) dialog.style.setProperty('--ae-turn-col', col);
@@ -4516,9 +4538,29 @@ function openTurnScreen() {
   copyShell.appendChild(viewOnlyCopy(document.getElementById('topbar')));
   const trackHolder = el('div', 'ae-turn-copy-track');
   copyShell.appendChild(trackHolder);
-  copyShell.inert = true;
-  copyShell.setAttribute('aria-hidden', 'true');
-  dialog.prepend(copyShell);
+  // v224: nella copia funziona solo il pulsante Menu (il menu si apre sopra la finestra); il resto è solo da guardare
+  const copyMenu = copyShell.querySelector('.ae-menu-button');
+  (function inertExcept(node) {
+    [...node.children].forEach(c => {
+      if (copyMenu && c === copyMenu) return;
+      if (copyMenu && c.contains(copyMenu)) inertExcept(c);
+      else { c.inert = true; c.setAttribute('aria-hidden', 'true'); }
+    });
+  })(copyShell);
+  if (copyMenu) {
+    copyMenu.setAttribute('aria-label', I18N_IT.menu);
+    copyMenu.setAttribute('aria-haspopup', 'dialog');
+    copyMenu.addEventListener('click', () => {
+      if (drag || shuffling || closing) return;
+      sel = null;
+      draw();
+      // Le voci che portano altrove (undo, scarti, vittoria, esci, ricomincia) chiudono prima la finestra; chiudendo
+      // il menu si torna qui
+      openSideMenu(() => shut());
+    });
+  }
+  dialog.appendChild(copyShell);
+  dialog.appendChild(sheet);
 
   // Parte alta: mazzo a ventaglio (a destra la cima, a sinistra il fondo)
   const deckHead = el('div', 'ae-turn-screen-head');
@@ -4548,6 +4590,10 @@ function openTurnScreen() {
   revealTop.setAttribute('aria-label', I18N_IT.turnRevealTopLabel);
   revealTop.appendChild(icon('eye'));
   revealTop.addEventListener('click', () => { turnDraftOps.revealTop(d); draw(); });
+  // v224: segmento verticale dove cadrà la carta trascinata dagli scarti (come tra le slide di Canva), anche ai due capi
+  const insertBar = el('span', 'ae-turn-insert');
+  insertBar.setAttribute('aria-hidden', 'true');
+  insertBar.hidden = true;
   fanRow.append(zoneBottom, fan, zoneTop);
   [zoneBottom, zoneTop].forEach(z => z.addEventListener('click', () => {
     if (!sel || z.disabled) return;
@@ -4559,17 +4605,22 @@ function openTurnScreen() {
   const hint = el('p', 'ae-turn-hint', I18N_IT.turnHint);
   hint.setAttribute('aria-live', 'polite');
 
+  // v224: Mescola sotto il mazzo, al centro (prima in basso); "Salva modifiche" non c'è più
+  const shuffleRow = el('div', 'ae-turn-shuffle-row');
+  const shuffleBtn = el('button', 'ae-turn-eye ae-turn-shuffle', I18N_IT.turnShuffleDeck);
+  shuffleBtn.type = 'button';
+  shuffleBtn.addEventListener('click', runShuffle);
+  shuffleRow.appendChild(shuffleBtn);
   const footer = el('div', 'ae-turn-screen-footer');
-  const shuffleBtn = button(I18N_IT.turnShuffleDeck, 'secondary', () => { turnDraftOps.shuffle(d); sel = null; draw(); });
-  const resetBtn = button(I18N_IT.turnResetAll, 'secondary', () => { d = turnDraftFrom(initial); sel = null; draw(); });
-  const saveBtn = button(I18N_IT.saveChanges, 'primary', () => {
-    if (drag) return;
-    const changed = dirty();
-    shut();
-    if (changed) { saveTurnDraft(d); showToast(I18N_IT.turnSaved); }
+  const resetBtn = button(I18N_IT.turnResetAll, 'secondary', () => {
+    if (drag || shuffling) return;
+    d = fresh(initial);
+    d.old = initial.old.slice();
+    sel = null;
+    draw();
   });
-  footer.append(shuffleBtn, resetBtn, saveBtn);
-  dialog.append(deckHead, fanRow, el('h3', 'ae-turn-subtitle', I18N_IT.turnPileLabel), pileRow, hint, footer);
+  footer.append(resetBtn);
+  sheet.append(deckHead, fanRow, shuffleRow, el('h3', 'ae-turn-subtitle', I18N_IT.turnPileLabel), pileRow, hint, footer);
 
   let fanEls = [];
   let pileEls = [];
@@ -4580,7 +4631,9 @@ function openTurnScreen() {
       const card = known ? turnCardFace(kind, -1, 'button', d) : el('span', 'ae-turn-card is-back');
       if (known) {
         card.type = 'button';
-        card.classList.add('is-movable');
+        // v224: nota già all'apertura = scurita (60%) e ferma, tranne in cima
+        card.classList.toggle('is-old', !!d.old[i]);
+        card.classList.toggle('is-movable', turnDeckMovable(d, i));
         card.setAttribute('aria-label', I18N_IT.turnDeckCardLabel(turnCardName(kind, -1, d), i + 1, n));
       } else {
         card.setAttribute('role', 'img');
@@ -4595,6 +4648,8 @@ function openTurnScreen() {
     if (!n) fan.appendChild(el('span', 'ae-turn-fan-empty', I18N_IT.turnDeckEmpty));
     revealTop.hidden = !n || d.known[0];
     fan.appendChild(revealTop);
+    insertBar.hidden = true;
+    fan.appendChild(insertBar);
     revealAll.disabled = !n;
     revealAllText.textContent = allKnown() ? I18N_IT.turnCoverAll : I18N_IT.turnRevealAll;
     revealAll.setAttribute('aria-label', allKnown() ? I18N_IT.turnCoverAllLabel : I18N_IT.turnRevealAllLabel);
@@ -4630,6 +4685,9 @@ function openTurnScreen() {
     markTargets(sel);
     hint.textContent = sel ? I18N_IT.turnSelected(selName(sel)) : I18N_IT.turnHint;
     layoutFan();
+    // v224: ogni modifica vale subito (un act per modifica); la selezione da sola non cambia niente
+    const key = turnDraftKey(d);
+    if (key !== savedKey) { savedKey = key; saveTurnDraft(d); }
     trackHolder.replaceChildren(trackPreviewCopy(d));
   }
   function selName(s) {
@@ -4652,8 +4710,16 @@ function openTurnScreen() {
     fan.style.setProperty('--ae-turn-w', g.w + 'px');
     fan.style.setProperty('--ae-fan-h', g.h + 'px');
     const mid = (g.n - 1) / 2;
+    insertBar.hidden = !order.includes(-1);
     order.forEach((idx, k) => {
       const v = g.n - 1 - k;
+      if (idx === -1) {
+        // al centro del posto vuoto, dritto, poco più alto della carta
+        insertBar.style.left = (g.offset + v * g.step + g.w / 2 - 2) + 'px';
+        insertBar.style.height = (g.h + 16) + 'px';
+        insertBar.style.top = `calc(var(--ae-fan-top) - 8px + ${Math.pow(v - mid, 2) * 1.5}px)`;
+        return;
+      }
       const card = idx >= 0 ? fanEls[idx] : null;
       if (!card) return;
       card.style.left = (g.offset + v * g.step) + 'px';
@@ -4706,6 +4772,7 @@ function openTurnScreen() {
   // carta toglie la selezione
   function onCardClick(e) {
     if (suppressClick) { suppressClick = false; return; }
+    if (shuffling || closing) return;
     const source = e.currentTarget.dataset.source;
     const index = Number(e.currentTarget.dataset.index);
     if (sel && sel.source === source && sel.index === index) { sel = null; draw(); return; }
@@ -4719,7 +4786,7 @@ function openTurnScreen() {
 
   // Trascinamento: la carta si solleva e segue il dito appena il dito si sposta (v219, senza tenere premuto)
   function onPointerDown(e) {
-    if (e.button > 0 || drag || press) return;
+    if (e.button > 0 || drag || press || shuffling || closing) return;
     const card = e.currentTarget;
     press = { card, source: card.dataset.source, index: Number(card.dataset.index), x: e.clientX, y: e.clientY, id: e.pointerId };
     window.addEventListener('pointermove', onPointerMove, { passive: false });
@@ -4737,6 +4804,7 @@ function openTurnScreen() {
     const r = card.getBoundingClientRect();
     const ghost = card.cloneNode(true);
     ghost.classList.add('ae-turn-ghost');
+    ghost.classList.remove('is-old');
     ghost.removeAttribute('id');
     ghost.setAttribute('aria-hidden', 'true');
     Object.assign(ghost.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
@@ -4763,7 +4831,8 @@ function openTurnScreen() {
     }
     if (!drag) return;
     e.preventDefault();
-    drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px) rotate(-4deg) scale(1.08)`;
+    // (v224: dritta, prima inclinata di 4° a sinistra)
+    drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px) scale(1.08)`;
     // La carta si porta ovunque nello schermo; il rilascio riesce solo su una destinazione valida: zone Cima e Fondo,
     // rosa delle carte (v212 anche per le carte degli scarti). v222: conta dove sta la carta (il suo centro, sopra il
     // dito), non il dito
@@ -4812,7 +4881,43 @@ function openTurnScreen() {
   function onPointerUp() { endDrag(true); }
   function onPointerCancel() { endDrag(false); }
 
-  // Chiusura: senza modifiche subito; con modifiche "Uscire senza salvare?"
+  // v224: Mescola con animazione: le carte si raccolgono al centro, si mischiano due volte (metà a sinistra, metà a
+  // destra) e si riaprono a ventaglio, coperte. Durante l'animazione la finestra non si tocca
+  function runShuffle() {
+    if (drag || shuffling || closing) return;
+    const g = fanGeometry();
+    const animate = !reducedMotion.matches && !!fan.animate && fanEls.length > 1;
+    if (!animate) { turnDraftOps.shuffle(d); sel = null; draw(); return; }
+    shuffling = true;
+    dialog.classList.add('is-shuffling');
+    const cx = g.offset + (g.n - 1) * g.step / 2;
+    const toCenter = c => (cx - parseFloat(c.style.left)) + 'px';
+    const gather = fanEls.map(c => c.animate([{ translate: '0 0' }, { translate: toCenter(c) + ' 0' }],
+      { duration: 200, easing: 'ease-in', fill: 'forwards' }));
+    animDone(gather, 200).then(() => {
+      if (closing || !dialog.isConnected) { shuffling = false; return; }
+      turnDraftOps.shuffle(d);
+      sel = null;
+      draw();
+      const s = Math.max(14, g.w * 0.45);
+      const riffle = fanEls.map((c, i) => {
+        const dx = toCenter(c);
+        const side = (i % 2 ? 1 : -1) * s;
+        const off = `calc(${dx} + ${side}px) -6px`;
+        return c.animate([
+          { translate: dx + ' 0', offset: 0 }, { translate: off, offset: .16 }, { translate: dx + ' 0', offset: .32 },
+          { translate: off, offset: .48 }, { translate: dx + ' 0', offset: .64 }, { translate: '0 0', offset: 1 }
+        ], { duration: 820, easing: 'ease-in-out' });
+      });
+      return animDone(riffle, 820);
+    }).then(() => {
+      shuffling = false;
+      dialog.classList.remove('is-shuffling');
+    });
+  }
+
+  // Chiusura (v224: niente più "Uscire senza salvare?", le modifiche sono già valide). Con la X o Esc il foglio risale
+  // sotto la barra dei turni; dal Menu (voci che portano altrove) si chiude subito
   function shut() {
     endDrag(false);
     window.removeEventListener('resize', onResize);
@@ -4821,21 +4926,18 @@ function openTurnScreen() {
   }
   function tryClose() {
     if (drag) { endDrag(false); return; }
-    if (!dirty()) { shut(); return; }
-    let closeAsk = () => {};
-    const stay = () => closeAsk();
-    const ask = dialogShell(I18N_IT.turnExitTitle, '', stay, { displayTitle: false });
-    ask.classList.add('ae-exit-confirm');
-    ask.appendChild(el('p', 'ae-modal-text', I18N_IT.turnExitText));
-    const askFooter = el('div', 'ae-modal-footer');
-    const keep = button(I18N_IT.cancel, 'secondary', stay);
-    askFooter.append(keep, button(I18N_IT.turnExitGo, 'primary', () => { closeAsk(); shut(); }));
-    ask.appendChild(askFooter);
-    closeAsk = openModal(ask, { onCancel: stay, initialFocus: keep });
+    if (closing) return;
+    closing = true;
+    if (reducedMotion.matches || !sheet.animate) { shut(); return; }
+    const a = sheet.animate([{ transform: 'none' }, { transform: 'translateY(-100%)' }],
+      { duration: TURN_SHEET_MS * 0.7, easing: 'cubic-bezier(.4, 0, 1, 1)', fill: 'forwards' });
+    dialog.parentNode.classList.add('is-closing');
+    animDone([a], TURN_SHEET_MS * 0.7).then(shut);
   }
   // Esc / Indietro: prima si annulla il trascinamento o la selezione, poi si prova a chiudere
   function onCancel() {
     if (drag) { endDrag(false); return; }
+    if (shuffling) return;
     if (sel) { sel = null; draw(); return; }
     tryClose();
   }
@@ -4849,7 +4951,14 @@ function openTurnScreen() {
   window.addEventListener('resize', onResize);
   draw();
   fitPhaseName(copyShell);
-  turnScreen = { dialog, get draft() { return d; }, dirty, tryClose, onCancel };
+  // v224: il foglio scende dall'alto, da sotto la copia della testata e della barra dei turni (prima la finestra
+  // compariva dal niente)
+  if (!reducedMotion.matches && sheet.animate) {
+    sheet.animate([{ transform: 'translateY(-100%)' }, { transform: 'none' }],
+      { duration: TURN_SHEET_MS, easing: 'cubic-bezier(.2, 0, 0, 1)' });
+  }
+  turnScreen = { dialog, get draft() { return d; }, dirty, tryClose, onCancel, shuffle: runShuffle,
+    get shuffling() { return shuffling; } };
 }
 
 // Finestra "Chi gioca questo turno?" (v193): esce una carta 1/2 o 3/4 senza giocatore. Al centro due carte grandi come
@@ -5959,10 +6068,13 @@ function setBackground(id) {
 }
 applyBackground();
 
-function openSideMenu() {
+// v224: leave (facoltativo) = cosa chiudere prima di una voce che porta altrove (Menu aperto dalla finestra del mazzo
+// dei turni: la finestra si chiude prima di undo, scarti, vittoria, esci, ricomincia)
+function openSideMenu(leave) {
   if (ui.isTransitioning) return;
   let close = () => {};
   const cancel = () => close();
+  const go = () => { close(); if (typeof leave === 'function') leave(); };
   const panel = dialogShell(I18N_IT.menu, '', cancel, { displayTitle: false });
   panel.classList.add('ae-side-menu');
   const statsList = el('dl', 'ae-side-stats');
@@ -5974,30 +6086,30 @@ function openSideMenu() {
   // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
   const backRow = el('div', 'ae-side-field ae-side-field--row');
   backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), cardBackChoiceButton(null, { compact: true }));
-  const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { close(); openDiscard(); });
+  const discardOpen = button(I18N_IT.discardButton(discard.length), 'secondary', () => { go(); openDiscard(); });
   discardOpen.classList.add('ae-button--full');
   discardOpen.setAttribute('aria-label', I18N_IT.discardButtonLabel(discard.length));
   // Nemesi uccisa al tavolo (vita a 0): si va alla schermata Vittoria; la partita non cambia (Chiudi torna indietro)
-  const killed = button(I18N_IT.nemesisKilled, 'secondary', () => { close(); showVictory(); });
+  const killed = button(I18N_IT.nemesisKilled, 'secondary', () => { go(); showVictory(); });
   killed.classList.add('ae-button--full');
   // Esci dalla partita (rosso): finestra di conferma (v193, prima andava tenuto premuto), poi il menu iniziale
   // (Modalità test, v215: "Esci dal test")
-  const exit = button(testRun ? I18N_IT.testExit : I18N_IT.exitGame, 'danger', () => openExitConfirm(() => { close(); openStart(); }));
+  const exit = button(testRun ? I18N_IT.testExit : I18N_IT.exitGame, 'danger', () => openExitConfirm(() => { go(); openStart(); }));
   exit.classList.add('ae-button--full', 'ae-side-exit', 'ae-hold-exit');
   // Undo: annulla l'ultima azione (prima le modifiche non salvate)
-  const undoItem = button(I18N_IT.undoAction, 'secondary', () => { close(); undo(); openUndoFloat(); });
+  const undoItem = button(I18N_IT.undoAction, 'secondary', () => { go(); undo(); openUndoFloat(); });
   undoItem.classList.add('ae-button--full');
   undoItem.disabled = undoStack.length === 0 && ui.drafts.size === 0;
   const items = [statsList, undoItem, discardOpen, killed];
   // Durante "Crea mazzo": Ricomincia la partita (mazzo nuovo con la stessa nemesi e gli stessi giocatori)
   if (ui.deckBuilding) {
-    const restart = button(I18N_IT.restartGame, 'secondary', () => { close(); rebuildDeck(); });
+    const restart = button(I18N_IT.restartGame, 'secondary', () => { go(); rebuildDeck(); });
     restart.classList.add('ae-button--full');
     items.splice(1, 0, restart);
   }
   // Modalità test (v215): "Ricomincia lo scenario" (di nuovo dallo stato iniziale, undo vuoto)
   if (testRun) {
-    const restartTest = button(I18N_IT.testRestart, 'secondary', () => { close(); restartScenario(); });
+    const restartTest = button(I18N_IT.testRestart, 'secondary', () => { go(); restartScenario(); });
     restartTest.classList.add('ae-button--full', 'ae-side-test-restart');
     items.splice(1, 0, restartTest);
   }

@@ -234,11 +234,29 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
-    - **Bozza**: tutto resta nella finestra (copia di left, known, drawn, picks e attesa, `turnDraftFrom`) finché non si
-      preme **Salva modifiche** = **un solo** `act()` (un passo di undo, `saveTurnDraft`). **Annulla tutte le
-      modifiche** torna allo stato di apertura (la finestra resta aperta). **Mescola** mischia il mazzo e lo ricopre
-      tutto. Anche rivelare è una modifica da salvare. X o Indietro: senza modifiche chiude subito, con modifiche chiede
-      "**Uscire senza salvare?**" (Annulla / Esci).
+    - **Modifiche sempre valide** (v224, prima c'era "Salva modifiche"): la finestra lavora su una bozza
+      (`turnDraftFrom`), ma ogni modifica (spostamento, rivela, copri, mescola) si scrive subito con `saveTurnDraft` = un
+      `act()` per modifica (un passo di undo ciascuna; `draw()` confronta `turnDraftKey`). **Annulla tutte le
+      modifiche** torna allo stato di apertura (anche lui un act). X o Indietro chiudono **senza chiedere** (prima
+      "Uscire senza salvare?").
+    - **Carte già note all'apertura** (v224, `d.old`, parallelo a `left`, solo nella finestra): **scurite del 60%**
+      (`.is-old`, `filter: brightness(.4)`) e **ferme**, tranne quando sono **in cima** (`turnDeckMovable`). Le carte
+      scoperte o rimesse nel mazzo mentre la finestra è aperta restano chiare e spostabili fino alla chiusura.
+    - **Mescola** (v224) sta **sotto il mazzo, al centro** (`.ae-turn-shuffle-row`), con un'**animazione**: le carte
+      si raccolgono al centro, si mischiano due volte (metà a sinistra e metà a destra) e si riaprono coperte (`runShuffle`,
+      proprietà CSS `translate` con Web Animations; finestra non toccabile durante, `.is-shuffling`).
+    - **Apertura e chiusura** (v224): la copia della testata e della barra resta ferma (opaca, sopra) e tutto il resto è
+      un **foglio** (`.ae-turn-sheet`) che **scende da sotto la barra dei turni** (`translateY(-100%)` → 0, 320ms); la
+      finestra è trasparente, quindi sotto il foglio che scende si vede la partita oscurata. Con X/Indietro il foglio
+      risale (`animDone` ha un tempo massimo se il browser non fa girare le animazioni).
+    - **Menu** (v224): nella copia della testata il pulsante Menu funziona e apre il menu **sopra la finestra**;
+      chiudendolo si torna al mazzo dei turni. Le voci che portano altrove (Undo, Scarti, Nemesi uccisa, Esci,
+      Ricomincia) chiudono prima la finestra (`openSideMenu(leave)`).
+    - **Segmento d'inserimento** (v224): trascinando una carta degli scarti sulla rosa o sulle zone Cima/Fondo, un
+      **segmento verticale dorato** al centro del posto vuoto dice dove cadrà (come tra le slide di Canva;
+      `.ae-turn-insert`, posizionato in `layoutFan`). La carta trascinata è **dritta** (prima inclinata di 4°).
+    - **Contorno** (v224): le carte turno (immagini e dorso) hanno un contorno chiaro di 1,5px e un'ombra, per staccarle
+      dallo sfondo.
     - **Carte note** (`turnOrder.known`, array di true/false **parallelo a `left`**, segue gli spostamenti e
       `drawTurnCard`): nello stato, nel salvataggio e nell'undo; si azzerano con Mescola e a ogni giro nuovo
       (`shuffleTurnOrder`); un salvataggio senza il campo = nessuna carta nota. Riaprendo la finestra restano scoperte.

@@ -1330,11 +1330,44 @@ body { overflow: hidden; }
    la copia della pila degli scarti rifaceva il lampo .is-bump e la barra le sue transizioni) */
 .ae-turn-copy, .ae-turn-copy * { animation: none !important; transition: none !important; }
 /* (da 768px la finestra ha un bordo di 1px a destra e a sinistra) */
-@media (min-width: 768px) { .ae-shell.ae-turn-copy { margin-left: -17px; margin-right: -17px; } }
 .ae-turn-copy .ae-turn-track { cursor: default; }
-.ae-turn-screen-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+.ae-turn-screen-footer { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: auto; }
 .ae-turn-screen-footer .ae-button { min-width: 0; min-height: 48px; }
-.ae-turn-screen-footer .ae-button--primary { grid-column: 1 / -1; }
+/* v224: la finestra non compare dal niente: la copia della testata e della barra dei turni sta ferma (opaca, sopra) e
+   il resto è un foglio che scende da sotto di lei (JS: sheet.animate). La finestra è trasparente: sotto il foglio, finché
+   scende, si vede la partita oscurata */
+.ae-modal.ae-turn-screen { background: transparent; border-width: 0; box-shadow: none; animation: none; gap: 0; }
+.ae-shell.ae-turn-copy { position: relative; z-index: 2; background: var(--ae-surface); }
+@media (min-width: 768px) { .ae-shell.ae-turn-copy { margin-left: -16px; margin-right: -16px; } }
+.ae-turn-sheet {
+  position: relative; z-index: 1; flex: 1 0 auto; display: flex; flex-direction: column; gap: 12px;
+  margin: 0 -16px calc(-16px - var(--ae-safe-bottom)); padding: 12px 16px calc(16px + var(--ae-safe-bottom));
+  background: var(--ae-surface);
+}
+@media (min-width: 768px) { .ae-turn-sheet { border: solid var(--ae-border); border-width: 0 1px; } }
+.ae-modal-backdrop.ae-turn-screen-backdrop.is-closing { background: transparent; transition: background .2s; }
+/* Nella copia funziona solo il pulsante Menu */
+.ae-turn-copy .ae-menu-button { pointer-events: auto; cursor: pointer; }
+/* v224: Mescola sotto il mazzo, al centro */
+.ae-turn-shuffle-row { display: flex; justify-content: center; margin-top: -4px; }
+/* Durante la mescola la finestra non si tocca e l'occhio sulla cima sparisce */
+.ae-turn-screen.is-shuffling .ae-turn-sheet { pointer-events: none; }
+.ae-turn-screen.is-shuffling .ae-turn-eye--top { visibility: hidden; }
+/* v224: carte già note all'apertura della finestra: scurite del 60% e ferme (tranne la cima, che resta scura ma si
+   sposta) */
+.ae-turn-fan .ae-turn-card.is-old { filter: brightness(.4); }
+/* v224: segmento verticale dove cadrà la carta trascinata dagli scarti (anche ai due capi del mazzo) */
+.ae-turn-insert {
+  position: absolute; z-index: 100; width: 4px; border-radius: 2px; pointer-events: none;
+  background: var(--ae-gold); box-shadow: 0 0 10px rgba(223, 174, 89, .8);
+}
+.ae-turn-insert[hidden] { display: none; }
+/* v224: contorno chiaro attorno alle carte turno (immagini e dorso), per staccarle dallo sfondo scuro */
+.ae-turn-card[data-card], .ae-turn-card.is-back {
+  box-shadow: 0 0 0 1.5px rgba(236, 232, 222, .75), 0 2px 6px rgba(0, 0, 0, .6);
+}
+.ae-turn-pile-slot.is-current .ae-turn-card { box-shadow: 0 0 0 2px var(--ae-gold), 0 2px 6px rgba(0, 0, 0, .6); }
+.ae-turn-card.ae-turn-ghost { box-shadow: 0 0 0 3px var(--ae-gold), 0 12px 28px rgba(0, 0, 0, .55); }
 /* v200: scelta ridotta nel pulsante grande in basso, diviso in due ("Giocatore x | Giocatore y") */
 /* v202: due pulsanti separati (prima uno solo diviso in due) */
 .ae-pair-dock { display: flex; gap: 10px; width: 100%; }
