@@ -809,3 +809,27 @@ Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscr
   nemesi, fronte e retro.
 - Il repo originale `AeonsEnd_APP` ha lo stesso problema di pubblicazione bloccata; lì non c'è ancora il workflow con i
   tentativi.
+
+## 12. Refactoring su branch
+
+- Il refactoring (dalla fase 1, commit `87cb076`, v227) sta sul branch **`refactoring`**. `main` è tornato allo stato
+  della v226 con un revert (commit `1d3e753`) più la v228 (`f56dcb7`, solo `version.json` = 228, perché i telefoni che
+  avevano la v227 riscarichino il codice): il sito pubblicato è quello di `main`, con `script.js` unico.
+- **Si lavora su `refactoring`.** `main` riceve solo **correzioni urgenti**, che vanno riportate **a mano** anche sul
+  branch (nel file di `js/` dove sta oggi quel codice; poi `node tools/check-js-order.mjs`).
+- **Il branch non è pubblicato:** GitHub Pages pubblica solo da `main` (`pages.yml` parte solo con push su `main`, su
+  entrambi i rami). Il branch si prova **in locale**: con `refactoring` attivo, dalla cartella del repo
+  `python -m http.server 8124 --bind 127.0.0.1` e si apre `http://127.0.0.1:8124/`.
+- **Fusione finale** (quando il refactoring è pronto): **prima su `refactoring` si annulla l'annullamento di main**
+  (il revert `1d3e753`, con il v228 `f56dcb7`), **poi si fonde `refactoring` in `main`**. Senza il primo passo la fase
+  1 non rientrerebbe: il commit `87cb076` è già nella storia di `main`, quindi git lo considera fuso, e il revert che
+  sta su `main` toglierebbe di nuovo `js/` e il caricatore.
+  - Attenzione: `git revert 1d3e753` lanciato direttamente su `refactoring` (dove quel revert non c'è) prova a
+    rimettere file che il branch ha già, e dopo le fasi successive dà conflitti. Modo sicuro, con le correzioni urgenti
+    già riportate a mano sul branch (regola sopra):
+    1. `git switch refactoring` e `git merge -s ours main -m "Fusione di main: l'annullamento della fase 1 non vale sul branch"`
+       (main risulta fuso, i file restano quelli del branch);
+    2. `git switch main` e `git merge refactoring` (ora entra tutto il refactoring), `version.json` aumentato, push.
+  - Prima del passo 1: `git diff v226-prima-refactoring-1 main -- . ':!version.json'` mostra le correzioni fatte su
+    `main` dopo lo spostamento (il revert si annulla con la fase 1, quindi non compare): devono essere già tutte anche
+    sul branch.
