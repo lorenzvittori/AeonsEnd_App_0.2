@@ -1282,9 +1282,10 @@ body { overflow: hidden; }
   transform: translateY(var(--ae-fan-y, 0px)) rotate(var(--ae-fan-rot, 0deg)); transform-origin: 50% 130%;
   transition: left .18s ease, transform .18s ease, opacity .15s;
 }
+/* v226: dorso vero delle carte turno ("Turn Order Deck", Assets/ui/turn-cards/back.webp, 252 x 352; prima righe neutre) */
 .ae-turn-card.is-back {
-  background: repeating-linear-gradient(45deg, #2c2e37 0 5px, #24262e 5px 10px); border-color: #000;
-  box-shadow: inset 0 0 0 2px rgba(223, 174, 89, .25);
+  border: 0; border-radius: 8% / 6%;
+  background: #1b1d24 url('Assets/ui/turn-cards/back.webp') center / cover no-repeat;
 }
 .ae-turn-zone {
   display: flex; align-items: center; justify-content: center; padding: 0; border: 1px dashed rgba(255, 255, 255, .14);

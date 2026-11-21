@@ -217,8 +217,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       style.css `.ae-turn-card[data-card]`). Sulle carte 1/2, 3/4 e Wild con il giocatore già deciso un **tondino** in
       basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`). Le due scelte della finestra "Chi gioca
       questo turno?" invece sono i **token** dei giocatori (dalla v223: `Assets/ui/turn-tokens/p1…p4.webp`, 232 x 232
-      con angoli trasparenti, larghi 1,4 volte una carta piccola; `.ae-pair-pick[data-kind]`). Le carte coperte del mazzo restano
-      col dorso neutro a righe.
+      con angoli trasparenti, larghi 1,4 volte una carta piccola; `.ae-pair-pick[data-kind]`). Le carte coperte del mazzo hanno il
+      **dorso vero** "Turn Order Deck" (dalla v226: `Assets/ui/turn-cards/back.webp`, 252 x 352, dalla foto data
+      dall'utente; prima righe neutre).
     - **Spostamenti**: una carta si solleva e segue il dito **appena il dito si sposta** (dalla v219, `TURN_DRAG_PX` 6px;
       prima andava tenuta premuta 0,3 s; eventi pointer, dito e mouse); un tocco senza spostamento la seleziona. Segue il dito
       **ovunque nello schermo** (la finestra non scorre); si evidenziano solo le destinazioni permesse; rilasciata fuori
