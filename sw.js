@@ -2,7 +2,7 @@
 // - Codice e dati (pagina, version.json, CSS, JS, JSON): prima la rete, così gli aggiornamenti arrivano subito; senza
 //   rete la copia salvata. I CSS e il JS hanno ?v=N: senza rete e senza quella versione si prende l'ultima salvata.
 // - Immagini e font: prima la copia salvata (non cambiano), altrimenti la rete, e si salvano.
-// Le immagini delle carte del mazzo si scaricano all'inizio della partita (js/14-menu-sfondo-rete.js, prefetchDeckImages); i file di js/ seguono la regola del codice.
+// Le immagini delle carte del mazzo si scaricano all'inizio della partita (script.js, prefetchDeckImages).
 const CODE_CACHE = 'ae-code-v1';
 const MEDIA_CACHE = 'ae-media-v1';
 const SHELL = ['./', 'index.html', 'version.json', 'manifest.webmanifest'];

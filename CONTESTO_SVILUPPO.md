@@ -85,7 +85,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     (`testRun.pairs`, letto da `turnPairsOn`) e il mazzo dei turni dei giri nuovi (`testRun.turnCards`, in
     `turnOrderCards`). Uscendo (`openStart` → `endTest`, anche da "Menu iniziale" della Vittoria) tornano le scelte di
     prima della pagina iniziale.
-  - **Scenari** (elenco `SCENARI` in `js/15-modalita-test.js`): Carte sul mazzo dei turni (solo carte
+  - **Scenari** (elenco `SCENARI` in `script.js`, sezione "Modalità test"): Carte sul mazzo dei turni (solo carte
     nemesi nel mazzo dei turni; Hissing Acid, Sunder "4", Thunderous Tempest in cima), Minion a vita variabile (Carapace
     Queen, Maggot Engine e Mindguzzler in cima, pronto a pescare), Cambio Tier (prima carta di Tier 2 e poi di Tier 3),
     Coda piena (10 carte: minion pieni e danneggiati, poteri da 1 a 4 segnalini, forzati a 5 e 7, non rimovibili e con
@@ -478,7 +478,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 "Crea mazzo" non si salva niente e resta l'eventuale partita salvata prima.
 
 **Telefono**
-- **Schermo sempre acceso** finché l'app è aperta e visibile (Screen Wake Lock, `keepScreenOn` in `js/14-menu-sfondo-rete.js`): si
+- **Schermo sempre acceso** finché l'app è aperta e visibile (Screen Wake Lock, `keepScreenOn` in `script.js`): si
   richiede all'avvio, al ritorno in primo piano e al primo tocco. Dove il browser non lo permette, non succede niente.
 - **Tasto / gesto Indietro** (Android, swipe di iOS): chiude il livello in primo piano (finestre, Menu, Vittoria,
   "Annulla ultima azione" sospeso, "Pesca carta", La mia collezione, scarti) invece di uscire. Se non c'è niente da
@@ -523,7 +523,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 
 **Tablet e desktop (da 768px di larghezza)**
 - La partita è la stessa del telefono (testata, fascia piccola, carte grandi, pulsante), in una **colonna al centro**
-  larga quanto la carta grande più un pezzo delle vicine (`--ae-col`, calcolata da `sizeColumn` in `js/08-vista-risoluzione.js`: carta
+  larga quanto la carta grande più un pezzo delle vicine (`--ae-col`, calcolata da `sizeColumn` in `script.js`: carta
   misurata dall'altezza + 2 × 54px, mai meno di 440px). Lo sfondo riempie tutto lo schermo. La pagina iniziale e la
   collezione hanno la loro colonna da 560px.
 - Il tablet in verticale ha carte grandi (circa 460px a 768×1024); il desktop e il tablet in orizzontale sono limitati
@@ -562,46 +562,22 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 ### File
 
 - `index.html`: il loader legge `version.json` (no-store) e carica `css/design-tokens.css`, `css/components.css`,
-  `style.css` e `script.js` con `?v=N`. **Non si modifica** per aggiungere file JS.
+  `style.css` e `script.js` con `?v=N`.
   - GitHub Pages tiene in cache `index.html` per circa 10 minuti. Per questo molti elementi (pulsante Menu, box mazzo e
     scarti, "Annulla modifiche", finestra "Partita in corso", pulsante Collezione, fascia del turno giocatori) sono
-    creati o spostati dal codice JS all'avvio: il DOM reale è diverso da quello scritto in `index.html`
+    creati o spostati da `script.js` all'avvio: il DOM reale è diverso da quello scritto in `index.html`
     (per esempio `#info-row` viene tolto e `#undo-btn` resta nascosto).
-- `script.js`: dalla v227 (refactoring fase 1) è solo il **caricatore**. Legge il proprio `?v=N`
-  (`document.currentScript.src`) e aggiunge i file di `js/` con lo stesso `?v=N`, **in ordine** (script aggiunti con
-  `async = false`): il browser non mescola versioni vecchie e nuove e un `index.html` vecchio in cache funziona.
-- `js/`: il codice dell'app, **script classici con variabili globali** (niente moduli, niente build), eseguiti uno dopo
-  l'altro come se fossero un file solo. Ogni file ha in cima una riga che dice cosa contiene e `'use strict'`. Le
-  funzioni usate da console, dalla pagina `scheletri/` e dalla Modalità test sono globali. Nell'ordine:
-  1. `01-testi-stato.js`: testi (`I18N_IT`), elementi della pagina, costanti e stato (`ui`, partita, impostazioni);
-  2. `02-dati-mazzo.js`: dati e mazzo (carte, collezione, opzioni del mazzo, nemesi, Nemesis Deck Setup, pesca e scarti,
-     storia e mazzo dei turni, statistiche);
-  3. `03-componenti.js`: componenti dell'interfaccia (immagine carta, badge, miniatura, dialoghi, toast);
-  4. `04-vista-coda.js`: VistaCoda (coda, ancoraggio dello scorrimento, carta della coda);
-  5. `05-scarti.js`: pila degli scarti;
-  6. `06-pagina-iniziale.js`: pagina iniziale, nuova partita e riprendi, collezione, opzioni;
-  7. `07-salvataggio-undo.js`: fotografia, ripristino, salvataggio, undo;
-  8. `08-vista-risoluzione.js`: VistaRisoluzione (turno nemesi), nome della nemesi nella testata (`fitPhaseName`) e
-     `render()`;
-  9. `09-eventi.js`: eventi (tocchi, tastiera, scorrimento), pulsanti degli scarti, barra dei turni (`renderTurnTrack`);
-  10. `10-mazzo-turni.js`: finestra del mazzo dei turni (`openTurnScreen`) e "Chi gioca questo turno?";
-  11. `11-testata-voli-vittoria.js`: mazzo e scarti nella testata, volo verso gli scarti, passaggio tra i turni,
-      vittoria e statistiche;
-  12. `12-crea-mazzo.js`: creazione del mazzo nemesi e "Crea mazzo" con lo slider;
-  13. `13-pesca-undo-passaggi.js`: passo Pesca, undo sospeso, "Pesca carta", conferma di uscita, dalla pagina iniziale
-      alla partita;
-  14. `14-menu-sfondo-rete.js`: sfondo, menu laterale (`openSideMenu`), dorso delle carte, pulsanti tenuti premuti,
-      swipe, schermo acceso, service worker e immagini per l'uso senza rete;
-  15. `15-modalita-test.js`: Modalità test (`SCENARI`, `startScenario`, schermata Test);
-  16. `16-avvio.js`: telefono in orizzontale, tasto Indietro e avvio (`init()`, chiamato una sola volta in fondo
-      all'ultimo file).
-- **Regole per i file di `js/`:**
-  - un file nuovo si aggiunge **solo aggiungendolo all'elenco `FILES` del caricatore** (`script.js`), nel punto giusto
-    dell'ordine; `pages.yml` copia già tutta la cartella;
-  - tra file diversi le funzioni non sono "sollevate": il codice eseguito al caricamento (fuori dalle funzioni) può
-    usare solo nomi dichiarati più in alto nello stesso file (const/let/class) o in un file precedente (le funzioni del
-    proprio file vanno bene ovunque). Le callback (eventi, timer) partono dopo e possono usare tutto;
-  - dopo ogni spostamento di codice tra i file: `node tools/check-js-order.mjs` (sezione 9).
+- `script.js`: **un solo file**, voluto così per la cache-busting, diviso in 9 sezioni numerate (indice in cima):
+  1. testi (`I18N_IT`), elementi, costanti e stato;
+  2. dati e mazzo (collezione compresa);
+  3. componenti;
+  4. VistaCoda;
+  5. scarti;
+  6. pagina iniziale;
+  7. salvataggio e undo;
+  8. VistaRisoluzione;
+  9. eventi, testata, animazioni di volo, passaggio tra i turni, vittoria, Crea mazzo, undo sospeso, "Pesca carta",
+     menu e avvio.
 - `css/design-tokens.css`: palette e font (Cinzel per i titoli, Inter per l'interfaccia, da Google Fonts). Colori:
   - `--ae-bg #101116`, `--ae-surface`, `--ae-surface-raised`, `--ae-border`;
   - `--ae-text` avorio, `--ae-text-muted`;
@@ -731,8 +707,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 ## 8. Pubblicazione
 
 - `.github/workflows/pages.yml` (Pages → Source = "GitHub Actions").
-  - Pubblica solo i file del sito (compresa la cartella `js/`): niente `tools/`, `package.json`, `node_modules`,
-    `README`, `.md`.
+  - Pubblica solo i file del sito: niente `tools/`, `README`, `.md`.
   - Ogni tentativo di deploy ha 3 minuti e ce ne sono fino a 3.
   - Motivo: GitHub ogni tanto si blocca fino al limite di 10 minuti e manda una mail di errore.
 
@@ -749,16 +724,6 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 
   Si verifica quindi con lo stato e le misure, lanciando gli eventi a mano (`dispatchEvent(new Event('scroll'))`) e
   chiamando `clearTransition()` dopo le azioni animate. Per questo il carosello usa `setTimeout` invece di rAF.
-- **Controllo dell'ordine dei file di `js/`** (dalla v227): `node tools/check-js-order.mjs` (Node installato in
-  `C:\Program Files\nodejs`; la prima volta `npm install` per `acorn`, unica dipendenza di sviluppo: `package.json`,
-  `node_modules/` escluso da git e dal sito). Legge i file nell'ordine dell'elenco `FILES` di `script.js` e segnala
-  ogni nome globale (funzione, const, let, class) usato da codice eseguito **al caricamento** di un file prima di
-  essere dichiarato in quel file o in uno precedente; segue anche le funzioni chiamate da lì (a catena) e quelle
-  eseguite subito (IIFE, `forEach`, `map`...). Deve dare **zero segnalazioni** (altrimenti esce con codice 1). Elenca a
-  parte, senza errore, le callback asincrone avviate al caricamento (osservatori, `then`, timer) che potrebbero
-  scattare tra un file e l'altro: oggi 5 (`fitPhaseName` e `sizeFocus`/`sizeQueue` con `ResizeObserver`, `fonts.ready`,
-  service worker), controllate a mano: usano solo codice dei file precedenti. `--dir <cartella>` prova una divisione
-  in un'altra cartella. Si lancia ogni volta che si sposta codice tra i file; insieme a `node --check js/*.js`.
 - **Funzioni utili da console:** sono globali, per esempio `queue`, `allCards`, `makeEntry`, `act()`, `render()`,
   `undo()`, `startGame()`, `onNemesisClick()`, `onResolveClick()`, `viewCard()`, `isDrawStep()`, `centredFocusUid()`.
 - Dopo le prove si toglie la partita di test: `localStorage.removeItem('aeonsend-app-0.2-save')`.
@@ -766,7 +731,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   da provare senza costruire lo stato a mano. Da console: `startScenario(SCENARI.find(s => s.id === 'tier'))`
   (restituisce `null` se è partito, altrimenti il motivo), `restartScenario()`, `openStart()` per uscire. Il test non
   salva niente, quindi dopo non c'è da pulire la partita salvata.
-  - **Aggiungere uno scenario:** un oggetto in più nell'elenco `SCENARI` (`js/15-modalita-test.js`; i
+  - **Aggiungere uno scenario:** un oggetto in più nell'elenco `SCENARI` (`script.js`, sezione "Modalità test"; i
     campi sono descritti nel commento sopra l'elenco): `id`, `name`, `desc`, `players`, `nemesis`, `phase`
     ('players' / 'nemesis'), `deck` (dalla cima), `queue` (nome o `{ name, hp, tokens, hpSet, bornTurn }`), `discard`,
     `turnOrder` (`left` dalla cima, `drawn`, `round`, `wild`, `picks` come `{ pos: { player, forced } }`, `pairNext`),
@@ -790,7 +755,6 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 | `v156-prima-menu-e-slider` | Prima della v157 (menu iniziale con Opzioni, slider di Crea mazzo, salvataggio dal primo turno nemesi). |
 | `v162-prima-voci-semplici` | Prima della v163 (testata invertita, menu iniziale a scritte, comandi solo sulla carta al centro, scorrimento veloce, Opzioni con dorso e sfondo). |
 | `v157-prima-nuova-partita-e-dorsi` | Prima della v158 (pagina Nuova partita con X e wave multiple, dorsi, tempi, zoom della carta nemesi). |
-| `v226-prima-refactoring-1` | Ultima versione con tutto il codice in `script.js`, prima della divisione in `js/` (v227). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 
@@ -798,8 +762,7 @@ Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscr
 
 - Semplificazione del codice, proposta dopo l'analisi del repo (la pulizia del codice morto è fatta in v148):
   1. stato della partita in un solo oggetto `game` (lo snapshot diventa una copia);
-  2. codice diviso in file caricati con `?v=N`: fatto in v227 (fase 1, solo spostamento nei 16 file di `js/`); resta
-     da separare le regole di gioco dall'interfaccia e da scegliere uno strumento (moduli, build);
+  2. `script.js` diviso in 5–6 file caricati dal loader con `?v=N`, con le regole di gioco separate dall'interfaccia;
   3. un solo modo di creare il DOM (tutto in `index.html` o tutto da JS), senza le difese per l'`index.html` vecchio;
   4. CSS riorganizzato per componente, unendo i selettori ridefiniti più volte in `style.css`;
   5. qualche test sulle regole (mazzo, risoluzione, vittoria).
