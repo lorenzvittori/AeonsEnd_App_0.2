@@ -12,6 +12,7 @@
 (function () {
   'use strict';
   var FILES = [
+    '00-regole.js',
     '01-testi-stato.js',
     '02-dati-mazzo.js',
     '03-componenti.js',

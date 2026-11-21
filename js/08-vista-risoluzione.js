@@ -186,10 +186,10 @@ function activeEntry() {
 // pulsante "Pesca". Si pesca solo quando il giocatore lo tocca (la carta poi si gira).
 const DRAW_UID = -1;
 function isDrawStep() {
-  return resolving && newIndex < 0 && currentIndex >= queue.length;
+  return Regole.isDrawStep(gameParts());
 }
 function canDraw() {
-  return deck.length > 0;
+  return Regole.canDraw(gameParts());
 }
 
 // Testo del pulsante per la carta da risolvere (tabella §7.3). Anche sull'ultima carta si va solo avanti: la pesca è
@@ -587,62 +587,42 @@ function preloadNext() {
   if (after) loadImage(encodeURI(after.data.image));
 }
 
+// Un nuovo turno: la carta pescata nel turno precedente non è più "nuova"; coda vuota: si va subito alla carta da
+// pescare (o, se non c'è niente da pescare, il turno finisce)
 function startResolution() {
-  // Un nuovo turno: la carta pescata nel turno precedente non è più "nuova"
-  queue.forEach(e => { e.isNew = false; });
-  currentIndex = 0;
-  newIndex = -1;
-  resolving = true;
-  // Coda vuota: si va subito alla carta da pescare (o, se non c'è niente da pescare, il turno finisce)
-  if (queue.length === 0 && !canDraw()) endResolution();
+  withGame(g => Regole.startResolution(g));
 }
 
-// Pesca una carta in fondo alla coda e la mostra come nuova (NUOVA, entra girandosi dal retro)
+// Pesca una carta in fondo alla coda e la mostra come nuova (NUOVA, entra girandosi dal retro). Mazzo vuoto (non si
+// rimescola): si torna alla VistaCoda
 function drawNewCard() {
-  const data = drawFromDeck();
-  // Mazzo vuoto (non si rimescola): si torna alla VistaCoda
-  if (!data) {
-    endResolution();
-    return;
-  }
-  const entry = makeEntry(data);
-  entry.isNew = true;
-  queue.push(entry);
-  newIndex = queue.length - 1;
-  currentIndex = newIndex;
-  ui.lastDrawnUid = entry.uid;
+  const drawn = withGame(g => Regole.drawNewCard(g, () => nextUid++, () => Date.now()));
+  if (!drawn) return;
+  const { data } = drawn.entry;
+  ui.lastDrawnUid = drawn.entry.uid;
   // Carta pescata: vibrazione breve, doppia e più forte per un attacco (la scritta Tier, se c'è, ha la sua)
   buzz(data.type === 'Attack' ? [80, 60, 80] : 30);
-  // Prima carta del Tier 2 o del Tier 3: scritta "Tier N" al centro (mostrata da render)
-  if (data.tier >= 2 && data.tier > maxTierDrawn) {
-    ui.tierBanner = data.tier;
-    // Statistiche: da qui comincia il tempo del nuovo Tier
-    if (!stats.tierAt) stats.tierAt = {};
-    stats.tierAt[data.tier] = Date.now();
-  }
-  if (data.tier > maxTierDrawn) maxTierDrawn = data.tier;
+  // Prima carta del Tier 2 o del Tier 3: scritta "Tier N" al centro (mostrata da render); nelle statistiche da qui
+  // comincia il tempo del nuovo Tier (stats.tierAt, in Regole.drawNewCard)
+  if (drawn.newTier) ui.tierBanner = drawn.newTier;
 }
 
 // Ritorno alla VistaCoda
 function endResolution() {
-  newIndex = -1;
-  resolving = false;
-  currentIndex = 0;
+  withGame(g => Regole.endResolution(g));
 }
 
 function nemesisTurn() {
-  turn++;
-  startResolution();
+  withGame(g => Regole.nemesisTurn(g));
 }
 
 // "Fine turno" nel turno di un giocatore: finisce il turno e si estrae il turno dopo dal mazzo dei turni.
 // Nemesi: parte il turno nemesi; giocatore o jolly: resta il turno giocatori, con il colore nuovo nella barra.
 function endPlayerTurn() {
-  // Danno e cura del turno si azzerano (la vita attuale diventa il riferimento)
-  queue.forEach(e => { e.turnHp = e.hp; });
-  // Poteri con il costo pagato: vanno negli scarti; le modifiche non salvate si perdono
+  // Le modifiche non salvate si perdono; danno e cura del turno si azzerano (la vita attuale diventa il riferimento) e
+  // le carte grigie (poteri con il costo pagato, minion a 0) vanno negli scarti
   ui.drafts.clear();
-  queue.filter(isGone).forEach(discardGone);
+  withGame(g => Regole.endPlayerTurnCards(g));
   if (nextTurnCard() === 'nemesis') nemesisTurn();
 }
 
@@ -693,47 +673,12 @@ function playTurnShuffle(fadeMs) {
 
 // Logica del pulsante principale (come nella v48): agisce sulla carta da risolvere in base al suo tipo.
 // Restituisce cosa è successo, per l'animazione: 'token', 'discard', 'next', 'play'.
+// Carta appena pescata: un attacco si risolve subito ed esce dalla coda, le altre restano e smettono di essere nuove;
+// poi ritorno alla VistaCoda. Altrimenti: potere con più token = −1 token e avanti; minion = resta e avanti; potere
+// all'ultimo token o attacco = negli scarti. Finita la coda si passa alla carta da pescare (coperta); se non c'è niente
+// da pescare il turno finisce (Regole.resolveCurrent)
 function resolveCurrent() {
-  const entry = queue[currentIndex];
-  const { data, tokens } = entry;
-
-  // Carta appena pescata: un attacco si risolve subito ed esce dalla coda, le altre restano e smettono di essere nuove.
-  // Poi ritorno alla VistaCoda.
-  if (newIndex >= 0) {
-    let effect;
-    if (data.type === 'Attack') {
-      stats.attacksResolved++;
-      statCard('attacksResolved', data);
-      discardEntry(entry);
-      effect = 'discard';
-    } else {
-      entry.isNew = false;
-      effect = 'play';
-    }
-    endResolution();
-    return effect;
-  }
-
-  let effect;
-  if (data.type === 'Power' && tokens > 1) {
-    // Potere: si toglie un token e si passa alla carta dopo
-    entry.tokens--;
-    currentIndex++;
-    effect = 'token';
-  } else if (data.type === 'Minion') {
-    // Minion: resta in coda, si va avanti
-    currentIndex++;
-    effect = 'next';
-  } else {
-    // Potere all'ultimo token o attacco: risolto, va negli scarti (la carta dopo prende il suo posto)
-    if (data.type === 'Power') { stats.powersResolved++; statCard('powersResolved', data); }
-    else if (data.type === 'Attack') { stats.attacksResolved++; statCard('attacksResolved', data); }
-    discardEntry(entry);
-    effect = 'discard';
-  }
-  // Finita la coda: si passa alla carta da pescare (coperta); se non c'è niente da pescare il turno finisce
-  if (currentIndex >= queue.length && !canDraw()) endResolution();
-  return effect;
+  return withGame(g => Regole.resolveCurrent(g));
 }
 
 // Tocco sul pulsante principale: prima la partita cambia (un passo di undo, salvataggio), poi l'animazione.

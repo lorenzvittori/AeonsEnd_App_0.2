@@ -94,54 +94,13 @@ function restore(s) {
     // Si mostra la carta più recente
     if (queue.length) ui.queueAnchor = { uid: queue[queue.length - 1].uid, align: queue.length === 1 ? 'center' : 'anchor' };
   }
-  // Mazzo dei turni. Salvataggi senza (prima della v168): giro nuovo con il turno in corso già estratto
-  const savedOrder = s.turnOrder;
-  // (drawn vuoto: attesa di "Pesca carta turno", v193, per esempio con l'undo)
-  // (v222: nel turno nemesi basta un turno nella storia: la sua carta può essere tornata nel mazzo)
-  if (savedOrder && Array.isArray(savedOrder.left) && Array.isArray(savedOrder.drawn)
-    && (savedOrder.drawn.length || (Array.isArray(savedOrder.history) && savedOrder.history.length) || !resolving)) {
-    // Salvataggi della v168 senza il contatore dei giri: si parte dai turni nemesi giocati
-    turnOrder = { left: savedOrder.left.slice(), drawn: savedOrder.drawn.slice(),
-      round: typeof savedOrder.round === 'number' ? savedOrder.round : Math.max(1, s.turn),
-      // Salvataggi prima della v179 con 3 giocatori: il jolly si sceglie a caso
-      wild: Number(settings.players) === 3
-        ? (savedOrder.wild >= 1 && savedOrder.wild <= 3 ? savedOrder.wild : 1 + Math.floor(Math.random() * 3)) : null,
-      // Giocatori scelti per le carte 1/2 e 3/4 (v192; prima non c'erano)
-      picks: savedOrder.picks && typeof savedOrder.picks === 'object' ? Object.assign({}, savedOrder.picks) : {} };
-    // Carte note e attesa (v211; senza il campo: nessuna carta nota, nessun turno annullato)
-    const known = Array.isArray(savedOrder.known) && savedOrder.known.length === turnOrder.left.length ? savedOrder.known : [];
-    turnOrder.known = turnOrder.left.map((k, i) => !!known[i]);
-    // (v222: il turno non si annulla più; resta per i salvataggi v211-v221 con un turno annullato)
-    turnOrder.waiting = !!savedOrder.waiting && !resolving && turnOrder.drawn.length > 0;
-    // Carte 1/2 e 3/4 (v220): picks come { player, forced } e memoria per coppia. Salvataggi di prima (picks a stringhe,
-    // senza pairNext): la seconda carta della coppia nel giro non aveva un pick (si deduceva dalla prima): si ricostruisce
-    // come obbligata, e la memoria dalle carte del giro
-    if (savedOrder.pairNext && typeof savedOrder.pairNext === 'object') {
-      const picks = {};
-      Object.keys(turnOrder.picks).forEach(i => { const p = pickOf(turnOrder, Number(i)); if (p) picks[i] = { player: p.player, forced: !!p.forced }; });
-      turnOrder.picks = picks;
-      turnOrder.pairNext = emptyPairNext(savedOrder.pairNext);
-    } else {
-      const picks = {};
-      const next = { p12: null, p34: null };
-      turnOrder.drawn.forEach((kind, i) => {
-        if (!isPairCard(kind)) return;
-        const p = pickOf(turnOrder, i);
-        if (p) { picks[i] = { player: p.player, forced: false }; next[kind] = otherOfPair(kind, p.player); }
-        else if (next[kind]) { picks[i] = { player: next[kind], forced: true }; next[kind] = null; }
-      });
-      turnOrder.picks = picks;
-      turnOrder.pairNext = next;
-    }
-    // Storia dei turni del giro (v222); salvataggi di prima: un turno per ogni carta negli scarti dei turni
-    turnOrder.history = Array.isArray(savedOrder.history)
-      ? savedOrder.history.filter(e => e && e.kind).map(e => ({ kind: e.kind, player: e.player || null, forced: !!e.forced,
-        pos: typeof e.pos === 'number' && e.pos >= 0 && e.pos < turnOrder.drawn.length ? e.pos : null }))
-      : historyFromPile(turnOrder);
-  } else {
-    turnOrder = { left: [], drawn: [], round: Math.max(1, s.turn) - 1, known: [], waiting: false, pairNext: emptyPairNext(), history: [] };
-    drawTurnCard(c => (resolving ? c === 'nemesis' : c !== 'nemesis'));
-  }
+  // Mazzo dei turni (Regole.restoreTurnOrder). Salvataggi senza (prima della v168): giro nuovo con il turno in corso già
+  // estratto. drawn vuoto: attesa di "Pesca carta turno" (v193, per esempio con l'undo); v222: nel turno nemesi basta un
+  // turno nella storia (la sua carta può essere tornata nel mazzo). Campi mancanti dei salvataggi vecchi: giro dai turni
+  // nemesi (v168), wild a caso (prima della v179), nessuna carta nota né turno annullato (v211), picks a stringhe e
+  // memoria delle coppie ricostruita (prima della v220), storia dagli scarti dei turni (prima della v222)
+  turnOrder = Regole.restoreTurnOrder(s.turnOrder, { players: settings.players, resolving, turn: s.turn, random: Math.random,
+    get cards() { return turnOrderCards(settings.players); } });
 }
 
 // La partita si salva solo dal primo turno nemesi (prima, anche durante "Crea mazzo", non si scrive niente e resta

@@ -431,21 +431,17 @@ let maxTierDrawn = 0;
 // Statistiche della partita (finestra Statistiche della Vittoria). Fanno parte della partita: entrano nel salvataggio e
 // nell'undo. minions: minion usciti dal gioco uccisi, con i turni nemesi passati da quando erano stati pescati.
 let stats = emptyStats(0);
+// cards: id delle carte di ogni gruppo (elenchi delle Statistiche); i salvataggi vecchi non li hanno (elenchi vuoti)
+// startedAt / tierAt[2|3] / endedAt: istanti (Date.now) di inizio partita, prima carta del Tier 2 e del Tier 3 pescata,
+// prima Vittoria. Salvataggi vecchi: null (il tempo non si mostra)
+// mages (v175): per ogni carta giocatore del mazzo dei turni ('p1'..'p4', 'wild') quello che è stato salvato nel suo
+// turno: { damage, powers, kills } (danni ai minion, poteri scartati pagando, minion uccisi)
 function emptyStats(deckSize) {
-  // cards: id delle carte di ogni gruppo (elenchi delle Statistiche); i salvataggi vecchi non li hanno (elenchi vuoti)
-  // startedAt / tierAt[2|3] / endedAt: istanti (Date.now) di inizio partita, prima carta del Tier 2 e del Tier 3 pescata,
-  // prima Vittoria. Salvataggi vecchi: null (il tempo non si mostra)
-  // mages (v175): per ogni carta giocatore del mazzo dei turni ('p1'..'p4', 'wild') quello che è stato salvato nel suo
-  // turno: { damage, powers, kills } (danni ai minion, poteri scartati pagando, minion uccisi)
-  return { deckSize, minionsKilled: 0, powersPaid: 0, powersResolved: 0, aetherSpent: 0, attacksResolved: 0, minions: [], mages: {},
-    cards: { minionsKilled: [], powersPaid: [], powersResolved: [], attacksResolved: [] },
-    startedAt: null, tierAt: {}, endedAt: null };
+  return Regole.emptyStats(deckSize);
 }
 // Aggiunge una carta all'elenco di un gruppo delle statistiche
 function statCard(group, data) {
-  if (!stats.cards) stats.cards = emptyStats(0).cards;
-  if (!Array.isArray(stats.cards[group])) stats.cards[group] = [];
-  stats.cards[group].push(data.id);
+  Regole.statCard(stats, group, data);
 }
 
 // Undo: uno stato della partita salvato prima di ogni azione

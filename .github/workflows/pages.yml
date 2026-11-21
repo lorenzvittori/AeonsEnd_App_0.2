@@ -30,7 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Solo i file che servono al sito (niente tools/, package.json, node_modules, README, .gitignore)
+      # Solo i file che servono al sito (niente tests/, tools/, package.json, package-lock.json, node_modules, README,
+      # .gitignore): si copiano solo i file e le cartelle elencati qui sotto
       - name: Prepara i file del sito
         run: |
           mkdir _site

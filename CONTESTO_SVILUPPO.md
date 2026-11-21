@@ -573,6 +573,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 - `js/`: il codice dell'app, **script classici con variabili globali** (niente moduli, niente build), eseguiti uno dopo
   l'altro come se fossero un file solo. Ogni file ha in cima una riga che dice cosa contiene e `'use strict'`. Le
   funzioni usate da console, dalla pagina `scheletri/` e dalla Modalità test sono globali. Nell'ordine:
+  0. `00-regole.js` (refactoring fase 2): le **regole di gioco**, senza DOM e senza stato globale (vedi "Regole di
+     gioco nel codice" più sotto); definisce solo l'oggetto globale `Regole` e si carica anche in Node per i test;
   1. `01-testi-stato.js`: testi (`I18N_IT`), elementi della pagina, costanti e stato (`ui`, partita, impostazioni);
   2. `02-dati-mazzo.js`: dati e mazzo (carte, collezione, opzioni del mazzo, nemesi, Nemesis Deck Setup, pesca e scarti,
      storia e mazzo dei turni, statistiche);
@@ -652,6 +654,33 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 
 ### Regole di gioco nel codice
 
+- **Dove stanno** (dalla v229, refactoring fase 2): in `js/00-regole.js`, oggetto `Regole`. Sono funzioni che
+  ricevono tutto come argomenti e non leggono variabili globali né il DOM:
+  - `db = { cards, nemeses, deckSetup }` (i dati), `collection` (Set dei codici prodotto; null = tutto), `s` (le scelte
+    della partita: `players`, `nemesis`, `battleMode`, `mergeCollection`);
+  - `order` = il mazzo dei turni; `g` = le parti della partita usate dal turno nemesi
+    (`queue, deck, discard, stats, turn, currentIndex, newIndex, resolving, maxTierDrawn`);
+  - il **caso** arriva da fuori: `random` (funzione che dà un numero in [0, 1); nell'app `Math.random`, nei test un
+    generatore ripetibile); l'orologio pure (`now()` in `drawNewCard`).
+  - Le funzioni che fanno un passo di gioco modificano gli oggetti ricevuti (`order`, `g`) e restituiscono il
+    risultato; le altre non cambiano niente.
+  - Contenuto: caso (`shuffle`, `pickRandom`); prodotti e nemesi (`waveOfCode`, `isMiniCode`, `ownsProduct`,
+    `cardAllowed`, `battleOf`, `isPlayable`); mazzo nemesi (`deckSetupRow`, `ownedUpgradedInWave`, `mergeLockedWave`,
+    `mergeActive`, `deckPool`, `deckShortfall`, `buildDeck` → `{ deck, plan }`); mazzo dei turni (`turnOrderCards`,
+    `newTurnOrder`, `shuffleTurnOrder`, `drawTurnCard` → `{ order, card }`, `choosePairPlayer`, `currentTurn`,
+    `turnRoundOver`, `awaitingTurnCard`, `turnCardPlayer`, `historyFromPile`, `historyPlayer`, `predictedPairPlayers`,
+    `takeFromTurnPile`, `restoreTurnOrder` per i salvataggi, `emptyPairNext`, `pickOf`, `otherOfPair`, `pairOptions`,
+    `isPairCard`, `playerKinds`); carte in gioco e vita variabile (`makeEntry`, `isVariableMinion`, `hpUnset`, `hasHp`,
+    `hpMaxOf`, `hpCap`, `isGone`); statistiche (`emptyStats`, `statCard`, `aetherCost`, `countMinionKilled`,
+    `countPowerPaid`); turni (`startResolution`, `nemesisTurn`, `endResolution`, `resolveCurrent`, `isDrawStep`,
+    `canDraw`, `drawFromDeck`, `drawNewCard`, `isVictory`, `discardEntry`, `discardGone`, `endPlayerTurnCards`,
+    `removeWhileResolving`, `applyDrafts` per "Salva modifiche").
+  - Nell'app le funzioni con i nomi di sempre (`buildDeck`, `drawTurnCard`, `resolveCurrent`, `isVictory`...) restano
+    globali e chiamano `Regole` passando i dati (`rulesDb()`), la collezione, `settings` e le parti della partita
+    (`gameParts()` / `applyGameParts()`, insieme `withGame(fn)` in `02-dati-mazzo.js`). Quello che è solo interfaccia
+    (vibrazione, banner Tier, `ui.lastDrawnUid`, preferenze del browser come `turnPairsOn`, Modalità test) resta fuori
+    dalle regole.
+  - Una regola nuova va in `00-regole.js` (con un test in `tests/`), non nei file dell'interfaccia.
 - **Mazzo** (`buildDeck`): per ogni Tier 1-3 si prendono solo carte con `inNemesisDeck` e quel `tier`: a caso
   Basic e Upgraded dei prodotti della collezione (`boxCode`; senza "Unisci", solo della wave della nemesi: `deckPool`),
   nel numero indicato dalla riga di `deck-setup.json` (`deckSetupRow`: battaglia della nemesi, o battaglia 1 senza
@@ -731,8 +760,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 ## 8. Pubblicazione
 
 - `.github/workflows/pages.yml` (Pages → Source = "GitHub Actions").
-  - Pubblica solo i file del sito (compresa la cartella `js/`): niente `tools/`, `package.json`, `node_modules`,
-    `README`, `.md`.
+  - Pubblica solo i file del sito (compresa la cartella `js/`): niente `tests/`, `tools/`, `package.json`,
+    `node_modules`, `README`, `.md`.
   - Ogni tentativo di deploy ha 3 minuti e ce ne sono fino a 3.
   - Motivo: GitHub ogni tanto si blocca fino al limite di 10 minuti e manda una mail di errore.
 
@@ -759,6 +788,23 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   scattare tra un file e l'altro: oggi 5 (`fitPhaseName` e `sizeFocus`/`sizeQueue` con `ResizeObserver`, `fonts.ready`,
   service worker), controllate a mano: usano solo codice dei file precedenti. `--dir <cartella>` prova una divisione
   in un'altra cartella. Si lancia ogni volta che si sposta codice tra i file; insieme a `node --check js/*.js`.
+  - **`npm run check`** (dalla v229) fa le due cose: `tools/check-js-order.mjs` e `tools/check-syntax.mjs` (`node
+    --check` su `script.js` e su ogni file di `js/`; su Windows npm non espande `js/*.js`).
+- **Test delle regole** (dalla v229): **`npm test`** (= `node --test tests/`, il test runner integrato di Node, nessun
+  pacchetto). Devono passare tutti. I test caricano `js/00-regole.js` con `require` e usano i **veri** `cards.json`,
+  `nemesis.json`, `deck-setup.json`, `products.json` (`tests/aiuto.js`: dati, collezioni di prova, `seeded(n)` =
+  generatore ripetibile da passare come `random`). File:
+  - `tests/mazzo.test.js`: mazzo nemesi per ogni nemesi giocabile × 2/3/4 giocatori × Modalità battaglia × Unisci
+    (numeri per Tier e per Basic / Upgraded / Specific uguali a `deck-setup.json`, o mazzo corto con l'avviso giusto),
+    blocco di Unisci, ordine dei Tier, nemesi giocabili;
+  - `tests/mazzo-turni.test.js`: carte per 2/3/4 giocatori, giro nuovo, wild che passa, pesca dalla cima, memoria delle
+    coppie (scelta, obbligata, tra i giri, tre carte nello stesso giro, turno in corso rimesso nel mazzo scelto o
+    obbligato), picks e storia dopo una carta tolta dagli scarti, salvataggi vecchi;
+  - `tests/turno-nemesi.test.js`: risoluzione (potere, minion, attacco), pesca anche col mazzo vuoto, vittoria, costo Æ,
+    bozze salvate e Statistiche maghi, minion a vita variabile.
+  - **Aggiungere un test:** in uno dei file (o in un file nuovo `tests/<nome>.test.js`) un blocco
+    `test('cosa controlla', () => { ... })` con `assert` (`node:assert/strict`); i dati da `require('./aiuto.js')`; il
+    caso sempre con `seeded(n)`, mai `Math.random`, così il test dà sempre lo stesso risultato. Poi `npm test`.
 - **Funzioni utili da console:** sono globali, per esempio `queue`, `allCards`, `makeEntry`, `act()`, `render()`,
   `undo()`, `startGame()`, `onNemesisClick()`, `onResolveClick()`, `viewCard()`, `isDrawStep()`, `centredFocusUid()`.
 - Dopo le prove si toglie la partita di test: `localStorage.removeItem('aeonsend-app-0.2-save')`.
@@ -791,6 +837,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
 | `v162-prima-voci-semplici` | Prima della v163 (testata invertita, menu iniziale a scritte, comandi solo sulla carta al centro, scorrimento veloce, Opzioni con dorso e sfondo). |
 | `v157-prima-nuova-partita-e-dorsi` | Prima della v158 (pagina Nuova partita con X e wave multiple, dorsi, tempi, zoom della carta nemesi). |
 | `v226-prima-refactoring-1` | Ultima versione con tutto il codice in `script.js`, prima della divisione in `js/` (v227). |
+| `refactoring-prima-fase-2` | Branch `refactoring`, prima delle regole di gioco separate in `js/00-regole.js` con i test (v229). |
 
 Per tornare a un tag si ripubblica quello stato con un nuovo commit, senza riscrivere la storia.
 

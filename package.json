@@ -1,9 +1,10 @@
 {
   "name": "aeonsend-app-0-2-tools",
   "private": true,
-  "description": "Solo strumenti di sviluppo (tools/): l'app non usa pacchetti e non ha build.",
+  "description": "Solo strumenti di sviluppo (tools/ e test in tests/): l'app non usa pacchetti e non ha build.",
   "scripts": {
-    "check": "node tools/check-js-order.mjs"
+    "test": "node --test tests/",
+    "check": "node tools/check-js-order.mjs && node tools/check-syntax.mjs"
   },
   "devDependencies": {
     "acorn": "8.14.0"

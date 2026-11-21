@@ -21,7 +21,7 @@ function typeName(data) {
 }
 
 function hasHp(entry) {
-  return entry.data.type === 'Minion' && entry.hp !== null && entry.hp !== undefined;
+  return Regole.hasHp(entry);
 }
 
 // Stato numerico della carta in parole (per i lettori di schermo)
@@ -87,9 +87,9 @@ function tokenIcons(n) {
 
 // Carta che va negli scarti all'inizio del prossimo turno nemesi: potere con costo pagato o minion ucciso (vita 0 salvata).
 // Nel turno giocatori resta in coda, grigia.
+// (v214: un minion a vita variabile non ancora impostata non muore a 0)
 function isGone(entry) {
-  // (v214: un minion a vita variabile non ancora impostata non muore a 0)
-  return !!entry.paid || (hasHp(entry) && entry.hp <= 0 && !hpUnset(entry));
+  return Regole.isGone(entry);
 }
 
 // Turno giocatori: modifiche non ancora salvate di una carta (vita in bozza, costo pagato in bozza)
