@@ -254,11 +254,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         carte degli scarti) e senza stringere gli scarti. Col tocco: la carta, poi una carta del mazzo (prende il suo posto). La
         carta in cima appena rivelata si porta così in fondo. (v233-v236: le altre carte si spostavano per farle posto.)
       - Carta degli scarti **in qualunque posto del mazzo** (cima, fondo o tra due carte, come prima): appena la si
-        prende (o la si seleziona col tocco) gli scarti si sovrappongono (14px l'uno dall'altro, `.is-pile-tight`), **le
-        carte del mazzo si avvicinano** (sovrapposte quanto serve, centrate) e ai due lati compaiono i posti
-        "**Cima**" (a sinistra) e "**Fondo**" (a destra), **grandi come una carta** (v234; v233 più larghi), scritti in
-        **orizzontale** con il carattere adattato alla carta (v240, `--ae-zone-fs`; prima in verticale), **senza
-        riquadro** e senza riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
+        prende (o la si seleziona col tocco) gli scarti **restano fermi** (v241; v234-v240 si sovrapponevano), **le
+        carte del mazzo si avvicinano** (sovrapposte quanto serve, almeno 8px l'una dall'altra, centrate nella corsia) e
+        subito prima e subito dopo compaiono i posti "**Cima**" (a sinistra) e "**Fondo**" (a destra). Dalla v241 sono
+        **due cerchi senza scritta** (diametro `--ae-zone-d` = 60% della carta, al massimo 28px; il nome resta per i
+        lettori di schermo) **con al centro un bagliore giallo-arancio**, che si accende di più e si ingrandisce
+        (×1,15) con la carta sopra; con poche carte nel mazzo i cerchi escono un po' dalla corsia o coprono il bordo
+        delle carte. (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
+        Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
         scarti, poi Cima, Fondo o una carta del mazzo (prende il suo posto, le altre scendono). (v233 per un giorno: solo
