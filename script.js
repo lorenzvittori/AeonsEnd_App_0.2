@@ -4838,19 +4838,20 @@ function openTurnScreen() {
     // v238: Cima e Fondo solo per una carta degli scarti; una carta del mazzo va in cima o in fondo mettendola prima
     // della prima carta o dopo l'ultima (il segmento dorato lo mostra)
     const fromPile = tight && (drag ? drag.source : sel ? sel.source : null) === 'pile';
-    // Carta degli scarti: anche gli scarti si stringono (sovrapposti, 14px l'uno dall'altro), così il mazzo ha lo
-    // spazio per Cima e Fondo grandi come una carta e per le sue carte poco sovrapposte
-    const pileStep = fromPile ? Math.min(g.w + g.gap, 14) : g.w + g.gap;
+    // v241: gli scarti restano fermi anche con una loro carta in mano (v234-v240 si sovrapponevano per fare spazio)
+    const pileStep = g.w + g.gap;
     row.style.setProperty('--ae-pile-step', pileStep + 'px');
-    row.classList.toggle('is-pile-tight', fromPile);
+    row.classList.remove('is-pile-tight');
     pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
     const lw = laneWidth(g);
-    // Stretto: ai lati Cima e Fondo (solo carta degli scarti), grandi come una carta; in mezzo le carte del mazzo,
-    // avvicinate (sovrapposte quanto serve) e centrate nello spazio che resta
-    const inner = fromPile ? lw - 2 * (g.w + g.gap) : lw;
-    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, (inner - g.w) / (m - 1)) : 0) : g.w + g.gap;
+    // v241: Cima e Fondo sono due cerchi (diametro zd, al massimo 28px) subito prima e subito dopo le carte del mazzo,
+    // che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate nella corsia. Se la
+    // corsia è stretta (poche carte nel mazzo) i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
+    const zd = Math.round(Math.min(28, g.w * 0.6));
+    const inner = fromPile ? lw - 2 * (zd + g.gap) : lw;
+    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(8, (inner - g.w) / (m - 1))) : 0) : g.w + g.gap;
     const stackW = m ? g.w + (m - 1) * step : 0;
-    const start = tight ? (fromPile ? g.w + g.gap : 0) + (inner - stackW) / 2 : 0;
+    const start = tight ? (lw - stackW) / 2 : 0;
     tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
     fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
     order.forEach((idx, k) => {
@@ -4871,7 +4872,7 @@ function openTurnScreen() {
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
     zoneTop.hidden = zoneBottom.hidden = !fromPile || !m;
     // (v240: "Cima" e "Fondo" in orizzontale, il carattere si adatta alla larghezza della carta: 5 lettere ≈ 3,6em)
-    lane.style.setProperty('--ae-zone-fs', Math.max(7, Math.min(11, Math.floor((g.w - 6) / 3.6))) + 'px');
+    lane.style.setProperty('--ae-zone-d', zd + 'px');
     // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra
     const toPile = !!over && over.type === 'pile';
     pileInsert.hidden = !toPile;
@@ -4887,8 +4888,8 @@ function openTurnScreen() {
     board.style.setProperty('--ae-split', split + 'px');
     fitHead(pileHead, split - 9);
     if (fromPile) {
-      Object.assign(zoneTop.style, { left: '0px', width: g.w + 'px' });
-      Object.assign(zoneBottom.style, { left: (lw - g.w) + 'px', width: g.w + 'px' });
+      Object.assign(zoneTop.style, { left: (start - g.gap - zd) + 'px', width: zd + 'px' });
+      Object.assign(zoneBottom.style, { left: (start + stackW + g.gap) + 'px', width: zd + 'px' });
     }
     const type = over ? over.type : null;
     zoneTop.classList.toggle('is-over', type === 'top');
