@@ -263,7 +263,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         carta / dopo l'ultima), che si ingrandisce (×1,3). Dalla v242 i cerchi ci sono anche spostando una **carta del
         mazzo**. Con poche carte nel mazzo i cerchi escono un po' dalla corsia o coprono il bordo delle carte. **Posto
         tra due carte** (v242): le carte a sinistra del segmento si spostano un po' a sinistra e quelle a destra un po' a
-        destra (20% della carta, al massimo 10px) per farle spazio. **Carta in mano** (v243): con una carta trascinata o
+        destra (20% della carta, al massimo 10px) per farle spazio, e (v244) i cerchi si spostano con loro, così nessuna
+        carta li copre. **Segnale del posto d'arrivo** (v244, prima un segmento dorato): figura **linea - cerchio -
+        linea** (`.ae-turn-insert`, larga quanto i cerchi, cerchio acceso a metà altezza, all'altezza dei cerchi Cima e
+        Fondo), centrata sul cerchio di Cima o di Fondo o tra due carte. **Carta rivelata del mazzo verso gli scarti**
+        (v244): in fondo a destra degli scarti c'è un cerchio come Cima e Fondo (`.ae-turn-pile-zone`), spento finché la
+        carta non ci sta per andare, con la figura centrata su di lui. **Carta in mano** (v243): con una carta trascinata o
         selezionata tutte le altre carte, del mazzo e degli scarti, scendono all'**85%** (`.is-holding`, proprietà
         `scale`); la carta in mano resta al 100%, anche la copia che segue il dito (prima ingrandita al 108%). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**

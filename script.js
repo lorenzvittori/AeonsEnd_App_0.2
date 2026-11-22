@@ -4668,6 +4668,11 @@ function openTurnScreen() {
   pileInsert.setAttribute('aria-hidden', 'true');
   pileInsert.hidden = true;
   pileArea.appendChild(pileInsert);
+  // v244: cerchio del posto d'arrivo in fondo a destra degli scarti, con una carta del mazzo in mano (come Cima e Fondo)
+  const pileZone = el('span', 'ae-turn-pile-zone');
+  pileZone.setAttribute('aria-hidden', 'true');
+  pileZone.hidden = true;
+  pileArea.appendChild(pileZone);
   // Tocco sugli scarti con una carta del mazzo selezionata: la carta va in fondo agli scarti
   pileArea.addEventListener('click', () => {
     if (sel && sel.source === 'deck') dropOn({ type: 'pile' }, sel);
@@ -4879,13 +4884,18 @@ function openTurnScreen() {
     zoneTop.hidden = zoneBottom.hidden = !fromPile || !m;
     // (v240: "Cima" e "Fondo" in orizzontale, il carattere si adatta alla larghezza della carta: 5 lettere ≈ 3,6em)
     lane.style.setProperty('--ae-zone-d', zd + 'px');
-    // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra
+    // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra. v244: lì c'è un cerchio come
+    // Cima e Fondo (tra l'ultimo scarto e il segmento), e la figura linea-cerchio-linea si centra su di lui
     const toPile = !!over && over.type === 'pile';
+    const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
+    const pileX = pileArea.clientWidth + 4;
+    pileArea.style.setProperty('--ae-zone-d', zd + 'px');
+    pileZone.hidden = !holdingDeck;
+    pileZone.classList.toggle('is-over', toPile);
+    Object.assign(pileZone.style, { left: (pileX - zd / 2) + 'px', top: (g.h / 2 - zd / 2) + 'px' });
     pileInsert.hidden = !toPile;
     if (toPile) {
-      pileInsert.style.left = (pileArea.clientWidth + Math.min(g.gap / 2, 4) - 2) + 'px';
-      pileInsert.style.top = '-8px';
-      pileInsert.style.height = (g.h + 16) + 'px';
+      Object.assign(pileInsert.style, { left: (pileX - zd / 2) + 'px', width: zd + 'px', top: '-8px', height: (g.h + 16) + 'px' });
     }
     lane.classList.toggle('is-empty-target', tight && !m);
     // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
@@ -4893,9 +4903,12 @@ function openTurnScreen() {
     const split = divider.offsetLeft + 0.5;
     board.style.setProperty('--ae-split', split + 'px');
     fitHead(pileHead, split - 9);
+    // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
+    const topX = start - spread - g.gap - zd / 2;
+    const bottomX = start + stackW + spread + g.gap + zd / 2;
     if (fromPile) {
-      Object.assign(zoneTop.style, { left: (start - g.gap - zd) + 'px', width: zd + 'px' });
-      Object.assign(zoneBottom.style, { left: (start + stackW + g.gap) + 'px', width: zd + 'px' });
+      Object.assign(zoneTop.style, { left: (topX - zd / 2) + 'px', width: zd + 'px' });
+      Object.assign(zoneBottom.style, { left: (bottomX - zd / 2) + 'px', width: zd + 'px' });
     }
     const type = over ? over.type : null;
     // v242: il cerchio si accende solo se la carta sta per andare lì (sopra il cerchio, o prima della prima carta /
@@ -4904,14 +4917,12 @@ function openTurnScreen() {
     zoneBottom.classList.toggle('is-over', tight && m > 0 && overIdx === m);
     insertBar.hidden = !tight || !over || toPile;
     if (tight && over && !toPile) {
-      // Segmento: tra Cima e la prima carta, tra due carte (a metà dello spazio tra la fine di una e l'inizio
-      // dell'altra) o tra l'ultima carta e Fondo
+      // Figura linea-cerchio-linea (v244, prima un segmento): centrata sul cerchio di Cima o di Fondo, oppure tra due
+      // carte (a metà dello spazio tra la fine di una e l'inizio dell'altra); il cerchio è all'altezza dei cerchi
       const i = type === 'top' ? 0 : type === 'bottom' ? m : over.index;
-      const x = !m ? lw / 2 : i <= 0 ? start - g.gap / 2 : i >= m ? start + stackW + g.gap / 2
+      const x = !m ? lw / 2 : i <= 0 ? topX : i >= m ? bottomX
         : start + (i - 1) * step + (g.w + step) / 2;
-      insertBar.style.left = (x - 2) + 'px';
-      insertBar.style.height = (g.h + 16) + 'px';
-      insertBar.style.top = '-8px';
+      Object.assign(insertBar.style, { left: (x - zd / 2) + 'px', width: zd + 'px', height: (g.h + 16) + 'px', top: '-8px' });
     }
   }
   // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
