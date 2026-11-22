@@ -4949,8 +4949,12 @@ function openTurnScreen() {
     const r = card.getBoundingClientRect();
     const ghost = card.cloneNode(true);
     ghost.classList.add('ae-turn-ghost');
-    ghost.classList.remove('is-old');
+    ghost.classList.remove('is-old', 'is-away', 'is-lifted', 'is-selected');
     ghost.removeAttribute('id');
+    // v239: la copia non deve portarsi dietro il livello (z-index) scritto sulla carta del mazzo dalla fila: con quello
+    // (1-6 invece di 1000) restava sotto la finestra e la carta del mazzo trascinata non si vedeva
+    ghost.style.zIndex = '';
+    ghost.style.translate = '';
     ghost.setAttribute('aria-hidden', 'true');
     Object.assign(ghost.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     document.body.appendChild(ghost);
