@@ -4585,8 +4585,8 @@ function openTurnScreen() {
   // v236: le scritte "Scarti" e "Mazzo turno" stanno in una riga sopra le carte, ai due lati del segmento verticale
   // (--ae-split, da layoutFan), così non cambiano la larghezza delle carte né lo spazio; Mescola in fondo a destra
   const heads = el('div', 'ae-turn-heads');
-  heads.append(el('h3', 'ae-turn-subtitle ae-turn-head--pile', I18N_IT.turnPileTitle),
-    el('h3', 'ae-turn-subtitle ae-turn-head--deck', I18N_IT.turnDeckRowTitle), shuffleBtn);
+  const pileHead = el('h3', 'ae-turn-subtitle ae-turn-head--pile', I18N_IT.turnPileTitle);
+  heads.append(pileHead, el('h3', 'ae-turn-subtitle ae-turn-head--deck', I18N_IT.turnDeckRowTitle), shuffleBtn);
   const board = el('div', 'ae-turn-board');
   // Corsia del mazzo: carte in fila (posizioni assolute, così si spostano con una transizione)
   const lane = el('div', 'ae-turn-lane');
@@ -4600,42 +4600,49 @@ function openTurnScreen() {
   zoneBottom.setAttribute('aria-label', I18N_IT.turnZoneBottom);
   zoneTop.setAttribute('aria-label', I18N_IT.turnZoneTop);
   [zoneTop, zoneBottom].forEach(z => z.addEventListener('click', () => {
-    if (!sel || sel.source !== 'pile' || z.hidden) return;
+    if (!sel || z.hidden) return;
     dropOn({ type: z.dataset.zone }, sel);
   }));
   const revealTop = el('button', 'ae-turn-eye ae-turn-eye--top');
   revealTop.type = 'button';
   revealTop.setAttribute('aria-label', I18N_IT.turnRevealTopLabel);
   revealTop.appendChild(icon('eye'));
-  revealTop.addEventListener('click', () => revealWithFlip(() => turnDraftOps.revealTop(d)));
-  // v235: le carte rivelate si girano: il dorso ruota fino a mettersi di taglio, poi la faccia ruota da taglio a
-  // dritta (rotateY, 140ms + 140ms); con "Rivela tutto" una dopo l'altra da sinistra (70ms di distanza)
+  revealTop.addEventListener('click', () => flipChange(() => turnDraftOps.revealTop(d)));
+  // v235: le carte rivelate si girano: la carta com'era ruota fino a mettersi di taglio, poi come è ora ruota da taglio
+  // a dritta (rotateY, 140ms + 140ms); più carte una dopo l'altra da sinistra (70ms di distanza). v237: anche quando
+  // si coprono (dalla faccia al dorso)
   const FLIP_HALF_MS = 140;
-  function revealWithFlip(op) {
+  function flipChange(op) {
     if (drag || shuffling || closing) return;
     const before = d.known.slice();
+    const oldEls = fanEls.slice();
     op();
     sel = null;
     draw();
     if (reducedMotion.matches || !lane.animate) return;
     let k = 0;
     d.known.forEach((known, i) => {
-      if (!known || before[i] || !fanEls[i]) return;
-      flipIn(fanEls[i], k++ * 70);
+      if (known === !!before[i] || !fanEls[i] || !oldEls[i]) return;
+      flipCard(fanEls[i], oldEls[i], k++ * 70);
     });
   }
-  function flipIn(card, delay) {
-    const back = el('span', 'ae-turn-card is-back ae-turn-flip-back');
-    back.setAttribute('aria-hidden', 'true');
-    back.style.left = card.style.left;
-    back.style.zIndex = card.style.zIndex;
-    lane.appendChild(back);
+  function flipCard(card, oldCard, delay) {
+    // copia della carta com'era (senza ascoltatori), sopra la nuova, finché non è di taglio
+    const was = oldCard.cloneNode(true);
+    was.classList.add('ae-turn-flip-old');
+    was.classList.remove('is-selected', 'is-movable');
+    ['data-index', 'data-source', 'aria-label', 'role', 'type'].forEach(a => was.removeAttribute(a));
+    was.setAttribute('aria-hidden', 'true');
+    was.tabIndex = -1;
+    was.style.left = card.style.left;
+    was.style.zIndex = card.style.zIndex;
+    lane.appendChild(was);
     const p = 'perspective(500px) ';
-    const out = back.animate([{ transform: p + 'rotateY(0deg)' }, { transform: p + 'rotateY(90deg)' }],
+    const out = was.animate([{ transform: p + 'rotateY(0deg)' }, { transform: p + 'rotateY(90deg)' }],
       { duration: FLIP_HALF_MS, delay, easing: 'ease-in', fill: 'forwards' });
     card.animate([{ transform: p + 'rotateY(-90deg)' }, { transform: p + 'rotateY(0deg)' }],
       { duration: FLIP_HALF_MS, delay: delay + FLIP_HALF_MS, easing: 'ease-out', fill: 'backwards' });
-    animDone([out], delay + FLIP_HALF_MS).then(() => back.remove());
+    animDone([out], delay + FLIP_HALF_MS).then(() => was.remove());
   }
   // Segmento verticale dove cadrà la carta degli scarti (come tra le slide di Canva)
   const insertBar = el('span', 'ae-turn-insert');
@@ -4650,16 +4657,13 @@ function openTurnScreen() {
   revealAll.append(revealAllEye);
   const allKnown = () => d.left.length > 0 && d.known.every(Boolean);
   revealAll.addEventListener('click', () => {
-    if (allKnown()) { if (drag || shuffling || closing) return; turnDraftOps.coverAll(d); sel = null; draw(); }
-    else revealWithFlip(() => turnDraftOps.revealAll(d));
+    flipChange(() => { if (allKnown()) turnDraftOps.coverAll(d); else turnDraftOps.revealAll(d); });
   });
+  // v237: il pulsante dell'occhio è un rettangolo lungo quanto le carte del mazzo (larghezza da layoutFan); niente più
+  // fascio di luce (v235-v236)
   const revealRow = el('div', 'ae-turn-reveal-row');
   revealRow.appendChild(revealAll);
-  // v235: fascio di luce dall'occhio verso le carte ancora coperte (trapezio stretto all'occhio e largo quanto le
-  // coperte; posizionato in layoutFan)
-  const beam = el('span', 'ae-turn-beam');
-  beam.setAttribute('aria-hidden', 'true');
-  deckArea.append(lane, revealRow, beam);
+  deckArea.append(lane, revealRow);
   row.append(pileArea, divider, deckArea);
   board.append(heads, row);
   // Mazzo vuoto (v236): niente Cima e Fondo; con una carta degli scarti selezionata, un tocco sul mazzo la mette lì
@@ -4777,16 +4781,29 @@ function openTurnScreen() {
   function laneWidth(g) {
     return lane.clientWidth || ((g.n ? Math.max(g.n, 3) : 1) * (g.w + g.gap) - g.gap);
   }
-  // Carta degli scarti presa (trascinata) o selezionata: il mazzo si stringe e compaiono Cima e Fondo
+  // Carta presa (trascinata) o selezionata, degli scarti o (v237) del mazzo: il mazzo si stringe e compaiono Cima e
+  // Fondo
   function squeezed() {
-    return (!!drag && drag.source === 'pile') || (!drag && !!sel && sel.source === 'pile');
+    return !!drag || !!sel;
+  }
+  // Carte del mazzo da mostrare: tutte, tranne quella del mazzo che si sta trascinando (v237: la sua copia segue il
+  // dito e le altre si stringono senza di lei)
+  function shownOrder() {
+    const order = d.left.map((k, i) => i);
+    if (drag && drag.source === 'deck') order.splice(drag.index, 1);
+    return order;
   }
   // Ultima disposizione del mazzo stretto (per sapere tra quali carte sta la carta degli scarti trascinata)
   let tightGeo = null;
-  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: destinazione della carta degli
-  // scarti trascinata ({ type: 'top' | 'bottom' | 'pos', index }) o null
-  function layoutFan(order = d.left.map((k, i) => i), lifted = -1, over = null) {
+  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: destinazione della carta
+  // trascinata ({ type: 'top' | 'bottom' | 'pos', index }) o null
+  function layoutFan(order = shownOrder(), lifted = -1, over = null) {
     const g = rowGeometry();
+    // (v237: con la riga normale il pulsante dell'occhio è lungo quanto tutte le carte del mazzo)
+    const fullW = g.n ? g.n * (g.w + g.gap) - g.gap : g.w;
+    revealAll.style.width = Math.max(44, fullW) + 'px';
+    // m: carte mostrate (senza quella del mazzo che si trascina)
+    const m = order.length;
     row.style.setProperty('--ae-turn-w', g.w + 'px');
     row.style.setProperty('--ae-turn-h', g.h + 'px');
     const tight = squeezed();
@@ -4800,15 +4817,16 @@ function openTurnScreen() {
     // Stretto: ai lati Cima e Fondo, grandi come una carta; in mezzo le carte del mazzo, avvicinate (sovrapposte quanto
     // serve) e centrate nello spazio che resta
     const inner = lw - 2 * (g.w + g.gap);
-    const step = tight ? (g.n > 1 ? Math.min(g.w + g.gap, (inner - g.w) / (g.n - 1)) : 0) : g.w + g.gap;
-    const stackW = g.n ? g.w + (g.n - 1) * step : 0;
+    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, (inner - g.w) / (m - 1)) : 0) : g.w + g.gap;
+    const stackW = m ? g.w + (m - 1) * step : 0;
     const start = tight ? g.w + g.gap + (inner - stackW) / 2 : 0;
-    tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: g.n } : null;
+    tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
+    fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
     order.forEach((idx, k) => {
       const card = fanEls[idx];
       if (!card) return;
       card.style.left = (start + k * step) + 'px';
-      card.style.zIndex = String(tight ? 1 + g.n - k : 1 + k);
+      card.style.zIndex = String(tight ? 1 + m - k : 1 + k);
       card.classList.toggle('is-lifted', idx === lifted);
       if (idx === 0) {
         revealTop.style.left = (start + k * step + g.w / 2 - 22) + 'px';
@@ -4820,38 +4838,17 @@ function openTurnScreen() {
     // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
-    zoneTop.hidden = zoneBottom.hidden = !tight || !g.n;
-    lane.classList.toggle('is-empty-target', tight && !g.n);
-    // Scritte sopra: ai due lati del segmento verticale
-    board.style.setProperty('--ae-split', (divider.offsetLeft + 0.5) + 'px');
+    zoneTop.hidden = zoneBottom.hidden = !tight || !m;
+    lane.classList.toggle('is-empty-target', tight && !m);
+    // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
+    // (pochi o nessuno scarto) il carattere scende
+    const split = divider.offsetLeft + 0.5;
+    board.style.setProperty('--ae-split', split + 'px');
+    fitHead(pileHead, split - 9);
     if (tight) {
       Object.assign(zoneTop.style, { left: '0px', width: g.w + 'px' });
       Object.assign(zoneBottom.style, { left: (lw - g.w) + 'px', width: g.w + 'px' });
     }
-    // v235: fascio di luce dall'occhio in basso alle carte coperte (solo con il mazzo in fila e niente in mano); le
-    // carte coperte prendono un bagliore
-    const covered = [];
-    order.forEach((idx, k) => { if (!d.known[idx]) covered.push(start + k * step); });
-    beam.hidden = tight || !!drag || !covered.length;
-    if (!beam.hidden) {
-      const ar = deckArea.getBoundingClientRect();
-      const lr = lane.getBoundingClientRect();
-      const er = revealAll.getBoundingClientRect();
-      const ox = lr.left - ar.left;
-      const x0 = ox + Math.min(...covered);
-      const x1 = ox + Math.max(...covered) + g.w;
-      const ex = er.left - ar.left + er.width / 2;
-      const top = lr.top - ar.top + g.h * 0.5; // arriva fin dietro le carte
-      const bottom = er.top - ar.top + er.height / 2;
-      const left = Math.min(x0, ex - 8);
-      const right = Math.max(x1, ex + 8);
-      Object.assign(beam.style, { left: left + 'px', top: top + 'px', width: (right - left) + 'px',
-        height: Math.max(0, bottom - top) + 'px' });
-      // (v236: la forma va ai due strati interni, ::before e ::after; la sfocatura sta sul contenitore, così i bordi
-      // del fascio restano morbidi)
-      beam.style.setProperty('--beam-clip', `polygon(${x0 - left}px 0, ${x1 - left}px 0, ${ex + 8 - left}px 100%, ${ex - 8 - left}px 100%)`);
-    }
-    fanEls.forEach(c => c.classList.toggle('is-lit', !beam.hidden && c.classList.contains('is-back')));
     const type = over ? over.type : null;
     zoneTop.classList.toggle('is-over', type === 'top');
     zoneBottom.classList.toggle('is-over', type === 'bottom');
@@ -4859,12 +4856,21 @@ function openTurnScreen() {
     if (tight && over) {
       // Segmento: tra Cima e la prima carta, tra due carte (a metà dello spazio tra la fine di una e l'inizio
       // dell'altra) o tra l'ultima carta e Fondo
-      const i = type === 'top' ? 0 : type === 'bottom' ? g.n : over.index;
-      const x = !g.n ? lw / 2 : i <= 0 ? start - g.gap / 2 : i >= g.n ? start + stackW + g.gap / 2
+      const i = type === 'top' ? 0 : type === 'bottom' ? m : over.index;
+      const x = !m ? lw / 2 : i <= 0 ? start - g.gap / 2 : i >= m ? start + stackW + g.gap / 2
         : start + (i - 1) * step + (g.w + step) / 2;
       insertBar.style.left = (x - 2) + 'px';
       insertBar.style.height = (g.h + 16) + 'px';
       insertBar.style.top = '-8px';
+    }
+  }
+  // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
+  function fitHead(node, maxW) {
+    node.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(node).fontSize) || 12;
+    for (let i = 0; i < 12 && node.scrollWidth > maxW && size > 8; i++) {
+      size = Math.max(8, size - 0.5);
+      node.style.fontSize = size + 'px';
     }
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
@@ -4874,12 +4880,6 @@ function openTurnScreen() {
     if (!t || !t.n) return 0;
     const rel = x - lane.getBoundingClientRect().left - t.start - t.w / 2;
     return Math.max(0, Math.min(t.n, Math.floor(rel / (t.step || 1)) + 1));
-  }
-  // Posto nella corsia sotto il dito (0 = cima, a sinistra) per una carta del mazzo
-  function fanSlotAt(x) {
-    const g = rowGeometry();
-    const v = Math.round((x - lane.getBoundingClientRect().left - g.w / 2) / (g.w + g.gap));
-    return Math.max(0, Math.min(g.n - 1, v));
   }
 
   // Destinazioni permesse per la carta s (solo quelle si evidenziano): carta del mazzo = la corsia del mazzo; carta
@@ -4953,8 +4953,8 @@ function openTurnScreen() {
     markTargets({ source, index });
     dialog.classList.add('is-dragging', 'is-dragging-' + source);
     press = null;
-    // new_turn: presa una carta degli scarti, il mazzo si stringe e compaiono Cima e Fondo
-    if (source === 'pile') layoutFan();
+    // new_turn: presa una carta (degli scarti o, v237, del mazzo), il mazzo si stringe e compaiono Cima e Fondo
+    layoutFan();
     // Piccola vibrazione quando la carta si solleva (solo dopo un tocco vero: altrimenti il browser la blocca)
     const touched = !navigator.userActivation || navigator.userActivation.hasBeenActive;
     if (navigator.vibrate && touched) { try { navigator.vibrate(10); } catch (err) { /* niente vibrazione */ } }
@@ -4977,29 +4977,16 @@ function openTurnScreen() {
     // del mazzo stretto) o Fondo (a destra); carta del mazzo = un posto della corsia del mazzo
     const x = e.clientX - drag.dx + drag.w / 2;
     const y = e.clientY - drag.dy + drag.h / 2;
-    const fromPile = drag.source === 'pile';
+    // v237: carta del mazzo e carta degli scarti si spostano allo stesso modo: su Cima o Fondo (grandi come una carta,
+    // ai lati) o in mezzo alle altre carte del mazzo (strette), nel posto sotto la carta; il segmento dorato dice dove
+    const order = shownOrder();
     let target = null;
-    if (fromPile) {
-      // Su Cima o Fondo (grandi come una carta, ai lati) o in mezzo alle carte del mazzo, nel posto sotto la carta
-      if (hit(zoneTop.getBoundingClientRect(), x, y, 6)) target = { type: 'top' };
-      else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6)) target = { type: 'bottom' };
-      else if (hit(lane.getBoundingClientRect(), x, y, 24)) target = d.left.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };
-    } else if (hit(lane.getBoundingClientRect(), x, y, 24)) {
-      target = { type: 'pos', index: fanSlotAt(x) };
-    }
+    if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
+    else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
+    else if (hit(lane.getBoundingClientRect(), x, y, 24)) target = order.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };
     drag.target = target;
     lane.classList.toggle('is-over', !!target && target.type === 'pos');
-    // Anteprima nel mazzo: carta del mazzo = le altre si spostano per fare posto; carta degli scarti = segmento dove
-    // cadrà (Cima, tra due carte, Fondo)
-    const order = d.left.map((k, i) => i);
-    if (!fromPile) {
-      const to = !target ? drag.index : target.index;
-      order.splice(order.indexOf(drag.index), 1);
-      order.splice(to, 0, drag.index);
-      layoutFan(order, drag.index);
-    } else {
-      layoutFan(order, -1, target);
-    }
+    layoutFan(order, -1, target);
   }
   function endDrag(apply) {
     stopListening();

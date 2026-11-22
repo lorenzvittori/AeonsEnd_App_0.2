@@ -1580,25 +1580,26 @@ body { overflow: hidden; }
 .ae-turn-area { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .ae-turn-area--pile { flex: 0 0 auto; }
 .ae-turn-area--deck { flex: 1 1 auto; }
-.ae-turn-divider { flex: 0 0 1px; margin: 0 8px; background: rgba(236, 232, 222, .35); border-radius: 1px; }
+/* v237: il segmento è lungo quanto le carte più il 10% sopra e sotto */
+.ae-turn-divider {
+  flex: 0 0 1px; margin: calc(var(--ae-turn-h, 67px) * -.1) 8px 0; align-self: flex-start;
+  height: calc(var(--ae-turn-h, 67px) * 1.2); background: rgba(236, 232, 222, .35); border-radius: 1px;
+}
 /* v236: scritte in una riga sopra le carte, ai due lati del segmento verticale (--ae-split = sua posizione, da JS);
    non toccano la larghezza delle carte. Mescola in fondo a destra della riga */
 .ae-turn-board { position: relative; }
 .ae-turn-heads { position: relative; height: 32px; }
 .ae-turn-heads .ae-turn-subtitle { position: absolute; top: 0; margin: 0; line-height: 32px; white-space: nowrap; }
-.ae-turn-head--pile { right: calc(100% - var(--ae-split, 50%) + 9px); }
-/* "Mazzo turno" va dal segmento fino al simbolo Mescola; se non ci sta va su due righe */
+/* v237: "Scarti" allineata a sinistra (non supera il segmento: il carattere scende, script.js fitHead); "Mazzo turno"
+   allineata a destra, fino al simbolo Mescola (se non ci sta va su due righe). Niente linea tra le due */
+.ae-turn-head--pile { left: 0; }
 .ae-turn-heads .ae-turn-head--deck {
   left: calc(var(--ae-split, 50%) + 9px); right: 40px; height: 32px; display: flex; align-items: center;
-  white-space: normal; line-height: 14px;
+  justify-content: flex-end; text-align: right; white-space: normal; line-height: 14px;
 }
 .ae-turn-heads.no-shuffle .ae-turn-head--deck { right: 0; }
 .ae-turn-heads .ae-turn-shuffle[hidden] { display: none; }
 .ae-turn-heads .ae-turn-shuffle.ae-icon-button { position: absolute; right: -8px; top: -6px; width: 44px; height: 44px; margin: 0; color: var(--ae-gold); }
-.ae-turn-heads::after {
-  content: ''; position: absolute; left: var(--ae-split, 50%); bottom: 4px; width: 1px; height: 14px; transform: translateX(-.5px);
-  background: rgba(236, 232, 222, .35);
-}
 .ae-turn-shuffle:disabled { opacity: .35; cursor: default; }
 /* Scarti: in fila da sinistra a destra, l'ultima è il turno in corso */
 .ae-turn-area--pile .ae-turn-pile-row { gap: 6px; min-height: 0; flex-wrap: nowrap; }
@@ -1632,58 +1633,26 @@ body { overflow: hidden; }
 }
 .ae-turn-lane .ae-turn-zone[hidden] { display: none; }
 .ae-turn-lane .ae-turn-insert { z-index: 40; transition: left .12s ease; }
-.ae-turn-reveal-row { display: flex; justify-content: center; position: relative; z-index: 2; }
-/* v235: "Rivela tutto" è solo l'occhio (tondo); con tutto scoperto l'occhio barrato ("Copri tutto") */
+.ae-turn-reveal-row { display: flex; justify-content: flex-start; position: relative; z-index: 2; }
+/* v237: "Rivela tutto" è un rettangolo con l'occhio al centro, lungo quanto le carte del mazzo (larghezza da script.js
+   layoutFan) e allineato con loro; con tutto scoperto l'occhio barrato ("Copri tutto", eye-off.svg). Niente più fascio
+   di luce né alone (v235-v236) */
 .ae-icon--eye-off { -webkit-mask-image: url('Assets/ui/icons/eye-off.svg'); mask-image: url('Assets/ui/icons/eye-off.svg'); }
-.ae-turn-reveal-row .ae-turn-eye--all { width: 44px; height: 44px; padding: 0; border-radius: 50%; background: rgba(16, 17, 22, .9); }
+.ae-turn-reveal-row .ae-turn-eye--all {
+  height: 36px; min-height: 36px; padding: 0; border-radius: 8px; box-sizing: border-box; transition: width .2s ease;
+}
 .ae-turn-reveal-row .ae-turn-eye--all .ae-icon { width: 22px; height: 22px; }
-.ae-turn-reveal-row .ae-turn-eye--all.is-cover { color: var(--ae-text-muted); border-color: rgba(236, 232, 222, .25); }
-/* v235: fascio di luce dall'occhio alle carte coperte (trapezio con clip-path, misure da script.js layoutFan); passa
-   dietro le carte e pulsa piano. Le carte coperte prendono un bagliore dorato */
+.ae-turn-reveal-row .ae-turn-eye--all.is-cover { color: var(--ae-text-muted); border-color: rgba(236, 232, 222, .25); background: transparent; }
 .ae-turn-area--deck { position: relative; }
 .ae-turn-lane { z-index: 1; }
-/* v236: fascio più bello. Il contenitore è sfocato (bordi morbidi) e si fonde con lo sfondo (screen); dentro due strati
-   con la forma del fascio (--beam-clip, da JS): ::before la luce calda, più forte vicino all'occhio; ::after strisce di
-   luce che salgono piano verso le carte. Pulsa insieme all'alone dell'occhio */
-.ae-turn-beam {
-  position: absolute; z-index: 0; pointer-events: none; filter: blur(3px); mix-blend-mode: screen;
-  animation: ae-turn-beam 2.6s ease-in-out infinite;
+/* v237: la carta del mazzo che si trascina lascia la fila (la sua copia segue il dito, le altre si stringono) */
+.ae-turn-lane .ae-turn-card.is-away { visibility: hidden; }
+/* Carta che si gira (rivelata o coperta, v237): copia della carta com'era che ruota di taglio sopra la nuova, poi sparisce */
+.ae-turn-lane .ae-turn-flip-old { pointer-events: none; }
+/* v237: barra dei turni, carte 1/2 e 3/4 ancora da scegliere: la sfumatura si calcola in oklab (in sRGB il colore a metà
+   tra blu e viola veniva un blu spento e il centro sembrava spostato a destra) e il bagliore della casella accesa ha i
+   due colori, uno per lato (prima solo il primo, tutto intorno) */
+.ae-turn-seg[data-pair]::after { background: linear-gradient(90deg in oklab, var(--ae-pair-a), var(--ae-pair-b)); }
+.ae-turn-seg.is-current[data-pair][data-kind="p12"], .ae-turn-seg.is-current[data-pair][data-kind="p34"] {
+  box-shadow: -2px 0 4px color-mix(in srgb, var(--ae-pair-a) 25%, transparent), 2px 0 4px color-mix(in srgb, var(--ae-pair-b) 25%, transparent);
 }
-.ae-turn-beam::before, .ae-turn-beam::after {
-  content: ''; position: absolute; inset: 0; -webkit-clip-path: var(--beam-clip); clip-path: var(--beam-clip);
-}
-.ae-turn-beam::before {
-  background: linear-gradient(to top, rgba(255, 226, 160, .75) 0%, rgba(240, 190, 105, .42) 28%,
-    rgba(223, 174, 89, .2) 62%, rgba(223, 174, 89, 0) 100%);
-}
-.ae-turn-beam::after {
-  background: repeating-linear-gradient(to top, rgba(255, 236, 190, 0) 0 14px, rgba(255, 236, 190, .35) 20px,
-    rgba(255, 236, 190, 0) 26px);
-  background-size: 100% 52px; animation: ae-turn-beam-rise 1.8s linear infinite;
-  -webkit-mask-image: linear-gradient(to top, #000 30%, transparent); mask-image: linear-gradient(to top, #000 30%, transparent);
-}
-.ae-turn-beam[hidden] { display: none; }
-@keyframes ae-turn-beam { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
-@keyframes ae-turn-beam-rise { from { background-position: 0 0; } to { background-position: 0 -52px; } }
-.ae-turn-screen.is-shuffling .ae-turn-beam { display: none; }
-/* L'occhio da cui parte la luce ha un alone dorato che pulsa con il fascio */
-.ae-turn-reveal-row .ae-turn-eye--all:not(.is-cover):not(:disabled) {
-  border-color: rgba(255, 220, 150, .85); color: #ffe2a6;
-  box-shadow: 0 0 0 1px rgba(223, 174, 89, .35), 0 0 16px 3px rgba(240, 190, 105, .45);
-  animation: ae-turn-eye-glow 2.6s ease-in-out infinite;
-}
-@keyframes ae-turn-eye-glow {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(223, 174, 89, .3), 0 0 12px 2px rgba(240, 190, 105, .35); }
-  50% { box-shadow: 0 0 0 1px rgba(223, 174, 89, .5), 0 0 22px 5px rgba(255, 210, 130, .6); }
-}
-/* Carte coperte illuminate dal basso: luce calda sotto e un bordo più chiaro */
-.ae-turn-lane .ae-turn-card.is-back.is-lit {
-  box-shadow: 0 0 0 1.5px rgba(255, 226, 160, .8), 0 10px 18px -6px rgba(255, 205, 120, .75),
-    0 0 12px rgba(223, 174, 89, .35), 0 2px 6px rgba(0, 0, 0, .55);
-}
-@media (prefers-reduced-motion: reduce) {
-  .ae-turn-beam::after, .ae-turn-reveal-row .ae-turn-eye--all:not(.is-cover) { animation: none; }
-}
-/* Carta che si gira (rivelata): copia del dorso che ruota di taglio sopra la faccia, poi sparisce */
-.ae-turn-lane .ae-turn-flip-back { pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .ae-turn-beam { animation: none; } }

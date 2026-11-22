@@ -204,29 +204,27 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `ui.trackPreview` niente scelta x/y né riquadro). Sotto, il titolo "Mazzo dei turni" con la X.
     - **Riga unica** (v233, branch `new_turn`; prima ventaglio del mazzo sopra e scarti sotto): **scarti e mazzo
       sulla stessa riga**, separati da un **segmento verticale** (`.ae-turn-row`: `.ae-turn-area--pile`,
-      `.ae-turn-divider`, `.ae-turn-area--deck`). **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti)
-      "**Scarti**" e "**Mazzo turno**" ai due lati del segmento (`--ae-split`, posizione del segmento da `layoutFan`),
-      così le scritte non cambiano la larghezza delle carte; "Mazzo turno" va su due righe se non ci sta. In fondo a
+      `.ae-turn-divider`, `.ae-turn-area--deck`); il segmento è lungo quanto le carte più il 10% sopra e sotto (v237).
+      **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) "**Scarti**" **allineata a sinistra** e
+      "**Mazzo turno**" **allineata a destra** (v237; v236 ai due lati del segmento, con una lineetta tra le due), così
+      le scritte non cambiano la larghezza delle carte. "Scarti" non va oltre il segmento (`--ae-split`, da
+      `layoutFan`): se non ci sta, con pochi o nessuno scarto, il carattere scende fino a 8px (`fitHead`); "Mazzo turno"
+      va su due righe se non ci sta. In fondo a
       destra il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`), che
       sparisce con meno di 2 carte nel mazzo. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali
       (`rowGeometry`: la larghezza `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3
       posti, 1 se il mazzo è vuoto).
     - **Il mazzo** (`turnOrder.left`, corsia `.ae-turn-lane`) **si legge da sinistra a destra come la barra dei turni:
       la carta in cima è la prima a sinistra**. Carte coperte (dorso) o scoperte se **note**. Un **occhio al centro della
-      carta in cima** la rivela; sotto il mazzo l'occhio "**Rivela tutto**" (v235: solo l'icona tonda, senza scritta;
-      il nome resta per i lettori di schermo), che con tutto scoperto diventa l'**occhio barrato** "**Copri tutto**"
-      (v222, ricopre tutto senza mescolare; `Assets/ui/icons/eye-off.svg`).
-    - **Fascio di luce** (v235, `.ae-turn-beam`; v236 più bello): dall'occhio in basso sale verso le **carte ancora
-      coperte** un trapezio di luce calda (stretto all'occhio, largo quanto le coperte; forma in `--beam-clip` da
-      `layoutFan`, applicata a `::before` e `::after`, mentre la sfocatura sta sul contenitore: bordi morbidi; fuso con
-      lo sfondo, `mix-blend-mode: screen`). `::before` è la luce, più forte vicino all'occhio; `::after` strisce di luce
-      che salgono piano verso le carte. Passa dietro le carte e pulsa insieme all'**alone dell'occhio**; le carte
-      coperte sono illuminate dal basso (`.is-lit`). Sparisce con tutto
-      scoperto, mentre si sposta una carta, con il mazzo stretto e durante la mescola.
-    - **Rivelare con la rotazione** (v235, `revealWithFlip` / `flipIn`): la carta rivelata si gira; una copia del
-      dorso ruota fino a mettersi di taglio (rotateY 0 → 90°, 140ms), poi la faccia ruota da taglio a dritta (−90° → 0,
-      140ms). Con "Rivela tutto" le carte si girano una dopo l'altra da sinistra (70ms di distanza). "Copri tutto" non
-      ha animazione.
+      carta in cima** la rivela; sotto il mazzo "**Rivela tutto**": dalla v237 un **rettangolo con l'occhio al
+      centro, lungo quanto le carte del mazzo** e allineato con loro (larghezza da `layoutFan`; v235 tondo, senza
+      scritta; il nome resta per i lettori di schermo), che con tutto scoperto ha l'**occhio barrato** "**Copri tutto**"
+      (v222, ricopre tutto senza mescolare; `Assets/ui/icons/eye-off.svg`). (v235-v236: fascio di luce dall'occhio alle
+      carte coperte e alone pulsante; tolti nella v237.)
+    - **Girare le carte con la rotazione** (v235 per rivelare, v237 anche per coprire; `flipChange` / `flipCard`): una
+      copia della carta com'era ruota fino a mettersi di taglio (rotateY 0 → 90°, 140ms), poi la carta com'è ora ruota da
+      taglio a dritta (−90° → 0, 140ms). Più carte (Rivela tutto, Copri tutto) una dopo l'altra da sinistra (70ms di
+      distanza).
     - **Gli scarti dei turni** (`turnOrder.drawn`) a sinistra del segmento, in fila da sinistra a destra, scoperti
       (vuoti: un posto tratteggiato). La carta del **turno in corso** (se è ancora negli scarti): bordo dorato e scritta
       "in corso".
@@ -247,9 +245,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       bordo inferiore 16px sopra il dito) con un **bordo dorato**, e conta dove sta la carta (il suo centro), non il dito;
       nessuna carta diventa trasparente (nella rosa il posto dove cadrà ha la carta al 100% con un bordo tratteggiato). In alternativa si **tocca** (o Invio) la carta e poi la
       destinazione; Esc annulla la selezione.
-      - Carta del mazzo **solo se nota**, **solo dentro il mazzo**: in un posto della corsia (le altre carte si spostano
-        per fare posto; il primo posto a sinistra è la cima, l'ultimo il fondo); col tocco: la carta, poi una carta del
-        mazzo. La carta in cima appena rivelata si porta così in fondo.
+      - Carta del mazzo **solo se nota**, **solo dentro il mazzo**, dalla v237 **come una carta degli scarti** (qui
+        sotto): presa, lascia la fila (`.is-away`, `shownOrder`), le altre si stringono tra Cima e Fondo e il segmento
+        dorato dice dove cadrà; col tocco: la carta, poi Cima, Fondo o una carta del mazzo (prende il suo posto). La
+        carta in cima appena rivelata si porta così in fondo. (v233-v236: le altre carte si spostavano per farle posto.)
       - Carta degli scarti **in qualunque posto del mazzo** (cima, fondo o tra due carte, come prima): appena la si
         prende (o la si seleziona col tocco) gli scarti si sovrappongono (14px l'uno dall'altro, `.is-pile-tight`), **le
         carte del mazzo si avvicinano** (sovrapposte quanto serve, centrate) e ai due lati compaiono i posti
@@ -320,7 +319,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     **Opzioni del menu iniziale** (v193; nella v192 era nel Menu della partita; interruttore, attivo di default;
     preferenza del browser `aeonsend-app-0.2-turn-pairs`; a partita in corso vale dal prossimo giro) il mazzo è 1/2,
     1/2, 3/4, 3/4 ('p12', 'p34') + 2 nemesi. Quando esce una carta x/y la casella è una **sfumatura dai due colori**
-    (v194, strato `::after`; scelto il giocatore svanisce in 0,45 s e resta il suo colore), sotto
+    (v194, strato `::after`; scelto il giocatore svanisce in 0,45 s e resta il suo colore; dalla v237 calcolata in
+    oklab, `linear-gradient(90deg in oklab, …)`, e con il bagliore dei due colori, uno per lato: prima in sRGB il colore
+    a metà tra blu e viola era un blu spento e il bagliore tutto del primo colore, e il centro sembrava spostato a
+    destra), sotto
     c'è "x / y" e al centro compare la finestra "**Chi gioca questo turno?**" (v193, `renderPairChoice`): due carte
     grandi come quelle della fascia piccola, bordo nero, colore del giocatore scurito e numero nero al centro. Finché
     non si sceglie è tutto disattivato (inert) tranne la scelta e il pulsante Menu. Dalla v195 è **tutto oscurato
