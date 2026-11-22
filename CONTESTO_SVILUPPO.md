@@ -263,7 +263,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         carta / dopo l'ultima), che si ingrandisce (×1,3). Dalla v242 i cerchi ci sono anche spostando una **carta del
         mazzo**. Con poche carte nel mazzo i cerchi escono un po' dalla corsia o coprono il bordo delle carte. **Posto
         tra due carte** (v242): le carte a sinistra del segmento si spostano un po' a sinistra e quelle a destra un po' a
-        destra (20% della carta, al massimo 10px) per farle spazio. (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
+        destra (20% della carta, al massimo 10px) per farle spazio. **Carta in mano** (v243): con una carta trascinata o
+        selezionata tutte le altre carte, del mazzo e degli scarti, scendono all'**85%** (`.is-holding`, proprietà
+        `scale`); la carta in mano resta al 100%, anche la copia che segue il dito (prima ingrandita al 108%). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli

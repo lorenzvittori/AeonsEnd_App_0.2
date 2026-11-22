@@ -1710,3 +1710,7 @@ body { overflow: hidden; }
   background: radial-gradient(circle, rgba(255, 238, 170, 1) 0%, rgba(255, 186, 72, .85) 40%, rgba(255, 150, 40, 0) 75%);
   box-shadow: 0 0 10px 2px rgba(255, 186, 72, .75);
 }
+/* v243: con una carta in mano (trascinata o selezionata, .is-holding da script.js layoutFan) tutte le altre carte del
+   mazzo e degli scarti scendono all'85% (proprietà scale, che si somma alle rotazioni); quella in mano resta al 100% */
+.ae-turn-row .ae-turn-card { transition: left .2s ease, opacity .15s, scale .2s ease; }
+.ae-turn-screen.is-holding .ae-turn-row .ae-turn-card:not(.is-selected):not(.is-dragging) { scale: .85; }

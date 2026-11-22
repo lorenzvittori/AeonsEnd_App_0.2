@@ -4870,6 +4870,9 @@ function openTurnScreen() {
       }
     });
     lane.classList.toggle('is-squeezed', tight);
+    // v243: con una carta in mano (trascinata o selezionata) tutte le altre carte, del mazzo e degli scarti, scendono
+    // all'85% (style.css .is-holding)
+    dialog.classList.toggle('is-holding', tight);
     // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
@@ -5026,7 +5029,8 @@ function openTurnScreen() {
     if (!drag) return;
     e.preventDefault();
     // (v224: dritta, prima inclinata di 4° a sinistra)
-    drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px) scale(1.08)`;
+    // (v243: al 100%, prima ingrandita al 108%)
+    drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px)`;
     // La carta si porta ovunque nello schermo; il rilascio riesce solo su una destinazione valida. v222: conta dove
     // sta la carta (il suo centro, sopra il dito), non il dito. new_turn: carta degli scarti = solo Cima (a sinistra
     // del mazzo stretto) o Fondo (a destra); carta del mazzo = un posto della corsia del mazzo
