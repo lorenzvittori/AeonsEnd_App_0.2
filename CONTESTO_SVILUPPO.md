@@ -210,8 +210,17 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3 posti).
     - **Il mazzo** (`turnOrder.left`, corsia `.ae-turn-lane`) **si legge da sinistra a destra come la barra dei turni:
       la carta in cima è la prima a sinistra**. Carte coperte (dorso) o scoperte se **note**. Un **occhio al centro della
-      carta in cima** la rivela; sotto il mazzo "**Rivela tutto**", che con tutto scoperto diventa "**Copri tutto**"
-      (v222, ricopre tutto senza mescolare).
+      carta in cima** la rivela; sotto il mazzo l'occhio "**Rivela tutto**" (v235: solo l'icona tonda, senza scritta;
+      il nome resta per i lettori di schermo), che con tutto scoperto diventa l'**occhio barrato** "**Copri tutto**"
+      (v222, ricopre tutto senza mescolare; `Assets/ui/icons/eye-off.svg`).
+    - **Fascio di luce** (v235, `.ae-turn-beam`): dall'occhio in basso sale verso le **carte ancora coperte**, un
+      trapezio dorato sfumato (stretto all'occhio, largo quanto le coperte; `clip-path` calcolato in `layoutFan`) che
+      passa dietro le carte e pulsa piano; le carte coperte prendono un bagliore (`.is-lit`). Sparisce con tutto
+      scoperto, mentre si sposta una carta, con il mazzo stretto e durante la mescola.
+    - **Rivelare con la rotazione** (v235, `revealWithFlip` / `flipIn`): la carta rivelata si gira; una copia del
+      dorso ruota fino a mettersi di taglio (rotateY 0 → 90°, 140ms), poi la faccia ruota da taglio a dritta (−90° → 0,
+      140ms). Con "Rivela tutto" le carte si girano una dopo l'altra da sinistra (70ms di distanza). "Copri tutto" non
+      ha animazione.
     - **Gli scarti dei turni** (`turnOrder.drawn`) a sinistra del segmento, in fila da sinistra a destra, scoperti
       (vuoti: un posto tratteggiato). La carta del **turno in corso** (se è ancora negli scarti): bordo dorato e scritta
       "in corso".

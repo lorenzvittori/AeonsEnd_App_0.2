@@ -4603,7 +4603,36 @@ function openTurnScreen() {
   revealTop.type = 'button';
   revealTop.setAttribute('aria-label', I18N_IT.turnRevealTopLabel);
   revealTop.appendChild(icon('eye'));
-  revealTop.addEventListener('click', () => { turnDraftOps.revealTop(d); draw(); });
+  revealTop.addEventListener('click', () => revealWithFlip(() => turnDraftOps.revealTop(d)));
+  // v235: le carte rivelate si girano: il dorso ruota fino a mettersi di taglio, poi la faccia ruota da taglio a
+  // dritta (rotateY, 140ms + 140ms); con "Rivela tutto" una dopo l'altra da sinistra (70ms di distanza)
+  const FLIP_HALF_MS = 140;
+  function revealWithFlip(op) {
+    if (drag || shuffling || closing) return;
+    const before = d.known.slice();
+    op();
+    sel = null;
+    draw();
+    if (reducedMotion.matches || !lane.animate) return;
+    let k = 0;
+    d.known.forEach((known, i) => {
+      if (!known || before[i] || !fanEls[i]) return;
+      flipIn(fanEls[i], k++ * 70);
+    });
+  }
+  function flipIn(card, delay) {
+    const back = el('span', 'ae-turn-card is-back ae-turn-flip-back');
+    back.setAttribute('aria-hidden', 'true');
+    back.style.left = card.style.left;
+    back.style.zIndex = card.style.zIndex;
+    lane.appendChild(back);
+    const p = 'perspective(500px) ';
+    const out = back.animate([{ transform: p + 'rotateY(0deg)' }, { transform: p + 'rotateY(90deg)' }],
+      { duration: FLIP_HALF_MS, delay, easing: 'ease-in', fill: 'forwards' });
+    card.animate([{ transform: p + 'rotateY(-90deg)' }, { transform: p + 'rotateY(0deg)' }],
+      { duration: FLIP_HALF_MS, delay: delay + FLIP_HALF_MS, easing: 'ease-out', fill: 'backwards' });
+    animDone([out], delay + FLIP_HALF_MS).then(() => back.remove());
+  }
   // Segmento verticale dove cadrà la carta degli scarti (come tra le slide di Canva)
   const insertBar = el('span', 'ae-turn-insert');
   insertBar.setAttribute('aria-hidden', 'true');
@@ -4611,17 +4640,22 @@ function openTurnScreen() {
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
   revealAll.setAttribute('aria-label', I18N_IT.turnRevealAllLabel);
-  const revealAllText = el('span', '', I18N_IT.turnRevealAll);
-  revealAll.append(icon('eye'), revealAllText);
-  // v222: con tutto il mazzo scoperto il pulsante diventa "Copri tutto"
+  // v235: solo l'occhio, senza scritta (il nome resta per i lettori di schermo); con tutto scoperto diventa l'occhio
+  // barrato ("Copri tutto", v222)
+  const revealAllEye = icon('eye');
+  revealAll.append(revealAllEye);
   const allKnown = () => d.left.length > 0 && d.known.every(Boolean);
   revealAll.addEventListener('click', () => {
-    if (allKnown()) turnDraftOps.coverAll(d); else turnDraftOps.revealAll(d);
-    draw();
+    if (allKnown()) { if (drag || shuffling || closing) return; turnDraftOps.coverAll(d); sel = null; draw(); }
+    else revealWithFlip(() => turnDraftOps.revealAll(d));
   });
   const revealRow = el('div', 'ae-turn-reveal-row');
   revealRow.appendChild(revealAll);
-  deckArea.append(deckHead, lane, revealRow);
+  // v235: fascio di luce dall'occhio verso le carte ancora coperte (trapezio stretto all'occhio e largo quanto le
+  // coperte; posizionato in layoutFan)
+  const beam = el('span', 'ae-turn-beam');
+  beam.setAttribute('aria-hidden', 'true');
+  deckArea.append(deckHead, lane, revealRow, beam);
   row.append(pileArea, divider, deckArea);
 
   const hint = el('p', 'ae-turn-hint', I18N_IT.turnHint);
@@ -4665,7 +4699,8 @@ function openTurnScreen() {
     insertBar.hidden = true;
     lane.append(revealTop, zoneTop, zoneBottom, insertBar);
     revealAll.disabled = !n;
-    revealAllText.textContent = allKnown() ? I18N_IT.turnCoverAll : I18N_IT.turnRevealAll;
+    revealAllEye.className = 'ae-icon ae-icon--' + (allKnown() ? 'eye-off' : 'eye');
+    revealAll.title = allKnown() ? I18N_IT.turnCoverAll : I18N_IT.turnRevealAll;
     revealAll.setAttribute('aria-label', allKnown() ? I18N_IT.turnCoverAllLabel : I18N_IT.turnRevealAllLabel);
     revealAll.classList.toggle('is-cover', allKnown());
     const cur = turnDraftCurrent(d);
@@ -4775,6 +4810,30 @@ function openTurnScreen() {
       Object.assign(zoneTop.style, { left: '0px', width: g.w + 'px' });
       Object.assign(zoneBottom.style, { left: (lw - g.w) + 'px', width: g.w + 'px' });
     }
+    // v235: fascio di luce dall'occhio in basso alle carte coperte (solo con il mazzo in fila e niente in mano); le
+    // carte coperte prendono un bagliore
+    const covered = [];
+    order.forEach((idx, k) => { if (!d.known[idx]) covered.push(start + k * step); });
+    beam.hidden = tight || !!drag || !covered.length;
+    if (!beam.hidden) {
+      const ar = deckArea.getBoundingClientRect();
+      const lr = lane.getBoundingClientRect();
+      const er = revealAll.getBoundingClientRect();
+      const ox = lr.left - ar.left;
+      const x0 = ox + Math.min(...covered);
+      const x1 = ox + Math.max(...covered) + g.w;
+      const ex = er.left - ar.left + er.width / 2;
+      const top = lr.top - ar.top + g.h * 0.5; // arriva fin dietro le carte
+      const bottom = er.top - ar.top + er.height / 2;
+      const left = Math.min(x0, ex - 8);
+      const right = Math.max(x1, ex + 8);
+      Object.assign(beam.style, { left: left + 'px', top: top + 'px', width: (right - left) + 'px',
+        height: Math.max(0, bottom - top) + 'px' });
+      const poly = `polygon(${x0 - left}px 0, ${x1 - left}px 0, ${ex + 8 - left}px 100%, ${ex - 8 - left}px 100%)`;
+      beam.style.clipPath = poly;
+      beam.style.webkitClipPath = poly;
+    }
+    fanEls.forEach(c => c.classList.toggle('is-lit', !beam.hidden && c.classList.contains('is-back')));
     const type = over ? over.type : null;
     zoneTop.classList.toggle('is-over', type === 'top');
     zoneBottom.classList.toggle('is-over', type === 'bottom');
