@@ -206,12 +206,28 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       sulla stessa riga**, separati da un **segmento verticale** (`.ae-turn-row`: `.ae-turn-area--pile`,
       `.ae-turn-divider`, `.ae-turn-area--deck`); il segmento è lungo quanto le carte più il 10% sopra e sotto (v237) e,
       dalla v240, spesso e colorato come il "|" tra giocatori e turno nella testata (1px, testi secondari al 60%).
-      **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) "**Scarti**" **allineata a sinistra** e
-      "**Mazzo turno**" **allineata a destra** (v237; v236 ai due lati del segmento, con una lineetta tra le due), così
-      le scritte non cambiano la larghezza delle carte. "Scarti" non va oltre il segmento (`--ae-split`, da
-      `layoutFan`): se non ci sta, con pochi o nessuno scarto, il carattere scende fino a 8px (`fitHead`); "Mazzo turno"
-      va su due righe se non ci sta. In fondo a
-      destra il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`), che
+      **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) i titoli. Dalla v247 sono **su una linea
+      sottile**: `[linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola]` (`layoutHeads`).
+      - **Linea e cuspide**: 1px, del colore delle scritte (`--ae-text-muted`), a metà altezza della riga dei titoli; la
+        **cuspide** (`.ae-turn-cusp`, svg 10x6, punta in giù che nasce dalla linea) è centrata sul **segmento verticale**
+        tra scarti e mazzo, nella sua posizione finale (`split` = larghezza degli scarti + margine del segmento, non
+        `offsetLeft`, che durante la transizione darebbe la partenza). Decorative (aria-hidden).
+      - **Scritte**: "Scarti" al centro tra il bordo sinistro e la cuspide, "Mazzo turno" allineata a destra prima di
+        Mescola (al bordo destro senza Mescola, e allora può usare anche 12px del margine destro della finestra); sempre
+        su **una riga** (fino alla v246 "Mazzo turno" andava su due), almeno 4px dalla cuspide; se non ci stanno il
+        carattere scende fino a 8px (`fitHead`) e, come ultima risorsa, senza spazio tra le lettere.
+      - **Tratti di linea**: 6px di spazio attorno alle scritte, spariscono se più corti di 6px.
+      - **Movimenti**: cuspide, linee e scritte si spostano con la transizione del segmento e delle carte (.2s ease); al
+        primo disegno senza transizione (`.is-settling`); il carattere scende subito ma sale solo dopo lo spostamento
+        (0,2s), e i tratti che compaiono arrivano in dissolvenza: niente sovrapposizioni nemmeno a metà movimento.
+      - **Corsia minima** (`deckHeadMinLane`): la corsia del mazzo è larga almeno quanto serve a "Mazzo turno" a 8px
+        (anche con il segmento spostato da una carta del mazzo in mano); se no le carte si stringono un po' (succede con
+        molti scarti e mazzo di 0-2 carte).
+      - Verifica (v247): scarti/mazzo 0/6, 1/5, 2/4, 3/3, 4/2, 5/1, 6/0, 0/4, 2/2, 4/0, a 360x780, 375x812 e
+        1280x800, a riposo e con una carta degli scarti o del mazzo in mano, animazioni spente e accese: cuspide sul
+        segmento (differenza 0px), nessuna sovrapposizione tra scritte, cuspide, linee e Mescola, carattere mai sotto
+        8px, una riga.
+      In fondo a destra il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`), che
       sparisce con meno di 2 carte nel mazzo. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali
       (`rowGeometry`: la larghezza `--ae-turn-w` si calcola perché ci stiano tutte, un posto per carta, 1 se il mazzo è
       vuoto; v233-v239 il mazzo aveva almeno 3 posti e con poche carte restava spazio vuoto a destra). Con **una carta

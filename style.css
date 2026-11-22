@@ -1786,3 +1786,30 @@ body { overflow: hidden; }
 }
 /* v246: carte del mazzo con una carta in mano: all'85% o meno se la corsia è stretta (--ae-lane-scale da script.js) */
 .ae-turn-screen.is-holding .ae-turn-lane .ae-turn-card:not(.is-selected):not(.is-dragging) { scale: var(--ae-lane-scale, .85); }
+/* v247: titoli del mazzo dei turni su una linea sottile: [linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola].
+   Linea e cuspide 1px, del colore delle scritte (--ae-text-muted); la linea passa a metà altezza della riga dei titoli
+   (32px: da 16 a 17px) e la cuspide (svg 10x6, punta in giù) parte dalla linea, centrata sul segmento verticale.
+   Posizioni da script.js layoutHeads; si muovono con la stessa transizione del segmento e delle carte (.2s ease).
+   "Mazzo turno" ora resta su una riga (prima andava su due) e si rimpicciolisce come "Scarti" se non ci sta */
+.ae-turn-heads .ae-turn-head--pile, .ae-turn-heads .ae-turn-head--deck {
+  right: auto; height: 32px; display: block; white-space: nowrap; line-height: 32px; text-align: left;
+  transition: left .2s ease;
+}
+.ae-turn-heads.no-shuffle .ae-turn-head--deck { right: auto; }
+.ae-turn-head-line {
+  position: absolute; top: 16px; height: 1px; background: var(--ae-text-muted); pointer-events: none;
+  transition: left .2s ease, width .2s ease;
+}
+.ae-turn-head-line[hidden] { display: none; }
+.ae-turn-cusp {
+  position: absolute; top: 16px; width: 10px; height: 6px; color: var(--ae-text-muted); pointer-events: none;
+  transition: left .2s ease;
+}
+.ae-turn-cusp svg { display: block; overflow: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .ae-turn-heads .ae-turn-head--pile, .ae-turn-heads .ae-turn-head--deck, .ae-turn-head-line, .ae-turn-cusp { transition: none; }
+}
+.ae-turn-heads.is-settling, .ae-turn-heads.is-settling * { transition: none !important; }
+/* (v247: un tratto di linea che compare appare in dissolvenza dopo lo spostamento, come i cerchi-luogo) */
+.ae-turn-head-line { animation: ae-turn-appear .15s ease .2s backwards; }
+@media (prefers-reduced-motion: reduce) { .ae-turn-head-line { animation: none; } }

@@ -4601,7 +4601,19 @@ function openTurnScreen() {
   // (--ae-split, da layoutFan), così non cambiano la larghezza delle carte né lo spazio; Mescola in fondo a destra
   const heads = el('div', 'ae-turn-heads');
   const pileHead = el('h3', 'ae-turn-subtitle ae-turn-head--pile', I18N_IT.turnPileTitle);
-  heads.append(pileHead, el('h3', 'ae-turn-subtitle ae-turn-head--deck', I18N_IT.turnDeckRowTitle), shuffleBtn);
+  const deckHead = el('h3', 'ae-turn-subtitle ae-turn-head--deck', I18N_IT.turnDeckRowTitle);
+  // v247: una linea sottile attraversa la riga dei titoli: [linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola].
+  // La cuspide (punta in giù) sta esattamente sopra il segmento verticale tra scarti e mazzo. Decorative (aria-hidden);
+  // posizioni da layoutHeads
+  const headLines = [0, 1, 2].map(() => {
+    const line = el('span', 'ae-turn-head-line');
+    line.setAttribute('aria-hidden', 'true');
+    return line;
+  });
+  const cusp = el('span', 'ae-turn-cusp');
+  cusp.setAttribute('aria-hidden', 'true');
+  cusp.innerHTML = '<svg viewBox="0 0 10 6" width="10" height="6" focusable="false"><polyline points="0,0.5 5,5.5 10,0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>';
+  heads.append(...headLines, cusp, pileHead, deckHead, shuffleBtn);
   const board = el('div', 'ae-turn-board');
   // Corsia del mazzo: carte in fila (posizioni assolute, così si spostano con una transizione)
   const lane = el('div', 'ae-turn-lane');
@@ -4808,8 +4820,31 @@ function openTurnScreen() {
     // Cima e Fondo lo fanno gli scarti, che si sovrappongono mentre si sposta una loro carta)
     const units = k + Math.max(n, 1);
     const avail = (row.clientWidth || 343) - 17; // segmento verticale con i suoi margini
-    const w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
+    let w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
+    // v247: la corsia del mazzo è larga almeno quanto serve a "Mazzo turno" a 8px (a destra della cuspide, prima di
+    // Mescola, anche con il segmento spostato da una carta del mazzo in mano); se no le carte si stringono un po'
+    const laneMin = deckHeadMinLane(n);
+    const laneNow = avail - k * w - (k - 1) * TURN_GAP;
+    if (laneNow < laneMin) w = Math.max(30, Math.floor((avail - laneMin - (k - 1) * TURN_GAP) / k));
     return { k, n, w, h: w * 88 / 63, gap: TURN_GAP };
+  }
+  // Larghezza minima della corsia del mazzo perché "Mazzo turno" (a 8px, senza spazio tra le lettere) stia tra la
+  // cuspide e Mescola. La cuspide è sopra il segmento, 8px prima della corsia: la scritta parte 1,5px dopo l'inizio
+  // della corsia (cuspide 5px + 4px). Mescola (con meno di 2 carte non c'è) prende 34px a destra; senza Mescola la
+  // scritta può usare 12px del margine destro. Con una carta del mazzo in mano il segmento va a destra di zd + 4px
+  let deckHeadMin = 0;
+  function deckHeadMinLane(n) {
+    if (!deckHeadMin) {
+      const fs = deckHead.style.fontSize, ls = deckHead.style.letterSpacing;
+      deckHead.style.fontSize = '8px';
+      deckHead.style.letterSpacing = '0';
+      deckHeadMin = deckHead.scrollWidth;
+      deckHead.style.fontSize = fs;
+      deckHead.style.letterSpacing = ls;
+    }
+    if (!deckHeadMin) return 0;
+    const shift = n >= 1 ? 18 : 0;
+    return n >= 2 ? deckHeadMin + 1.5 + 34 + shift : deckHeadMin + 1.5 - 12 + shift;
   }
   function laneWidth(g) {
     return lane.clientWidth || (Math.max(g.n, 1) * (g.w + g.gap) - g.gap);
@@ -4846,7 +4881,8 @@ function openTurnScreen() {
     const pileStep = g.w + g.gap;
     row.style.setProperty('--ae-pile-step', pileStep + 'px');
     row.classList.remove('is-pile-tight');
-    pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
+    const pileW = g.w + (g.k - 1) * pileStep;
+    pileArea.style.width = pileW + 'px';
     // v245: con una carta del mazzo in mano, tra l'ultimo scarto e il segmento verticale si fa posto per il cerchio
     // d'arrivo degli scarti (il segmento si sposta a destra), così il cerchio non tocca il segmento
     const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
@@ -4925,11 +4961,12 @@ function openTurnScreen() {
       Object.assign(pileInsert.style, { left: (pileX - 3) + 'px', width: '6px', top: '0px', height: g.h + 'px' });
     }
     lane.classList.toggle('is-empty-target', tight && !m);
-    // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
-    // (pochi o nessuno scarto) il carattere scende
-    const split = divider.offsetLeft + 0.5;
+    // v247: centro del segmento verticale nella sua posizione FINALE (larghezza degli scarti + margine sinistro del
+    // segmento: 8px, o il posto per il cerchio degli scarti con una carta del mazzo in mano). Non offsetLeft: durante
+    // la transizione del margine darebbe la posizione di partenza. La cuspide dei titoli si centra qui
+    const split = pileW + (holdingDeck ? zdPre + 12 : 8) + 0.5;
     board.style.setProperty('--ae-split', split + 'px');
-    fitHead(pileHead, split - 9);
+    layoutHeads(split);
     // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
     // (v246: 4px dal bordo della carta come si vede, all'85% o meno)
     const topX = start + inset - spread - ZONE_GAP - zd / 2;
@@ -4954,14 +4991,83 @@ function openTurnScreen() {
       Object.assign(insertBar.style, { left: (x - 3) + 'px', width: '6px', height: g.h + 'px', top: '0px' });
     }
   }
+  // v247: riga dei titoli. cx = centro del segmento verticale (in coordinate della riga). La cuspide (10px) è centrata
+  // su cx; "Scarti" sta al centro tra il bordo sinistro e la cuspide, "Mazzo turno" allineata a destra prima di
+  // Mescola (o al bordo destro se Mescola non c'è); le scritte restano su una riga, almeno 4px dalla cuspide, e se non
+  // ci stanno il carattere scende (fitHead, fino a 8px). I tratti di linea lasciano 6px attorno alle scritte e
+  // spariscono se sono più corti di 6px
+  const CUSP_HALF = 5, HEAD_GAP = 4, LINE_PAD = 6, LINE_MIN = 6;
+  // (v247: il carattere di una scritta scende subito ma sale solo DOPO lo spostamento di cuspide e linee, 0,2s: se
+  // salisse subito, la scritta più grande toccherebbe per un attimo la cuspide che si sta ancora spostando. Poi la
+  // scritta si rimette al suo posto senza transizione)
+  let headsGrowTimer = 0, headsGrowing = false, lastHeadsCx = 0;
+  function fitHeadNoGrow(node, maxW) {
+    const prevFs = node.style.fontSize, prevLs = node.style.letterSpacing;
+    const prevW = node.scrollWidth;
+    fitHead(node, maxW);
+    if (headsGrowing || heads.classList.contains('is-settling') || reducedMotion.matches) return false;
+    if (node.scrollWidth > prevW + 0.5) {
+      node.style.fontSize = prevFs;
+      node.style.letterSpacing = prevLs;
+      return true;
+    }
+    return false;
+  }
+  function scheduleHeadsGrow() {
+    clearTimeout(headsGrowTimer);
+    headsGrowTimer = setTimeout(() => {
+      if (!dialog.isConnected) return;
+      headsGrowing = true;
+      heads.classList.add('is-settling');
+      layoutHeads(lastHeadsCx);
+      void heads.offsetWidth;
+      heads.classList.remove('is-settling');
+      headsGrowing = false;
+    }, 220);
+  }
+  function layoutHeads(cx) {
+    lastHeadsCx = cx;
+    const W = heads.clientWidth || board.clientWidth;
+    // (fino a 4px prima dell'icona di Mescola, non del suo pulsante, che è più largo)
+    const iconEl = shuffleBtn.querySelector('.ae-icon');
+    const hr = heads.getBoundingClientRect();
+    // (senza Mescola, con mazzo di 0-1 carte, la scritta può usare anche il margine destro della finestra fino a 4px
+    // dal bordo: a destra della cuspide resta a volte la larghezza di una carta sola)
+    const right = shuffleBtn.hidden || !iconEl ? W + 12 : Math.min(W, iconEl.getBoundingClientRect().left - hr.left - HEAD_GAP);
+    cusp.style.left = (cx - CUSP_HALF) + 'px';
+    // Scarti: tra 0 e la cuspide
+    const leftEnd = cx - CUSP_HALF;
+    let grow = fitHeadNoGrow(pileHead, Math.max(0, leftEnd - HEAD_GAP));
+    const tw = pileHead.scrollWidth;
+    const x0 = Math.max(0, Math.min((leftEnd - tw) / 2, leftEnd - HEAD_GAP - tw));
+    pileHead.style.left = x0 + 'px';
+    // Mazzo turno: tra la cuspide e Mescola, allineata a destra
+    const rightStart = cx + CUSP_HALF;
+    grow = fitHeadNoGrow(deckHead, Math.max(0, right - rightStart - HEAD_GAP)) || grow;
+    if (grow) scheduleHeadsGrow();
+    const tw2 = deckHead.scrollWidth;
+    const x2 = Math.max(rightStart + HEAD_GAP, right - tw2);
+    deckHead.style.left = x2 + 'px';
+    // Tratti di linea: [0 → Scarti], [Scarti → cuspide], [cuspide → Mazzo turno]
+    const segs = [[0, x0 - LINE_PAD], [x0 + tw + LINE_PAD, leftEnd], [rightStart, x2 - LINE_PAD]];
+    segs.forEach(([a, b], i) => {
+      const line = headLines[i];
+      const len = b - a;
+      line.hidden = len < LINE_MIN;
+      if (!line.hidden) Object.assign(line.style, { left: a + 'px', width: len + 'px' });
+    });
+  }
   // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
   function fitHead(node, maxW) {
     node.style.fontSize = '';
+    node.style.letterSpacing = '';
     let size = parseFloat(getComputedStyle(node).fontSize) || 12;
     for (let i = 0; i < 12 && node.scrollWidth > maxW && size > 8; i++) {
       size = Math.max(8, size - 0.5);
       node.style.fontSize = size + 'px';
     }
+    // (v247: ultima risorsa, se a 8px non ci sta ancora: senza spazio tra le lettere)
+    if (node.scrollWidth > maxW) node.style.letterSpacing = '0';
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
   // della prima carta il cui centro è a destra di x
@@ -5187,7 +5293,12 @@ function openTurnScreen() {
   close = openModal(dialog, { onCancel, closeOnScrim: false });
   dialog.parentNode.classList.add('ae-turn-screen-backdrop');
   window.addEventListener('resize', onResize);
+  // (v247: il primo disegno mette scritte, linea e cuspide al loro posto senza transizione: le transizioni valgono solo
+  // per gli spostamenti successivi, come quello del segmento con una carta del mazzo in mano)
+  heads.classList.add('is-settling');
   draw();
+  void heads.offsetWidth;
+  heads.classList.remove('is-settling');
   fitPhaseName(copyShell);
   // v224: il foglio scende dall'alto, da sotto la copia della testata e della barra dei turni (prima la finestra
   // compariva dal niente)
