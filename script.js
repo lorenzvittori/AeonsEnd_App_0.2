@@ -4463,15 +4463,16 @@ function turnDeckMovable(d, i) {
 }
 
 // Scrive la bozza nel mazzo dei turni: un solo passo di undo (v222: il turno in corso continua sempre)
+// v238: senza passo di undo (prima un act per modifica): il passo di undo è uno solo per tutta la visita della
+// finestra, aggiunto alla chiusura (openTurnScreen, shut)
 function saveTurnDraft(d) {
-  act(() => {
-    turnOrder.left = d.left.slice();
-    turnOrder.known = d.known.slice();
-    turnOrder.drawn = d.drawn.slice();
-    turnOrder.picks = JSON.parse(JSON.stringify(d.picks));
-    turnOrder.pairNext = emptyPairNext(d.pairNext);
-    turnOrder.history = JSON.parse(JSON.stringify(d.history || []));
-  });
+  turnOrder.left = d.left.slice();
+  turnOrder.known = d.known.slice();
+  turnOrder.drawn = d.drawn.slice();
+  turnOrder.picks = JSON.parse(JSON.stringify(d.picks));
+  turnOrder.pairNext = emptyPairNext(d.pairNext);
+  turnOrder.history = JSON.parse(JSON.stringify(d.history || []));
+  save();
   render();
 }
 
@@ -4517,6 +4518,10 @@ function openTurnScreen() {
   const initial = fresh(turnOrder);
   let d = fresh(turnOrder);
   let savedKey = turnDraftKey(d);
+  // v238: fotografia della partita all'apertura: alla chiusura, se il mazzo dei turni è cambiato, diventa l'unico
+  // passo di undo della visita (Annulla porta da dopo tutte le modifiche a prima di tutte)
+  const before = snapshot();
+  let committed = false;
   let sel = null;   // carta selezionata senza trascinamento: { source: 'deck' | 'pile', index }
   let press = null; // dito o mouse premuto su una carta, prima che parta il trascinamento
   let drag = null;  // trascinamento in corso
@@ -4807,19 +4812,22 @@ function openTurnScreen() {
     row.style.setProperty('--ae-turn-w', g.w + 'px');
     row.style.setProperty('--ae-turn-h', g.h + 'px');
     const tight = squeezed();
-    // Mazzo stretto: anche gli scarti si stringono (sovrapposti, 14px l'uno dall'altro), così il mazzo ha lo spazio
-    // per Cima e Fondo grandi come una carta e per le sue carte poco sovrapposte
-    const pileStep = tight ? Math.min(g.w + g.gap, 14) : g.w + g.gap;
+    // v238: Cima e Fondo solo per una carta degli scarti; una carta del mazzo va in cima o in fondo mettendola prima
+    // della prima carta o dopo l'ultima (il segmento dorato lo mostra)
+    const fromPile = tight && (drag ? drag.source : sel ? sel.source : null) === 'pile';
+    // Carta degli scarti: anche gli scarti si stringono (sovrapposti, 14px l'uno dall'altro), così il mazzo ha lo
+    // spazio per Cima e Fondo grandi come una carta e per le sue carte poco sovrapposte
+    const pileStep = fromPile ? Math.min(g.w + g.gap, 14) : g.w + g.gap;
     row.style.setProperty('--ae-pile-step', pileStep + 'px');
-    row.classList.toggle('is-pile-tight', tight);
+    row.classList.toggle('is-pile-tight', fromPile);
     pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
     const lw = laneWidth(g);
-    // Stretto: ai lati Cima e Fondo, grandi come una carta; in mezzo le carte del mazzo, avvicinate (sovrapposte quanto
-    // serve) e centrate nello spazio che resta
-    const inner = lw - 2 * (g.w + g.gap);
+    // Stretto: ai lati Cima e Fondo (solo carta degli scarti), grandi come una carta; in mezzo le carte del mazzo,
+    // avvicinate (sovrapposte quanto serve) e centrate nello spazio che resta
+    const inner = fromPile ? lw - 2 * (g.w + g.gap) : lw;
     const step = tight ? (m > 1 ? Math.min(g.w + g.gap, (inner - g.w) / (m - 1)) : 0) : g.w + g.gap;
     const stackW = m ? g.w + (m - 1) * step : 0;
-    const start = tight ? g.w + g.gap + (inner - stackW) / 2 : 0;
+    const start = tight ? (fromPile ? g.w + g.gap : 0) + (inner - stackW) / 2 : 0;
     tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
     fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
     order.forEach((idx, k) => {
@@ -4838,14 +4846,14 @@ function openTurnScreen() {
     // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
-    zoneTop.hidden = zoneBottom.hidden = !tight || !m;
+    zoneTop.hidden = zoneBottom.hidden = !fromPile || !m;
     lane.classList.toggle('is-empty-target', tight && !m);
     // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
     // (pochi o nessuno scarto) il carattere scende
     const split = divider.offsetLeft + 0.5;
     board.style.setProperty('--ae-split', split + 'px');
     fitHead(pileHead, split - 9);
-    if (tight) {
+    if (fromPile) {
       Object.assign(zoneTop.style, { left: '0px', width: g.w + 'px' });
       Object.assign(zoneBottom.style, { left: (lw - g.w) + 'px', width: g.w + 'px' });
     }
@@ -5047,8 +5055,17 @@ function openTurnScreen() {
   function shut() {
     endDrag(false);
     window.removeEventListener('resize', onResize);
+    commitUndo();
     turnScreen = null;
     close();
+  }
+  // Un solo passo di undo per la visita (v238): lo stato di prima, se alla fine il mazzo dei turni è diverso
+  function commitUndo() {
+    if (committed) return;
+    committed = true;
+    if (!dirty()) return;
+    pushUndo(before);
+    save();
   }
   function tryClose() {
     if (drag) { endDrag(false); return; }

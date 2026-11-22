@@ -246,8 +246,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       nessuna carta diventa trasparente (nella rosa il posto dove cadrà ha la carta al 100% con un bordo tratteggiato). In alternativa si **tocca** (o Invio) la carta e poi la
       destinazione; Esc annulla la selezione.
       - Carta del mazzo **solo se nota**, **solo dentro il mazzo**, dalla v237 **come una carta degli scarti** (qui
-        sotto): presa, lascia la fila (`.is-away`, `shownOrder`), le altre si stringono tra Cima e Fondo e il segmento
-        dorato dice dove cadrà; col tocco: la carta, poi Cima, Fondo o una carta del mazzo (prende il suo posto). La
+        sotto): presa, lascia la fila (`.is-away`, `shownOrder`), le altre si avvicinano e il segmento dorato dice dove
+        cadrà, anche prima della prima (cima) o dopo l'ultima (fondo). **Senza i box Cima e Fondo** (v238: solo per le
+        carte degli scarti) e senza stringere gli scarti. Col tocco: la carta, poi una carta del mazzo (prende il suo posto). La
         carta in cima appena rivelata si porta così in fondo. (v233-v236: le altre carte si spostavano per farle posto.)
       - Carta degli scarti **in qualunque posto del mazzo** (cima, fondo o tra due carte, come prima): appena la si
         prende (o la si seleziona col tocco) gli scarti si sovrappongono (14px l'uno dall'altro, `.is-pile-tight`), **le
@@ -263,10 +264,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
     - **Modifiche sempre valide** (v224, prima c'era "Salva modifiche"): la finestra lavora su una bozza
-      (`turnDraftFrom`), ma ogni modifica (spostamento, rivela, copri, mescola) si scrive subito con `saveTurnDraft` = un
-      `act()` per modifica (un passo di undo ciascuna; `draw()` confronta `turnDraftKey`). **Annulla tutte le
-      modifiche** torna allo stato di apertura (anche lui un act). X o Indietro chiudono **senza chiedere** (prima
-      "Uscire senza salvare?").
+      (`turnDraftFrom`), ma ogni modifica (spostamento, rivela, copri, mescola) si scrive subito nella partita e nel
+      salvataggio con `saveTurnDraft` (`draw()` confronta `turnDraftKey`). **Undo** (v238; v224-v237 un passo per
+      modifica): **un solo passo per visita**. All'apertura si fotografa la partita (`before = snapshot()`); le modifiche
+      non aggiungono passi; alla chiusura (`shut` → `commitUndo`: X, Indietro o una voce del Menu che porta altrove), se
+      il mazzo dei turni è diverso da com'era, la fotografia diventa il passo di undo. Annulla porta quindi da dopo tutte
+      le modifiche a prima di tutte; aprire e chiudere senza cambiare niente non aggiunge passi. **Annulla tutte le
+      modifiche** torna allo stato di apertura (senza passi). X o Indietro chiudono **senza chiedere** (prima "Uscire
+      senza salvare?").
     - **Carte già note all'apertura** (v224, `d.old`, parallelo a `left`, solo nella finestra): **scurite del 60%**
       (`.is-old`, `filter: brightness(.4)`) e **ferme**, tranne quando sono **in cima** (`turnDeckMovable`). Le carte
       scoperte o rimesse nel mazzo mentre la finestra è aperta restano chiare e spostabili fino alla chiusura.
