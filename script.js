@@ -4732,18 +4732,29 @@ function openTurnScreen() {
   function squeezed() {
     return (!!drag && drag.source === 'pile') || (!drag && !!sel && sel.source === 'pile');
   }
-  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: 'top' | 'bottom' | null
+  // Ultima disposizione del mazzo stretto (per sapere tra quali carte sta la carta degli scarti trascinata)
+  let tightGeo = null;
+  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: destinazione della carta degli
+  // scarti trascinata ({ type: 'top' | 'bottom' | 'pos', index }) o null
   function layoutFan(order = d.left.map((k, i) => i), lifted = -1, over = null) {
     const g = rowGeometry();
     row.style.setProperty('--ae-turn-w', g.w + 'px');
     row.style.setProperty('--ae-turn-h', g.h + 'px');
-    pileArea.style.width = (g.k * (g.w + g.gap) - g.gap) + 'px';
-    const lw = laneWidth(g);
     const tight = squeezed();
-    // Stretto: le carte si sovrappongono (passo di 10px al massimo) al centro; Cima e Fondo prendono lo spazio ai lati
-    const step = tight ? Math.min(10, g.n > 1 ? (lw - 2 * 30 - 2 * g.gap - g.w) / (g.n - 1) : 0) : g.w + g.gap;
+    // Mazzo stretto: anche gli scarti si stringono (sovrapposti, 14px l'uno dall'altro), così il mazzo ha lo spazio
+    // per Cima e Fondo grandi come una carta e per le sue carte poco sovrapposte
+    const pileStep = tight ? Math.min(g.w + g.gap, 14) : g.w + g.gap;
+    row.style.setProperty('--ae-pile-step', pileStep + 'px');
+    row.classList.toggle('is-pile-tight', tight);
+    pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
+    const lw = laneWidth(g);
+    // Stretto: ai lati Cima e Fondo, grandi come una carta; in mezzo le carte del mazzo, avvicinate (sovrapposte quanto
+    // serve) e centrate nello spazio che resta
+    const inner = lw - 2 * (g.w + g.gap);
+    const step = tight ? (g.n > 1 ? Math.min(g.w + g.gap, (inner - g.w) / (g.n - 1)) : 0) : g.w + g.gap;
     const stackW = g.n ? g.w + (g.n - 1) * step : 0;
-    const start = tight ? (lw - stackW) / 2 : 0;
+    const start = tight ? g.w + g.gap + (inner - stackW) / 2 : 0;
+    tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: g.n } : null;
     order.forEach((idx, k) => {
       const card = fanEls[idx];
       if (!card) return;
@@ -4761,18 +4772,31 @@ function openTurnScreen() {
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     zoneTop.hidden = zoneBottom.hidden = !tight;
     if (tight) {
-      const zw = Math.max(28, start - g.gap);
-      Object.assign(zoneTop.style, { left: '0px', width: zw + 'px' });
-      Object.assign(zoneBottom.style, { left: (lw - zw) + 'px', width: zw + 'px' });
+      Object.assign(zoneTop.style, { left: '0px', width: g.w + 'px' });
+      Object.assign(zoneBottom.style, { left: (lw - g.w) + 'px', width: g.w + 'px' });
     }
-    zoneTop.classList.toggle('is-over', over === 'top');
-    zoneBottom.classList.toggle('is-over', over === 'bottom');
+    const type = over ? over.type : null;
+    zoneTop.classList.toggle('is-over', type === 'top');
+    zoneBottom.classList.toggle('is-over', type === 'bottom');
     insertBar.hidden = !tight || !over;
     if (tight && over) {
-      insertBar.style.left = (over === 'top' ? start - g.gap / 2 - 2 : start + stackW + g.gap / 2 - 2) + 'px';
+      // Segmento: tra Cima e la prima carta, tra due carte (a metà dello spazio tra la fine di una e l'inizio
+      // dell'altra) o tra l'ultima carta e Fondo
+      const i = type === 'top' ? 0 : type === 'bottom' ? g.n : over.index;
+      const x = !g.n ? lw / 2 : i <= 0 ? start - g.gap / 2 : i >= g.n ? start + stackW + g.gap / 2
+        : start + (i - 1) * step + (g.w + step) / 2;
+      insertBar.style.left = (x - 2) + 'px';
       insertBar.style.height = (g.h + 16) + 'px';
       insertBar.style.top = '-8px';
     }
+  }
+  // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
+  // della prima carta il cui centro è a destra di x
+  function pileSlotAt(x) {
+    const t = tightGeo;
+    if (!t || !t.n) return 0;
+    const rel = x - lane.getBoundingClientRect().left - t.start - t.w / 2;
+    return Math.max(0, Math.min(t.n, Math.floor(rel / (t.step || 1)) + 1));
   }
   // Posto nella corsia sotto il dito (0 = cima, a sinistra) per una carta del mazzo
   function fanSlotAt(x) {
@@ -4782,12 +4806,12 @@ function openTurnScreen() {
   }
 
   // Destinazioni permesse per la carta s (solo quelle si evidenziano): carta del mazzo = la corsia del mazzo; carta
-  // degli scarti = solo Cima e Fondo (new_turn: non più in mezzo al mazzo)
+  // degli scarti = Cima, Fondo e qualunque posto tra le carte del mazzo (come prima della new_turn)
   function markTargets(s) {
     const any = !!s;
     zoneTop.classList.toggle('is-target', any && s.source === 'pile');
     zoneBottom.classList.toggle('is-target', any && s.source === 'pile');
-    lane.classList.toggle('is-target', any && s.source === 'deck');
+    lane.classList.toggle('is-target', any);
     dialog.classList.toggle('is-choosing', any);
   }
   function dropOn(target, s) {
@@ -4795,8 +4819,8 @@ function openTurnScreen() {
     if (s.source === 'deck') {
       const to = target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
       ok = turnDraftOps.moveInDeck(d, s.index, to);
-    } else if (target.type === 'top' || target.type === 'bottom') {
-      ok = turnDraftOps.pileToDeck(d, s.index, target.type);
+    } else {
+      ok = turnDraftOps.pileToDeck(d, s.index, target.type === 'pos' ? target.index : target.type);
     }
     sel = null;
     draw();
@@ -4811,8 +4835,8 @@ function openTurnScreen() {
     const source = e.currentTarget.dataset.source;
     const index = Number(e.currentTarget.dataset.index);
     if (sel && sel.source === source && sel.index === index) { sel = null; draw(); return; }
-    // (new_turn: una carta degli scarti selezionata va solo su Cima o Fondo, non su una carta del mazzo)
-    if (sel && source === 'deck') { if (sel.source === 'deck') dropOn({ type: 'pos', index }, sel); return; }
+    // (carta degli scarti selezionata: va al posto della carta toccata, che scende di uno; oppure su Cima o Fondo)
+    if (sel && source === 'deck') { dropOn({ type: 'pos', index }, sel); return; }
     if (!e.currentTarget.classList.contains('is-movable')) return;
     sel = { source, index };
     draw();
@@ -4879,19 +4903,17 @@ function openTurnScreen() {
     const fromPile = drag.source === 'pile';
     let target = null;
     if (fromPile) {
-      const lr = lane.getBoundingClientRect();
-      if (hit(lr, x, y, 24)) {
-        // nella corsia: Cima se la carta sta nella metà sinistra, Fondo se nella destra (le zone ai lati sono il bersaglio
-        // naturale, ma basta essere dalla loro parte)
-        target = { type: x < lr.left + lr.width / 2 ? 'top' : 'bottom' };
-      }
+      // Su Cima o Fondo (grandi come una carta, ai lati) o in mezzo alle carte del mazzo, nel posto sotto la carta
+      if (hit(zoneTop.getBoundingClientRect(), x, y, 6)) target = { type: 'top' };
+      else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6)) target = { type: 'bottom' };
+      else if (hit(lane.getBoundingClientRect(), x, y, 24)) target = { type: 'pos', index: pileSlotAt(x) };
     } else if (hit(lane.getBoundingClientRect(), x, y, 24)) {
       target = { type: 'pos', index: fanSlotAt(x) };
     }
     drag.target = target;
     lane.classList.toggle('is-over', !!target && target.type === 'pos');
-    // Anteprima nel mazzo: carta del mazzo = le altre si spostano per fare posto; carta degli scarti = segmento a Cima o
-    // a Fondo
+    // Anteprima nel mazzo: carta del mazzo = le altre si spostano per fare posto; carta degli scarti = segmento dove
+    // cadrà (Cima, tra due carte, Fondo)
     const order = d.left.map((k, i) => i);
     if (!fromPile) {
       const to = !target ? drag.index : target.index;
@@ -4899,7 +4921,7 @@ function openTurnScreen() {
       order.splice(to, 0, drag.index);
       layoutFan(order, drag.index);
     } else {
-      layoutFan(order, -1, target ? target.type : null);
+      layoutFan(order, -1, target);
     }
   }
   function endDrag(apply) {

@@ -1590,6 +1590,9 @@ body { overflow: hidden; }
 .ae-turn-area--pile .ae-turn-pile-row { gap: 6px; min-height: 0; flex-wrap: nowrap; }
 .ae-turn-area--pile .ae-turn-pile-slot { width: var(--ae-turn-w, 48px); }
 .ae-turn-pile-note { font-size: 9px; }
+/* Carta degli scarti presa o selezionata: gli scarti si sovrappongono (--ae-pile-step) per lasciare spazio al mazzo */
+.ae-turn-row.is-pile-tight .ae-turn-pile-slot + .ae-turn-pile-slot { margin-left: calc(var(--ae-pile-step) - var(--ae-turn-w) - 6px); }
+.ae-turn-row.is-pile-tight .ae-turn-pile-note { visibility: hidden; }
 .ae-turn-pile-empty {
   display: block; width: var(--ae-turn-w, 48px); height: var(--ae-turn-h, 67px); box-sizing: border-box;
   border: 1px dashed rgba(236, 232, 222, .25); border-radius: 8% / 6%;

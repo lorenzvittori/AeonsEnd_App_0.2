@@ -235,13 +235,15 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       - Carta del mazzo **solo se nota**, **solo dentro il mazzo**: in un posto della corsia (le altre carte si spostano
         per fare posto; il primo posto a sinistra è la cima, l'ultimo il fondo); col tocco: la carta, poi una carta del
         mazzo. La carta in cima appena rivelata si porta così in fondo.
-      - Carta degli scarti **solo in cima o in fondo** (v233; prima anche in mezzo al mazzo): appena la si prende (o la
-        si seleziona col tocco) **le carte del mazzo si stringono al centro**, sovrapposte, e ai due lati compaiono i
-        posti "**Cima**" (a sinistra) e "**Fondo**" (a destra), scritti in verticale (`.ae-turn-zone`,
-        `.ae-turn-lane.is-squeezed`). Trascinandola basta portarla nella metà sinistra o destra della corsia: il
-        **segmento verticale dorato** (`.ae-turn-insert`) compare tra il posto e la pila, dove cadrà. Col tocco: la
-        carta degli scarti, poi Cima o Fondo (toccare una carta del mazzo non fa niente). Nel mazzo resta **nota** e si
-        sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
+      - Carta degli scarti **in qualunque posto del mazzo** (cima, fondo o tra due carte, come prima): appena la si
+        prende (o la si seleziona col tocco) gli scarti si sovrappongono (14px l'uno dall'altro, `.is-pile-tight`), **le
+        carte del mazzo si avvicinano** (sovrapposte quanto serve, centrate) e ai due lati compaiono i posti
+        "**Cima**" (a sinistra) e "**Fondo**" (a destra), **grandi come una carta** (v234; v233 più larghi), scritti in
+        verticale (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
+        (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
+        carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
+        scarti, poi Cima, Fondo o una carta del mazzo (prende il suo posto, le altre scendono). (v233 per un giorno: solo
+        in cima o in fondo.) Nel mazzo resta **nota** e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
@@ -264,7 +266,7 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Menu** (v224): nella copia della testata il pulsante Menu funziona e apre il menu **sopra la finestra**;
       chiudendolo si torna al mazzo dei turni. Le voci che portano altrove (Undo, Scarti, Nemesi uccisa, Esci,
       Ricomincia) chiudono prima la finestra (`openSideMenu(leave)`).
-    - **Segmento d'inserimento** (v224, dalla v233 solo tra Cima/Fondo e la pila stretta): dice dove cadrà la carta
+    - **Segmento d'inserimento** (v224; dalla v233 sul mazzo stretto, a Cima, tra due carte o a Fondo): dice dove cadrà la carta
       degli scarti (come tra le slide di Canva; `.ae-turn-insert`, posizionato in `layoutFan`). La carta trascinata è
       **dritta** (prima inclinata di 4°).
     - **Contorno** (v224): le carte turno (immagini e dorso) hanno un contorno chiaro di 1,5px e un'ombra, per staccarle
