@@ -202,14 +202,19 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `viewOnlyCopy`, inerte, nella stessa posizione e misura dell'originale) e della **barra della fase**, che mostra
       la **bozza** (carte note, turno annullato; `trackPreviewCopy`: per un attimo `turnOrder` è la bozza, con
       `ui.trackPreview` niente scelta x/y né riquadro). Sotto, il titolo "Mazzo dei turni" con la X.
-    - **Il mazzo** (`turnOrder.left`) **a ventaglio**: a **destra la cima**, a sinistra il fondo. Le carte sono
-      **sempre sovrapposte** (v212: passo al massimo il 62% della carta, anche con poche carte, gruppo centrato).
-      Carte coperte (dorso neutro a righe) o scoperte se **note**. Un **occhio al centro della carta in cima** (v212,
-      sopra la carta, con la sua inclinazione) la rivela; l'occhio "**Rivela tutto**" sopra il ventaglio rivela tutto
-      il mazzo e, con tutto scoperto, diventa "**Copri tutto**" (v222, ricopre tutto senza mescolare). Ai due capi del
-      ventaglio due **zone di rilascio** ("Fondo" a sinistra, "Cima" a destra).
-    - **In basso gli scarti dei turni** (`turnOrder.drawn`) in fila da sinistra a destra, scoperti. La carta del
-      **turno in corso** (se è ancora negli scarti): bordo dorato e scritta "in corso".
+    - **Riga unica** (v233, branch `new_turn`; prima ventaglio del mazzo sopra e scarti sotto): **scarti e mazzo
+      sulla stessa riga**, separati da un **segmento verticale** (`.ae-turn-row`: `.ae-turn-area--pile`,
+      `.ae-turn-divider`, `.ae-turn-area--deck`). Sopra le carte "**Scarti**" a sinistra e "**Mazzo turno**" a destra,
+      con il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`) a destra
+      della scritta. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali (`rowGeometry`: la larghezza
+      `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3 posti).
+    - **Il mazzo** (`turnOrder.left`, corsia `.ae-turn-lane`) **si legge da sinistra a destra come la barra dei turni:
+      la carta in cima è la prima a sinistra**. Carte coperte (dorso) o scoperte se **note**. Un **occhio al centro della
+      carta in cima** la rivela; sotto il mazzo "**Rivela tutto**", che con tutto scoperto diventa "**Copri tutto**"
+      (v222, ricopre tutto senza mescolare).
+    - **Gli scarti dei turni** (`turnOrder.drawn`) a sinistra del segmento, in fila da sinistra a destra, scoperti
+      (vuoti: un posto tratteggiato). La carta del **turno in corso** (se è ancora negli scarti): bordo dorato e scritta
+      "in corso".
     - **Testata e barra copiate** in cima: ferme come l'originale (v222: niente animazioni né transizioni nella copia; prima
       la copia della pila degli scarti rifaceva il lampo dello scarto). Mazzo, scarti e barra non si toccano.
     - **Facce delle carte turno** (v221, `turnCardFace`): l'immagine della carta vera, `Assets/ui/turn-cards/<carta>.webp`
@@ -226,12 +231,17 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       da una destinazione valida torna al suo posto. Dalla v222 la carta trascinata sta **sopra il dito** (centrata, il
       bordo inferiore 16px sopra il dito) con un **bordo dorato**, e conta dove sta la carta (il suo centro), non il dito;
       nessuna carta diventa trasparente (nella rosa il posto dove cadrà ha la carta al 100% con un bordo tratteggiato). In alternativa si **tocca** (o Invio) la carta e poi la
-      destinazione; Esc annulla la selezione. Destinazioni valide: zone **Cima** e **Fondo** e la **rosa** delle carte.
-      - Carta del mazzo **solo se nota**, **solo dentro il mazzo** (le altre carte si spostano per fare posto; o sulle
-        zone Cima/Fondo); la carta in cima appena rivelata si porta così in fondo.
-      - Carta degli scarti **in cima o in fondo** (le due zone) o, v212, **sulla rosa nel punto del dito** (la rosa
-        si allarga e lascia il posto; col tocco: carta degli scarti, poi una carta della rosa). Nel mazzo resta **nota**
-        e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
+      destinazione; Esc annulla la selezione.
+      - Carta del mazzo **solo se nota**, **solo dentro il mazzo**: in un posto della corsia (le altre carte si spostano
+        per fare posto; il primo posto a sinistra è la cima, l'ultimo il fondo); col tocco: la carta, poi una carta del
+        mazzo. La carta in cima appena rivelata si porta così in fondo.
+      - Carta degli scarti **solo in cima o in fondo** (v233; prima anche in mezzo al mazzo): appena la si prende (o la
+        si seleziona col tocco) **le carte del mazzo si stringono al centro**, sovrapposte, e ai due lati compaiono i
+        posti "**Cima**" (a sinistra) e "**Fondo**" (a destra), scritti in verticale (`.ae-turn-zone`,
+        `.ae-turn-lane.is-squeezed`). Trascinandola basta portarla nella metà sinistra o destra della corsia: il
+        **segmento verticale dorato** (`.ae-turn-insert`) compare tra il posto e la pila, dove cadrà. Col tocco: la
+        carta degli scarti, poi Cima o Fondo (toccare una carta del mazzo non fa niente). Nel mazzo resta **nota** e si
+        sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
@@ -243,10 +253,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Carte già note all'apertura** (v224, `d.old`, parallelo a `left`, solo nella finestra): **scurite del 60%**
       (`.is-old`, `filter: brightness(.4)`) e **ferme**, tranne quando sono **in cima** (`turnDeckMovable`). Le carte
       scoperte o rimesse nel mazzo mentre la finestra è aperta restano chiare e spostabili fino alla chiusura.
-    - **Mescola** (v224) sta **sotto il mazzo, al centro** (`.ae-turn-shuffle-row`), con un'**animazione**: le carte
-      si raccolgono al centro raddrizzandosi (v225: si animano anche inclinazione e arco, al centro sono tutte
-      verticali), si mischiano due volte (metà a sinistra e metà a destra) e si riaprono coperte (`runShuffle`,
-      proprietà CSS `translate` con Web Animations; finestra non toccabile durante, `.is-shuffling`).
+    - **Mescola** (v233: simbolo a destra della scritta "Mazzo turno"; v224-v232 pulsante con la scritta sotto il
+      mazzo) con un'**animazione**: le carte si raccolgono al centro della fila, si mischiano due volte (metà a sinistra
+      e metà a destra) e si rimettono in fila coperte (`runShuffle`, proprietà CSS `translate` con Web Animations;
+      finestra non toccabile durante, `.is-shuffling`).
     - **Apertura e chiusura** (v224): la copia della testata e della barra resta ferma (opaca, sopra) e tutto il resto è
       un **foglio** (`.ae-turn-sheet`) che **scende da sotto la barra dei turni** (`translateY(-100%)` → 0, 320ms); la
       finestra è trasparente, quindi sotto il foglio che scende si vede la partita oscurata. Con X/Indietro il foglio
@@ -254,9 +264,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Menu** (v224): nella copia della testata il pulsante Menu funziona e apre il menu **sopra la finestra**;
       chiudendolo si torna al mazzo dei turni. Le voci che portano altrove (Undo, Scarti, Nemesi uccisa, Esci,
       Ricomincia) chiudono prima la finestra (`openSideMenu(leave)`).
-    - **Segmento d'inserimento** (v224): trascinando una carta degli scarti sulla rosa o sulle zone Cima/Fondo, un
-      **segmento verticale dorato** al centro del posto vuoto dice dove cadrà (come tra le slide di Canva;
-      `.ae-turn-insert`, posizionato in `layoutFan`). La carta trascinata è **dritta** (prima inclinata di 4°).
+    - **Segmento d'inserimento** (v224, dalla v233 solo tra Cima/Fondo e la pila stretta): dice dove cadrà la carta
+      degli scarti (come tra le slide di Canva; `.ae-turn-insert`, posizionato in `layoutFan`). La carta trascinata è
+      **dritta** (prima inclinata di 4°).
     - **Contorno** (v224): le carte turno (immagini e dorso) hanno un contorno chiaro di 1,5px e un'ombra, per staccarle
       dallo sfondo.
     - **Carte note** (`turnOrder.known`, array di true/false **parallelo a `left`**, segue gli spostamenti e

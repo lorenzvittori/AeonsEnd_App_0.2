@@ -250,9 +250,13 @@ const I18N_IT = {
   turnDeckCardLabel: (name, n, total) => `${name}, carta ${n} di ${total} dalla cima`,
   turnPileCardLabel: (name, current) => current ? `${name}, turno in corso` : name,
   turnLockedLabel: name => `${name}, turno nemesi in corso: resta negli scarti`,
-  turnHint: 'Trascina una carta scoperta, oppure toccala e poi tocca dove metterla.',
+  turnHint: 'Trascina una carta scoperta, oppure toccala e poi tocca dove metterla. Il mazzo si legge da sinistra: la prima carta è la cima.',
   turnSelected: name => `Selezionata: ${name}. Tocca dove metterla.`,
   turnShuffleDeck: 'Mescola',
+  // new_turn: riga unica scarti | mazzo
+  turnPileTitle: 'Scarti',
+  turnDeckRowTitle: 'Mazzo turno',
+  turnShuffleLabel: 'Mescola il mazzo dei turni',
   turnResetAll: 'Annulla tutte le modifiche',
   turnExitTitle: 'Uscire senza salvare?',
   turnExitText: 'Le modifiche al mazzo dei turni si perdono.',
@@ -4562,8 +4566,48 @@ function openTurnScreen() {
   dialog.appendChild(copyShell);
   dialog.appendChild(sheet);
 
-  // Parte alta: mazzo a ventaglio (a destra la cima, a sinistra il fondo)
-  const deckHead = el('div', 'ae-turn-screen-head');
+  // new_turn: scarti e mazzo sulla stessa riga, separati da un segmento verticale. Sopra, "Scarti" a sinistra e
+  // "Mazzo turno" a destra (con il simbolo Mescola); si legge da sinistra a destra come la barra dei turni: nel mazzo
+  // la carta in cima è la prima a sinistra. Sotto il mazzo "Rivela tutto"
+  const row = el('div', 'ae-turn-row');
+  const pileArea = el('div', 'ae-turn-area ae-turn-area--pile');
+  const pileRow = el('div', 'ae-turn-pile-row');
+  pileArea.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnPileTitle), pileRow);
+  const divider = el('span', 'ae-turn-divider');
+  divider.setAttribute('aria-hidden', 'true');
+  const deckArea = el('div', 'ae-turn-area ae-turn-area--deck');
+  const deckHead = el('div', 'ae-turn-deck-head');
+  const shuffleBtn = el('button', 'ae-icon-button ae-turn-shuffle');
+  shuffleBtn.type = 'button';
+  shuffleBtn.setAttribute('aria-label', I18N_IT.turnShuffleLabel);
+  shuffleBtn.title = I18N_IT.turnShuffleDeck;
+  shuffleBtn.appendChild(icon('shuffle'));
+  shuffleBtn.addEventListener('click', runShuffle);
+  deckHead.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnDeckRowTitle), shuffleBtn);
+  // Corsia del mazzo: carte in fila (posizioni assolute, così si spostano con una transizione)
+  const lane = el('div', 'ae-turn-lane');
+  // Carta degli scarti presa o selezionata: le carte del mazzo si stringono al centro e ai due lati compaiono i posti
+  // "Cima" (a sinistra) e "Fondo" (a destra)
+  const zoneTop = el('button', 'ae-turn-zone ae-turn-zone--top', I18N_IT.turnTopEnd);
+  const zoneBottom = el('button', 'ae-turn-zone ae-turn-zone--bottom', I18N_IT.turnBottomEnd);
+  zoneBottom.type = zoneTop.type = 'button';
+  zoneBottom.dataset.zone = 'bottom';
+  zoneTop.dataset.zone = 'top';
+  zoneBottom.setAttribute('aria-label', I18N_IT.turnZoneBottom);
+  zoneTop.setAttribute('aria-label', I18N_IT.turnZoneTop);
+  [zoneTop, zoneBottom].forEach(z => z.addEventListener('click', () => {
+    if (!sel || sel.source !== 'pile' || z.hidden) return;
+    dropOn({ type: z.dataset.zone }, sel);
+  }));
+  const revealTop = el('button', 'ae-turn-eye ae-turn-eye--top');
+  revealTop.type = 'button';
+  revealTop.setAttribute('aria-label', I18N_IT.turnRevealTopLabel);
+  revealTop.appendChild(icon('eye'));
+  revealTop.addEventListener('click', () => { turnDraftOps.revealTop(d); draw(); });
+  // Segmento verticale dove cadrà la carta degli scarti (come tra le slide di Canva)
+  const insertBar = el('span', 'ae-turn-insert');
+  insertBar.setAttribute('aria-hidden', 'true');
+  insertBar.hidden = true;
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
   revealAll.setAttribute('aria-label', I18N_IT.turnRevealAllLabel);
@@ -4575,42 +4619,13 @@ function openTurnScreen() {
     if (allKnown()) turnDraftOps.coverAll(d); else turnDraftOps.revealAll(d);
     draw();
   });
-  deckHead.append(el('h3', 'ae-turn-subtitle', I18N_IT.turnDeckLabel), revealAll);
-  const fanRow = el('div', 'ae-turn-fan-row');
-  const zoneBottom = el('button', 'ae-turn-zone ae-turn-zone--bottom', I18N_IT.turnBottomEnd);
-  const zoneTop = el('button', 'ae-turn-zone ae-turn-zone--top', I18N_IT.turnTopEnd);
-  zoneBottom.type = zoneTop.type = 'button';
-  zoneBottom.dataset.zone = 'bottom';
-  zoneTop.dataset.zone = 'top';
-  zoneBottom.setAttribute('aria-label', I18N_IT.turnZoneBottom);
-  zoneTop.setAttribute('aria-label', I18N_IT.turnZoneTop);
-  const fan = el('div', 'ae-turn-fan');
-  const revealTop = el('button', 'ae-turn-eye ae-turn-eye--top');
-  revealTop.type = 'button';
-  revealTop.setAttribute('aria-label', I18N_IT.turnRevealTopLabel);
-  revealTop.appendChild(icon('eye'));
-  revealTop.addEventListener('click', () => { turnDraftOps.revealTop(d); draw(); });
-  // v224: segmento verticale dove cadrà la carta trascinata dagli scarti (come tra le slide di Canva), anche ai due capi
-  const insertBar = el('span', 'ae-turn-insert');
-  insertBar.setAttribute('aria-hidden', 'true');
-  insertBar.hidden = true;
-  fanRow.append(zoneBottom, fan, zoneTop);
-  [zoneBottom, zoneTop].forEach(z => z.addEventListener('click', () => {
-    if (!sel || z.disabled) return;
-    dropOn({ type: z.dataset.zone }, sel);
-  }));
+  const revealRow = el('div', 'ae-turn-reveal-row');
+  revealRow.appendChild(revealAll);
+  deckArea.append(deckHead, lane, revealRow);
+  row.append(pileArea, divider, deckArea);
 
-  // Parte bassa: scarti dei turni, da sinistra a destra; l'ultima è il turno in corso
-  const pileRow = el('div', 'ae-turn-pile-row');
   const hint = el('p', 'ae-turn-hint', I18N_IT.turnHint);
   hint.setAttribute('aria-live', 'polite');
-
-  // v224: Mescola sotto il mazzo, al centro (prima in basso); "Salva modifiche" non c'è più
-  const shuffleRow = el('div', 'ae-turn-shuffle-row');
-  const shuffleBtn = el('button', 'ae-turn-eye ae-turn-shuffle', I18N_IT.turnShuffleDeck);
-  shuffleBtn.type = 'button';
-  shuffleBtn.addEventListener('click', runShuffle);
-  shuffleRow.appendChild(shuffleBtn);
   const footer = el('div', 'ae-turn-screen-footer');
   const resetBtn = button(I18N_IT.turnResetAll, 'secondary', () => {
     if (drag || shuffling) return;
@@ -4620,7 +4635,7 @@ function openTurnScreen() {
     draw();
   });
   footer.append(resetBtn);
-  sheet.append(deckHead, fanRow, shuffleRow, el('h3', 'ae-turn-subtitle', I18N_IT.turnPileLabel), pileRow, hint, footer);
+  sheet.append(row, hint, footer);
 
   let fanEls = [];
   let pileEls = [];
@@ -4644,12 +4659,11 @@ function openTurnScreen() {
       card.classList.toggle('is-selected', !!sel && sel.source === 'deck' && sel.index === i);
       return card;
     });
-    fan.replaceChildren(...fanEls);
-    if (!n) fan.appendChild(el('span', 'ae-turn-fan-empty', I18N_IT.turnDeckEmpty));
+    lane.replaceChildren(...fanEls);
+    if (!n) lane.appendChild(el('span', 'ae-turn-fan-empty', I18N_IT.turnDeckEmpty));
     revealTop.hidden = !n || d.known[0];
-    fan.appendChild(revealTop);
     insertBar.hidden = true;
-    fan.appendChild(insertBar);
+    lane.append(revealTop, zoneTop, zoneBottom, insertBar);
     revealAll.disabled = !n;
     revealAllText.textContent = allKnown() ? I18N_IT.turnCoverAll : I18N_IT.turnRevealAll;
     revealAll.setAttribute('aria-label', allKnown() ? I18N_IT.turnCoverAllLabel : I18N_IT.turnRevealAllLabel);
@@ -4672,7 +4686,14 @@ function openTurnScreen() {
       if (i === cur) slot.appendChild(el('span', 'ae-turn-pile-note', I18N_IT.turnCurrent));
       return slot;
     });
-    pileRow.replaceChildren(...(pileEls.length ? pileEls : [el('span', 'ae-turn-pile-empty', I18N_IT.turnPileEmpty)]));
+    // Scarti vuoti: un posto tratteggiato largo una carta
+    if (pileEls.length) pileRow.replaceChildren(...pileEls);
+    else {
+      const empty = el('span', 'ae-turn-pile-empty');
+      empty.setAttribute('role', 'img');
+      empty.setAttribute('aria-label', I18N_IT.turnPileEmpty);
+      pileRow.replaceChildren(empty);
+    }
     pileEls = pileEls.map(slot => slot.firstChild);
     [...fanEls, ...pileEls].forEach(c => {
       if (!c.classList.contains('is-movable')) return;
@@ -4693,66 +4714,80 @@ function openTurnScreen() {
   function selName(s) {
     return s.source === 'deck' ? turnCardName(d.left[s.index], -1, d) : turnCardName(d.drawn[s.index], s.index, d);
   }
-  // Posizioni del ventaglio: order = indici di d.left nell'ordine da mostrare (dalla cima); la cima va a destra.
-  // slots: posti nel ventaglio (uno in più, con un buco, mentre si trascina dentro una carta degli scarti).
-  // v212: le carte restano sempre sovrapposte (passo al massimo il 62% della carta), anche quando sono poche
-  function fanGeometry(slots = d.left.length) {
-    const n = slots;
-    const width = fan.clientWidth || 240;
-    const w = Math.min(64, Math.max(40, Math.floor(width / 4.4)));
-    const step = n > 1 ? Math.min(w * 0.62, (width - w) / (n - 1)) : 0;
-    const offset = (width - (w + (n - 1) * step)) / 2;
-    return { n, w, step, offset, h: w * 88 / 63 };
+  // Misure della riga: una sola larghezza di carta per scarti e mazzo, tutte le carte in fila senza sovrapporsi.
+  // La corsia del mazzo ha almeno 3 posti, così da stretta ha spazio per Cima, carte e Fondo
+  const TURN_GAP = 6;
+  function rowGeometry() {
+    const k = Math.max(1, d.drawn.length);
+    const n = d.left.length;
+    const units = k + Math.max(n, 3);
+    const avail = (row.clientWidth || 343) - 17; // segmento verticale con i suoi margini
+    const w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
+    return { k, n, w, h: w * 88 / 63, gap: TURN_GAP };
   }
-  // order può contenere -1: il posto vuoto dove cadrà la carta trascinata dagli scarti
-  function layoutFan(order = d.left.map((k, i) => i), lifted = -1) {
-    const g = fanGeometry(order.length);
-    fan.style.setProperty('--ae-turn-w', g.w + 'px');
-    fan.style.setProperty('--ae-fan-h', g.h + 'px');
-    const mid = (g.n - 1) / 2;
-    insertBar.hidden = !order.includes(-1);
+  function laneWidth(g) {
+    return lane.clientWidth || (Math.max(g.n, 3) * (g.w + g.gap) - g.gap);
+  }
+  // Carta degli scarti presa (trascinata) o selezionata: il mazzo si stringe e compaiono Cima e Fondo
+  function squeezed() {
+    return (!!drag && drag.source === 'pile') || (!drag && !!sel && sel.source === 'pile');
+  }
+  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: 'top' | 'bottom' | null
+  function layoutFan(order = d.left.map((k, i) => i), lifted = -1, over = null) {
+    const g = rowGeometry();
+    row.style.setProperty('--ae-turn-w', g.w + 'px');
+    row.style.setProperty('--ae-turn-h', g.h + 'px');
+    pileArea.style.width = (g.k * (g.w + g.gap) - g.gap) + 'px';
+    const lw = laneWidth(g);
+    const tight = squeezed();
+    // Stretto: le carte si sovrappongono (passo di 10px al massimo) al centro; Cima e Fondo prendono lo spazio ai lati
+    const step = tight ? Math.min(10, g.n > 1 ? (lw - 2 * 30 - 2 * g.gap - g.w) / (g.n - 1) : 0) : g.w + g.gap;
+    const stackW = g.n ? g.w + (g.n - 1) * step : 0;
+    const start = tight ? (lw - stackW) / 2 : 0;
     order.forEach((idx, k) => {
-      const v = g.n - 1 - k;
-      if (idx === -1) {
-        // al centro del posto vuoto, dritto, poco più alto della carta
-        insertBar.style.left = (g.offset + v * g.step + g.w / 2 - 2) + 'px';
-        insertBar.style.height = (g.h + 16) + 'px';
-        insertBar.style.top = `calc(var(--ae-fan-top) - 8px + ${Math.pow(v - mid, 2) * 1.5}px)`;
-        return;
-      }
-      const card = idx >= 0 ? fanEls[idx] : null;
+      const card = fanEls[idx];
       if (!card) return;
-      card.style.left = (g.offset + v * g.step) + 'px';
-      card.style.setProperty('--ae-fan-rot', ((v - mid) * 5) + 'deg');
-      card.style.setProperty('--ae-fan-y', (Math.pow(v - mid, 2) * 1.5) + 'px');
-      card.style.zIndex = String(1 + v);
+      card.style.left = (start + k * step) + 'px';
+      card.style.zIndex = String(tight ? 1 + g.n - k : 1 + k);
       card.classList.toggle('is-lifted', idx === lifted);
-      // v212: l'occhio sta sopra la carta in cima (al suo centro, con la stessa inclinazione)
       if (idx === 0) {
-        // (44 x 44 con il centro al centro della carta; style.css ruota l'occhio attorno allo stesso punto della carta)
-        revealTop.style.left = (g.offset + v * g.step + g.w / 2 - 22) + 'px';
-        revealTop.style.top = `calc(var(--ae-fan-top) + ${g.h / 2 - 22}px)`;
-        revealTop.style.setProperty('--ae-fan-rot', ((v - mid) * 5) + 'deg');
-        revealTop.style.setProperty('--ae-fan-y', (Math.pow(v - mid, 2) * 1.5) + 'px');
+        revealTop.style.left = (start + k * step + g.w / 2 - 22) + 'px';
+        revealTop.style.top = (g.h / 2 - 22) + 'px';
         revealTop.style.zIndex = String(2 + g.n);
       }
     });
+    lane.classList.toggle('is-squeezed', tight);
+    // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
+    revealTop.hidden = !g.n || !!d.known[0] || tight;
+    zoneTop.hidden = zoneBottom.hidden = !tight;
+    if (tight) {
+      const zw = Math.max(28, start - g.gap);
+      Object.assign(zoneTop.style, { left: '0px', width: zw + 'px' });
+      Object.assign(zoneBottom.style, { left: (lw - zw) + 'px', width: zw + 'px' });
+    }
+    zoneTop.classList.toggle('is-over', over === 'top');
+    zoneBottom.classList.toggle('is-over', over === 'bottom');
+    insertBar.hidden = !tight || !over;
+    if (tight && over) {
+      insertBar.style.left = (over === 'top' ? start - g.gap / 2 - 2 : start + stackW + g.gap / 2 - 2) + 'px';
+      insertBar.style.height = (g.h + 16) + 'px';
+      insertBar.style.top = '-8px';
+    }
   }
-  // Posto nel ventaglio sotto il dito (0 = cima) su slots posti
-  function fanSlotAt(x, slots) {
-    const g = fanGeometry(slots);
-    const v = Math.max(0, Math.min(g.n - 1, Math.round((x - fan.getBoundingClientRect().left - g.offset - g.w / 2) / (g.step || 1))));
-    return g.n - 1 - v;
+  // Posto nella corsia sotto il dito (0 = cima, a sinistra) per una carta del mazzo
+  function fanSlotAt(x) {
+    const g = rowGeometry();
+    const v = Math.round((x - lane.getBoundingClientRect().left - g.w / 2) / (g.w + g.gap));
+    return Math.max(0, Math.min(g.n - 1, v));
   }
 
-  // Destinazioni permesse per la carta s (solo quelle si evidenziano): zone Cima e Fondo e, v212, la rosa anche per le
-  // carte degli scarti
+  // Destinazioni permesse per la carta s (solo quelle si evidenziano): carta del mazzo = la corsia del mazzo; carta
+  // degli scarti = solo Cima e Fondo (new_turn: non più in mezzo al mazzo)
   function markTargets(s) {
     const any = !!s;
-    zoneTop.classList.toggle('is-target', any);
-    zoneBottom.classList.toggle('is-target', any);
-    zoneTop.disabled = zoneBottom.disabled = !any;
-    fan.classList.toggle('is-target', any);
+    zoneTop.classList.toggle('is-target', any && s.source === 'pile');
+    zoneBottom.classList.toggle('is-target', any && s.source === 'pile');
+    lane.classList.toggle('is-target', any && s.source === 'deck');
     dialog.classList.toggle('is-choosing', any);
   }
   function dropOn(target, s) {
@@ -4760,8 +4795,8 @@ function openTurnScreen() {
     if (s.source === 'deck') {
       const to = target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
       ok = turnDraftOps.moveInDeck(d, s.index, to);
-    } else {
-      ok = turnDraftOps.pileToDeck(d, s.index, target.type === 'pos' ? target.index : target.type);
+    } else if (target.type === 'top' || target.type === 'bottom') {
+      ok = turnDraftOps.pileToDeck(d, s.index, target.type);
     }
     sel = null;
     draw();
@@ -4776,7 +4811,8 @@ function openTurnScreen() {
     const source = e.currentTarget.dataset.source;
     const index = Number(e.currentTarget.dataset.index);
     if (sel && sel.source === source && sel.index === index) { sel = null; draw(); return; }
-    if (sel && source === 'deck') { dropOn({ type: 'pos', index }, sel); return; }
+    // (new_turn: una carta degli scarti selezionata va solo su Cima o Fondo, non su una carta del mazzo)
+    if (sel && source === 'deck') { if (sel.source === 'deck') dropOn({ type: 'pos', index }, sel); return; }
     if (!e.currentTarget.classList.contains('is-movable')) return;
     sel = { source, index };
     draw();
@@ -4816,6 +4852,8 @@ function openTurnScreen() {
     markTargets({ source, index });
     dialog.classList.add('is-dragging', 'is-dragging-' + source);
     press = null;
+    // new_turn: presa una carta degli scarti, il mazzo si stringe e compaiono Cima e Fondo
+    if (source === 'pile') layoutFan();
     // Piccola vibrazione quando la carta si solleva (solo dopo un tocco vero: altrimenti il browser la blocca)
     const touched = !navigator.userActivation || navigator.userActivation.hasBeenActive;
     if (navigator.vibrate && touched) { try { navigator.vibrate(10); } catch (err) { /* niente vibrazione */ } }
@@ -4833,32 +4871,35 @@ function openTurnScreen() {
     e.preventDefault();
     // (v224: dritta, prima inclinata di 4° a sinistra)
     drag.ghost.style.transform = `translate(${e.clientX - drag.dx - parseFloat(drag.ghost.style.left)}px, ${e.clientY - drag.dy - parseFloat(drag.ghost.style.top)}px) scale(1.08)`;
-    // La carta si porta ovunque nello schermo; il rilascio riesce solo su una destinazione valida: zone Cima e Fondo,
-    // rosa delle carte (v212 anche per le carte degli scarti). v222: conta dove sta la carta (il suo centro, sopra il
-    // dito), non il dito
+    // La carta si porta ovunque nello schermo; il rilascio riesce solo su una destinazione valida. v222: conta dove
+    // sta la carta (il suo centro, sopra il dito), non il dito. new_turn: carta degli scarti = solo Cima (a sinistra
+    // del mazzo stretto) o Fondo (a destra); carta del mazzo = un posto della corsia del mazzo
     const x = e.clientX - drag.dx + drag.w / 2;
     const y = e.clientY - drag.dy + drag.h / 2;
     const fromPile = drag.source === 'pile';
     let target = null;
-    if (hit(zoneTop.getBoundingClientRect(), x, y)) target = { type: 'top' };
-    else if (hit(zoneBottom.getBoundingClientRect(), x, y)) target = { type: 'bottom' };
-    else if (hit(fan.getBoundingClientRect(), x, y, 24)) {
-      target = { type: 'pos', index: fanSlotAt(x, d.left.length + (fromPile ? 1 : 0)) };
+    if (fromPile) {
+      const lr = lane.getBoundingClientRect();
+      if (hit(lr, x, y, 24)) {
+        // nella corsia: Cima se la carta sta nella metà sinistra, Fondo se nella destra (le zone ai lati sono il bersaglio
+        // naturale, ma basta essere dalla loro parte)
+        target = { type: x < lr.left + lr.width / 2 ? 'top' : 'bottom' };
+      }
+    } else if (hit(lane.getBoundingClientRect(), x, y, 24)) {
+      target = { type: 'pos', index: fanSlotAt(x) };
     }
     drag.target = target;
-    zoneTop.classList.toggle('is-over', !!target && target.type === 'top');
-    zoneBottom.classList.toggle('is-over', !!target && target.type === 'bottom');
-    fan.classList.toggle('is-over', !!target && target.type === 'pos');
-    // Anteprima nel mazzo: le altre carte si spostano per fare posto (carta degli scarti: un posto vuoto, -1)
+    lane.classList.toggle('is-over', !!target && target.type === 'pos');
+    // Anteprima nel mazzo: carta del mazzo = le altre si spostano per fare posto; carta degli scarti = segmento a Cima o
+    // a Fondo
     const order = d.left.map((k, i) => i);
     if (!fromPile) {
-      const to = !target ? drag.index : target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
+      const to = !target ? drag.index : target.index;
       order.splice(order.indexOf(drag.index), 1);
       order.splice(to, 0, drag.index);
       layoutFan(order, drag.index);
     } else {
-      if (target) order.splice(target.type === 'top' ? 0 : target.type === 'bottom' ? order.length : target.index, 0, -1);
-      layoutFan(order);
+      layoutFan(order, -1, target ? target.type : null);
     }
   }
   function endDrag(apply) {
@@ -4869,9 +4910,7 @@ function openTurnScreen() {
     ghost.remove();
     drag = null;
     dialog.classList.remove('is-dragging', 'is-dragging-deck', 'is-dragging-pile');
-    zoneTop.classList.remove('is-over');
-    zoneBottom.classList.remove('is-over');
-    fan.classList.remove('is-over');
+    lane.classList.remove('is-over');
     // Il click che segue il rilascio non deve selezionare la carta
     suppressClick = true;
     setTimeout(() => { suppressClick = false; }, 0);
@@ -4885,17 +4924,15 @@ function openTurnScreen() {
   // destra) e si riaprono a ventaglio, coperte. Durante l'animazione la finestra non si tocca
   function runShuffle() {
     if (drag || shuffling || closing) return;
-    const g = fanGeometry();
-    const animate = !reducedMotion.matches && !!fan.animate && fanEls.length > 1;
+    const g = rowGeometry();
+    const animate = !reducedMotion.matches && !!lane.animate && fanEls.length > 1;
     if (!animate) { turnDraftOps.shuffle(d); sel = null; draw(); return; }
     shuffling = true;
     dialog.classList.add('is-shuffling');
-    const cx = g.offset + (g.n - 1) * g.step / 2;
+    // new_turn: le carte sono dritte in fila; si raccolgono al centro della fila
+    const cx = (g.n - 1) * (g.w + g.gap) / 2;
     const toCenter = c => (cx - parseFloat(c.style.left)) + 'px';
-    // v225: anche l'inclinazione e l'arco del ventaglio si animano: al centro le carte sono tutte dritte
-    const fanT = c => `translateY(${c.style.getPropertyValue('--ae-fan-y') || '0px'}) rotate(${c.style.getPropertyValue('--ae-fan-rot') || '0deg'})`;
-    const gather = fanEls.map(c => c.animate([{ translate: '0 0', transform: fanT(c) },
-      { translate: toCenter(c) + ' 0', transform: 'translateY(0px) rotate(0deg)' }],
+    const gather = fanEls.map(c => c.animate([{ translate: '0 0' }, { translate: toCenter(c) + ' 0' }],
       { duration: 220, easing: 'ease-in', fill: 'forwards' }));
     animDone(gather, 220).then(() => {
       if (closing || !dialog.isConnected) { shuffling = false; return; }
@@ -4907,11 +4944,9 @@ function openTurnScreen() {
         const dx = toCenter(c);
         const side = (i % 2 ? 1 : -1) * s;
         const off = `calc(${dx} + ${side}px) -6px`;
-        const flat = 'translateY(0px) rotate(0deg)';
         return c.animate([
-          { translate: dx + ' 0', transform: flat, offset: 0 }, { translate: off, transform: flat, offset: .16 },
-          { translate: dx + ' 0', transform: flat, offset: .32 }, { translate: off, transform: flat, offset: .48 },
-          { translate: dx + ' 0', transform: flat, offset: .64 }, { translate: '0 0', transform: fanT(c), offset: 1 }
+          { translate: dx + ' 0', offset: 0 }, { translate: off, offset: .16 }, { translate: dx + ' 0', offset: .32 },
+          { translate: off, offset: .48 }, { translate: dx + ' 0', offset: .64 }, { translate: '0 0', offset: 1 }
         ], { duration: 820, easing: 'ease-in-out' });
       });
       return animDone(riffle, 820);

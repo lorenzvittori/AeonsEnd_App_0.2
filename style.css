@@ -1572,3 +1572,48 @@ body { overflow: hidden; }
   font: 700 11px/14px var(--ae-font-ui); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .ae-stats-hp .ae-icon { width: 11px; height: 11px; color: var(--ae-danger); }
+
+/* new_turn: finestra del mazzo dei turni con scarti e mazzo sulla stessa riga, separati da un segmento verticale.
+   La larghezza della carta (--ae-turn-w) la calcola script.js (rowGeometry): tutte le carte in fila senza sovrapporsi */
+.ae-icon--shuffle { -webkit-mask-image: url('Assets/ui/icons/shuffle.svg'); mask-image: url('Assets/ui/icons/shuffle.svg'); width: 22px; height: 22px; }
+.ae-turn-row { display: flex; align-items: stretch; gap: 0; margin-top: 4px; }
+.ae-turn-area { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ae-turn-area--pile { flex: 0 0 auto; }
+.ae-turn-area--deck { flex: 1 1 auto; }
+.ae-turn-divider { flex: 0 0 1px; margin: 0 8px; background: rgba(236, 232, 222, .35); border-radius: 1px; }
+.ae-turn-area .ae-turn-subtitle { white-space: nowrap; line-height: 28px; }
+.ae-turn-area--pile .ae-turn-subtitle { overflow: visible; }
+.ae-turn-deck-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 28px; }
+.ae-turn-shuffle.ae-icon-button { width: 40px; height: 40px; margin: -6px -8px -6px 0; color: var(--ae-gold); }
+.ae-turn-shuffle:disabled { opacity: .35; cursor: default; }
+/* Scarti: in fila da sinistra a destra, l'ultima è il turno in corso */
+.ae-turn-area--pile .ae-turn-pile-row { gap: 6px; min-height: 0; flex-wrap: nowrap; }
+.ae-turn-area--pile .ae-turn-pile-slot { width: var(--ae-turn-w, 48px); }
+.ae-turn-pile-note { font-size: 9px; }
+.ae-turn-pile-empty {
+  display: block; width: var(--ae-turn-w, 48px); height: var(--ae-turn-h, 67px); box-sizing: border-box;
+  border: 1px dashed rgba(236, 232, 222, .25); border-radius: 8% / 6%;
+}
+/* Mazzo: la cima è la prima carta a sinistra; carte dritte in fila (posizioni assolute, si spostano con una transizione) */
+.ae-turn-lane { position: relative; height: var(--ae-turn-h, 67px); border-radius: 8px; }
+.ae-turn-lane .ae-turn-card {
+  position: absolute; top: 0; width: var(--ae-turn-w, 48px); font-size: 16px;
+  transition: left .2s ease, opacity .15s;
+}
+.ae-turn-lane .ae-turn-card.is-old { filter: brightness(.4); }
+.ae-turn-lane .ae-turn-card.is-lifted { outline: 2px dashed var(--ae-gold); outline-offset: 2px; }
+.ae-turn-lane.is-target { box-shadow: 0 0 0 1px rgba(223, 174, 89, .35); }
+.ae-turn-lane.is-over { box-shadow: 0 0 0 2px var(--ae-gold); background: rgba(223, 174, 89, .08); }
+.ae-turn-lane .ae-turn-fan-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ae-turn-lane .ae-turn-eye--top { position: absolute; transform: none; transition: left .2s ease; }
+/* Carta degli scarti presa o selezionata: il mazzo si stringe al centro, ai lati "Cima" (sinistra) e "Fondo" (destra),
+   scritte in verticale con le lettere una sotto l'altra */
+.ae-turn-lane .ae-turn-zone {
+  position: absolute; top: 0; height: 100%; padding: 0; box-sizing: border-box; z-index: 30;
+  writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0; font-size: 10px; line-height: 1;
+  transform: none; transition: background .15s, border-color .15s;
+}
+.ae-turn-lane .ae-turn-zone[hidden] { display: none; }
+.ae-turn-lane .ae-turn-insert { z-index: 40; transition: left .12s ease; }
+.ae-turn-reveal-row { display: flex; justify-content: center; }
+.ae-turn-reveal-row .ae-turn-eye--all { padding: 0 14px; }
