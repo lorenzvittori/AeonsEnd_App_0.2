@@ -1700,3 +1700,13 @@ body { overflow: hidden; }
   background: radial-gradient(circle, rgba(255, 238, 170, 1) 0%, rgba(255, 186, 72, .8) 36%, rgba(255, 150, 40, 0) 72%);
   box-shadow: 0 0 16px rgba(255, 186, 72, .75);
 }
+/* v242: cerchi di Cima e Fondo grandi la metà (--ae-zone-d al massimo 14px) e spenti: solo il contorno; il bagliore
+   giallo-arancio compare solo sul posto dove la carta sta per andare (.is-over) */
+.ae-turn-lane .ae-turn-zone::before {
+  border: 1.5px solid rgba(240, 190, 105, .65); background: transparent; box-shadow: none;
+}
+.ae-turn-lane .ae-turn-zone.is-over::before {
+  transform: translate(-50%, -50%) scale(1.3); border-color: #ffd98a;
+  background: radial-gradient(circle, rgba(255, 238, 170, 1) 0%, rgba(255, 186, 72, .85) 40%, rgba(255, 150, 40, 0) 75%);
+  box-shadow: 0 0 10px 2px rgba(255, 186, 72, .75);
+}

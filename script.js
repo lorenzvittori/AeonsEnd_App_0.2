@@ -4835,29 +4835,32 @@ function openTurnScreen() {
     row.style.setProperty('--ae-turn-w', g.w + 'px');
     row.style.setProperty('--ae-turn-h', g.h + 'px');
     const tight = squeezed();
-    // v238: Cima e Fondo solo per una carta degli scarti; una carta del mazzo va in cima o in fondo mettendola prima
-    // della prima carta o dopo l'ultima (il segmento dorato lo mostra)
-    const fromPile = tight && (drag ? drag.source : sel ? sel.source : null) === 'pile';
+    // v242: i cerchi Cima e Fondo ci sono con qualunque carta in mano (v238-v241 solo con una carta degli scarti)
+    const fromPile = tight;
     // v241: gli scarti restano fermi anche con una loro carta in mano (v234-v240 si sovrapponevano per fare spazio)
     const pileStep = g.w + g.gap;
     row.style.setProperty('--ae-pile-step', pileStep + 'px');
     row.classList.remove('is-pile-tight');
     pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
     const lw = laneWidth(g);
-    // v241: Cima e Fondo sono due cerchi (diametro zd, al massimo 28px) subito prima e subito dopo le carte del mazzo,
-    // che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate nella corsia. Se la
-    // corsia è stretta (poche carte nel mazzo) i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
-    const zd = Math.round(Math.min(28, g.w * 0.6));
+    // Cima e Fondo sono due cerchi (diametro zd: v242 la metà, al massimo 14px; v241 28px) subito prima e subito dopo
+    // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
+    // nella corsia. Se la corsia è stretta i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
+    const zd = Math.round(Math.min(14, g.w * 0.3));
     const inner = fromPile ? lw - 2 * (zd + g.gap) : lw;
     const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(8, (inner - g.w) / (m - 1))) : 0) : g.w + g.gap;
     const stackW = m ? g.w + (m - 1) * step : 0;
     const start = tight ? (lw - stackW) / 2 : 0;
     tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
+    // v242: posto d'arrivo tra due carte (segmento tra loro): le carte a sinistra si spostano un po' a sinistra e quelle
+    // a destra un po' a destra, per farle spazio
+    const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
+    const spread = tight && overIdx > 0 && overIdx < m ? Math.round(Math.min(10, g.w * 0.2)) : 0;
     fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
     order.forEach((idx, k) => {
       const card = fanEls[idx];
       if (!card) return;
-      card.style.left = (start + k * step) + 'px';
+      card.style.left = (start + k * step + (spread ? (k < overIdx ? -spread : spread) : 0)) + 'px';
       card.style.zIndex = String(tight ? 1 + m - k : 1 + k);
       card.classList.toggle('is-lifted', idx === lifted);
       if (idx === 0) {
@@ -4892,8 +4895,10 @@ function openTurnScreen() {
       Object.assign(zoneBottom.style, { left: (start + stackW + g.gap) + 'px', width: zd + 'px' });
     }
     const type = over ? over.type : null;
-    zoneTop.classList.toggle('is-over', type === 'top');
-    zoneBottom.classList.toggle('is-over', type === 'bottom');
+    // v242: il cerchio si accende solo se la carta sta per andare lì (sopra il cerchio, o prima della prima carta /
+    // dopo l'ultima)
+    zoneTop.classList.toggle('is-over', tight && m > 0 && overIdx === 0);
+    zoneBottom.classList.toggle('is-over', tight && m > 0 && overIdx === m);
     insertBar.hidden = !tight || !over || toPile;
     if (tight && over && !toPile) {
       // Segmento: tra Cima e la prima carta, tra due carte (a metà dello spazio tra la fine di una e l'inizio

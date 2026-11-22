@@ -250,17 +250,20 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       destinazione; Esc annulla la selezione.
       - Carta del mazzo **solo se nota**, **solo dentro il mazzo**, dalla v237 **come una carta degli scarti** (qui
         sotto): presa, lascia la fila (`.is-away`, `shownOrder`), le altre si avvicinano e il segmento dorato dice dove
-        cadrà, anche prima della prima (cima) o dopo l'ultima (fondo). **Senza i box Cima e Fondo** (v238: solo per le
-        carte degli scarti) e senza stringere gli scarti. Col tocco: la carta, poi una carta del mazzo (prende il suo posto). La
+        cadrà, anche prima della prima (cima) o dopo l'ultima (fondo). Con i **cerchi Cima e Fondo** (v242; v238-v241
+        senza) e senza stringere gli scarti. Col tocco: la carta, poi Cima, Fondo o una carta del mazzo (prende il suo posto). La
         carta in cima appena rivelata si porta così in fondo. (v233-v236: le altre carte si spostavano per farle posto.)
       - Carta degli scarti **in qualunque posto del mazzo** (cima, fondo o tra due carte, come prima): appena la si
         prende (o la si seleziona col tocco) gli scarti **restano fermi** (v241; v234-v240 si sovrapponevano), **le
         carte del mazzo si avvicinano** (sovrapposte quanto serve, almeno 8px l'una dall'altra, centrate nella corsia) e
         subito prima e subito dopo compaiono i posti "**Cima**" (a sinistra) e "**Fondo**" (a destra). Dalla v241 sono
-        **due cerchi senza scritta** (diametro `--ae-zone-d` = 60% della carta, al massimo 28px; il nome resta per i
-        lettori di schermo) **con al centro un bagliore giallo-arancio**, che si accende di più e si ingrandisce
-        (×1,15) con la carta sopra; con poche carte nel mazzo i cerchi escono un po' dalla corsia o coprono il bordo
-        delle carte. (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
+        **due cerchi senza scritta** (il nome resta per i lettori di schermo); dalla v242 **piccoli** (diametro
+        `--ae-zone-d` = 30% della carta, al massimo 14px; v241 28px) e **spenti** (solo il contorno): il **bagliore
+        giallo-arancio** compare solo sul cerchio dove la carta sta per andare (sopra il cerchio, o prima della prima
+        carta / dopo l'ultima), che si ingrandisce (×1,3). Dalla v242 i cerchi ci sono anche spostando una **carta del
+        mazzo**. Con poche carte nel mazzo i cerchi escono un po' dalla corsia o coprono il bordo delle carte. **Posto
+        tra due carte** (v242): le carte a sinistra del segmento si spostano un po' a sinistra e quelle a destra un po' a
+        destra (20% della carta, al massimo 10px) per farle spazio. (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
