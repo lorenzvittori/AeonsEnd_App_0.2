@@ -204,18 +204,24 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `ui.trackPreview` niente scelta x/y né riquadro). Sotto, il titolo "Mazzo dei turni" con la X.
     - **Riga unica** (v233, branch `new_turn`; prima ventaglio del mazzo sopra e scarti sotto): **scarti e mazzo
       sulla stessa riga**, separati da un **segmento verticale** (`.ae-turn-row`: `.ae-turn-area--pile`,
-      `.ae-turn-divider`, `.ae-turn-area--deck`). Sopra le carte "**Scarti**" a sinistra e "**Mazzo turno**" a destra,
-      con il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`) a destra
-      della scritta. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali (`rowGeometry`: la larghezza
-      `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3 posti).
+      `.ae-turn-divider`, `.ae-turn-area--deck`). **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti)
+      "**Scarti**" e "**Mazzo turno**" ai due lati del segmento (`--ae-split`, posizione del segmento da `layoutFan`),
+      così le scritte non cambiano la larghezza delle carte; "Mazzo turno" va su due righe se non ci sta. In fondo a
+      destra il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`), che
+      sparisce con meno di 2 carte nel mazzo. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali
+      (`rowGeometry`: la larghezza `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3
+      posti, 1 se il mazzo è vuoto).
     - **Il mazzo** (`turnOrder.left`, corsia `.ae-turn-lane`) **si legge da sinistra a destra come la barra dei turni:
       la carta in cima è la prima a sinistra**. Carte coperte (dorso) o scoperte se **note**. Un **occhio al centro della
       carta in cima** la rivela; sotto il mazzo l'occhio "**Rivela tutto**" (v235: solo l'icona tonda, senza scritta;
       il nome resta per i lettori di schermo), che con tutto scoperto diventa l'**occhio barrato** "**Copri tutto**"
       (v222, ricopre tutto senza mescolare; `Assets/ui/icons/eye-off.svg`).
-    - **Fascio di luce** (v235, `.ae-turn-beam`): dall'occhio in basso sale verso le **carte ancora coperte**, un
-      trapezio dorato sfumato (stretto all'occhio, largo quanto le coperte; `clip-path` calcolato in `layoutFan`) che
-      passa dietro le carte e pulsa piano; le carte coperte prendono un bagliore (`.is-lit`). Sparisce con tutto
+    - **Fascio di luce** (v235, `.ae-turn-beam`; v236 più bello): dall'occhio in basso sale verso le **carte ancora
+      coperte** un trapezio di luce calda (stretto all'occhio, largo quanto le coperte; forma in `--beam-clip` da
+      `layoutFan`, applicata a `::before` e `::after`, mentre la sfocatura sta sul contenitore: bordi morbidi; fuso con
+      lo sfondo, `mix-blend-mode: screen`). `::before` è la luce, più forte vicino all'occhio; `::after` strisce di luce
+      che salgono piano verso le carte. Passa dietro le carte e pulsa insieme all'**alone dell'occhio**; le carte
+      coperte sono illuminate dal basso (`.is-lit`). Sparisce con tutto
       scoperto, mentre si sposta una carta, con il mazzo stretto e durante la mescola.
     - **Rivelare con la rotazione** (v235, `revealWithFlip` / `flipIn`): la carta rivelata si gira; una copia del
       dorso ruota fino a mettersi di taglio (rotateY 0 → 90°, 140ms), poi la faccia ruota da taglio a dritta (−90° → 0,
@@ -252,7 +258,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
         scarti, poi Cima, Fondo o una carta del mazzo (prende il suo posto, le altre scendono). (v233 per un giorno: solo
-        in cima o in fondo.) Nel mazzo resta **nota** e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
+        in cima o in fondo.) **Mazzo vuoto** (v236): niente Cima e Fondo; la carta va nel mazzo vuoto (trascinata sulla
+        corsia o, selezionata, con un tocco sulla corsia). Nel mazzo resta **nota** e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
       - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
