@@ -204,7 +204,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       `ui.trackPreview` niente scelta x/y né riquadro). Sotto, il titolo "Mazzo dei turni" con la X.
     - **Riga unica** (v233, branch `new_turn`; prima ventaglio del mazzo sopra e scarti sotto): **scarti e mazzo
       sulla stessa riga**, separati da un **segmento verticale** (`.ae-turn-row`: `.ae-turn-area--pile`,
-      `.ae-turn-divider`, `.ae-turn-area--deck`); il segmento è lungo quanto le carte più il 10% sopra e sotto (v237).
+      `.ae-turn-divider`, `.ae-turn-area--deck`); il segmento è lungo quanto le carte più il 10% sopra e sotto (v237) e,
+      dalla v240, spesso e colorato come il "|" tra giocatori e turno nella testata (1px, testi secondari al 60%).
       **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) "**Scarti**" **allineata a sinistra** e
       "**Mazzo turno**" **allineata a destra** (v237; v236 ai due lati del segmento, con una lineetta tra le due), così
       le scritte non cambiano la larghezza delle carte. "Scarti" non va oltre il segmento (`--ae-split`, da
@@ -212,8 +213,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       va su due righe se non ci sta. In fondo a
       destra il simbolo **Mescola** (due frecce incrociate, `Assets/ui/icons/shuffle.svg`, `.ae-icon--shuffle`), che
       sparisce con meno di 2 carte nel mazzo. Carte dritte, in fila, **senza sovrapporsi**, tutte larghe uguali
-      (`rowGeometry`: la larghezza `--ae-turn-w` si calcola perché ci stiano tutte; la corsia del mazzo ha almeno 3
-      posti, 1 se il mazzo è vuoto).
+      (`rowGeometry`: la larghezza `--ae-turn-w` si calcola perché ci stiano tutte, un posto per carta, 1 se il mazzo è
+      vuoto; v233-v239 il mazzo aveva almeno 3 posti e con poche carte restava spazio vuoto a destra). Con **una carta
+      sola** nel mazzo niente "Rivela tutto" (v240): basta l'occhio sulla carta.
     - **Il mazzo** (`turnOrder.left`, corsia `.ae-turn-lane`) **si legge da sinistra a destra come la barra dei turni:
       la carta in cima è la prima a sinistra**. Carte coperte (dorso) o scoperte se **note**. Un **occhio al centro della
       carta in cima** la rivela; sotto il mazzo "**Rivela tutto**": dalla v237 un **rettangolo con l'occhio al
@@ -233,7 +235,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     - **Facce delle carte turno** (v221, `turnCardFace`): l'immagine della carta vera, `Assets/ui/turn-cards/<carta>.webp`
       (p1, p2, p3, p4, p12, p34, nemesis, wild; 252 x 352, WebP 86, ritagliate a 63:88 dalle foto date dall'utente;
       style.css `.ae-turn-card[data-card]`). Sulle carte 1/2, 3/4 e Wild con il giocatore già deciso un **tondino** in
-      basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`). Le due scelte della finestra "Chi gioca
+      basso a destra con il suo numero nel suo colore (`.ae-turn-card-who`); dalla v240 è il **token del giocatore**
+      (`Assets/ui/turn-tokens/pN.webp`), grande uguale (20px) e centrato sotto la carta. Le due scelte della finestra "Chi gioca
       questo turno?" invece sono i **token** dei giocatori (dalla v223: `Assets/ui/turn-tokens/p1…p4.webp`, 232 x 232
       con angoli trasparenti, larghi 1,4 volte una carta piccola; `.ae-pair-pick[data-kind]`). Le carte coperte del mazzo hanno il
       **dorso vero** "Turn Order Deck" (dalla v226: `Assets/ui/turn-cards/back.webp`, 252 x 352, dalla foto data
@@ -254,14 +257,19 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         prende (o la si seleziona col tocco) gli scarti si sovrappongono (14px l'uno dall'altro, `.is-pile-tight`), **le
         carte del mazzo si avvicinano** (sovrapposte quanto serve, centrate) e ai due lati compaiono i posti
         "**Cima**" (a sinistra) e "**Fondo**" (a destra), **grandi come una carta** (v234; v233 più larghi), scritti in
-        verticale (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
+        **orizzontale** con il carattere adattato alla carta (v240, `--ae-zone-fs`; prima in verticale), **senza
+        riquadro** e senza riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
         scarti, poi Cima, Fondo o una carta del mazzo (prende il suo posto, le altre scendono). (v233 per un giorno: solo
         in cima o in fondo.) **Mazzo vuoto** (v236): niente Cima e Fondo; la carta va nel mazzo vuoto (trascinata sulla
         corsia o, selezionata, con un tocco sulla corsia). Nel mazzo resta **nota** e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
-      - vietati: mazzo → scarti, scarti → scarti, carta coperta. (v211-v221: nel turno nemesi la carta in corso non si
+      - **Carta rivelata del mazzo negli scarti** (v240, `turnDraftOps.deckToPile`): solo **in fondo a destra** degli
+        scarti (trascinata sugli scarti, a sinistra del segmento, con il segmento dorato dopo l'ultimo scarto; col tocco:
+        la carta, poi gli scarti). **Non è un turno**: la storia del giro non cambia, la carta "in corso" resta quella e
+        il turno di quella carta è perso (nella barra dei turni sparisce); nessun giocatore per le carte 1/2 e 3/4.
+      - vietati: scarti → scarti, carta coperta (e, fino alla v239, mazzo → scarti). (v211-v221: nel turno nemesi la carta in corso non si
         spostava; dalla v222 si sposta anche lei, perché il turno continua.)
     - **Modifiche sempre valide** (v224, prima c'era "Salva modifiche"): la finestra lavora su una bozza
       (`turnDraftFrom`), ma ogni modifica (spostamento, rivela, copri, mescola) si scrive subito nella partita e nel

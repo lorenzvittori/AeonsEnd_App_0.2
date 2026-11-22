@@ -1656,3 +1656,31 @@ body { overflow: hidden; }
 .ae-turn-seg.is-current[data-pair][data-kind="p12"], .ae-turn-seg.is-current[data-pair][data-kind="p34"] {
   box-shadow: -2px 0 4px color-mix(in srgb, var(--ae-pair-a) 25%, transparent), 2px 0 4px color-mix(in srgb, var(--ae-pair-b) 25%, transparent);
 }
+
+/* v240: "Cima" e "Fondo" scritte in orizzontale (carattere adattato alla larghezza della carta, --ae-zone-fs da
+   script.js layoutFan), senza riquadro tratteggiato; con una carta in mano niente riquadro attorno alle carte del mazzo.
+   Dove cadrà la carta lo dice il segmento dorato */
+.ae-turn-lane .ae-turn-zone, .ae-turn-lane .ae-turn-zone.is-target, .ae-turn-lane .ae-turn-zone.is-over {
+  writing-mode: horizontal-tb; text-orientation: mixed; border: 0; border-radius: 0; background: transparent;
+  font-size: var(--ae-zone-fs, 10px); letter-spacing: .04em; white-space: nowrap; color: var(--ae-gold);
+}
+.ae-turn-lane .ae-turn-zone.is-over { color: #ffe2a6; text-shadow: 0 0 8px rgba(223, 174, 89, .8); }
+.ae-turn-lane.is-target, .ae-turn-lane.is-over { box-shadow: none; background: transparent; }
+/* v240: carta rivelata del mazzo portata negli scarti: il segmento dorato in fondo a destra degli scarti */
+.ae-turn-area--pile { position: relative; }
+.ae-turn-area--pile .ae-turn-insert { position: absolute; z-index: 40; }
+/* v240: chi ha giocato la carta 1/2, 3/4 o Wild: il token del giocatore (Assets/ui/turn-tokens/) al posto del numero
+   nel tondino, grande uguale (20px) e centrato */
+.ae-turn-card-who {
+  min-width: 0; width: 20px; padding: 0; border: 0; border-radius: 0; color: transparent; font-size: 0;
+  background: var(--ae-who-img) center / contain no-repeat; left: 50%; right: auto; transform: translateX(-50%);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6));
+}
+.ae-turn-card-who[data-kind="p1"] { --ae-who-img: url('Assets/ui/turn-tokens/p1.webp'); }
+.ae-turn-card-who[data-kind="p2"] { --ae-who-img: url('Assets/ui/turn-tokens/p2.webp'); }
+.ae-turn-card-who[data-kind="p3"] { --ae-who-img: url('Assets/ui/turn-tokens/p3.webp'); }
+.ae-turn-card-who[data-kind="p4"] { --ae-who-img: url('Assets/ui/turn-tokens/p4.webp'); }
+.ae-turn-reveal-row .ae-turn-eye--all[hidden] { display: none; }
+/* v240: il segmento tra scarti e mazzo è come il "|" tra giocatori e turno nella testata (.ae-info-sep: 1px, colore dei
+   testi secondari al 60%) */
+.ae-turn-divider { flex-basis: 1px; width: 1px; border-radius: 0; background: var(--ae-text-muted); opacity: .6; }

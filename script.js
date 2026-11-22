@@ -4454,7 +4454,17 @@ const turnDraftOps = {
     return true;
   },
   // Mescola: mazzo mischiato e tutto coperto
-  shuffle(d) { d.left = shuffle(d.left); d.known = d.left.map(() => false); if (d.old) d.old = d.left.map(() => false); }
+  shuffle(d) { d.left = shuffle(d.left); d.known = d.left.map(() => false); if (d.old) d.old = d.left.map(() => false); },
+  // v240: carta rivelata del mazzo negli scarti, solo in fondo a destra. Non è un turno: la storia del giro non cambia
+  // (il turno in corso resta quello), il turno di quella carta è perso; nessun giocatore per le carte 1/2 e 3/4
+  deckToPile(d, from) {
+    if (!turnDeckMovable(d, from)) return false;
+    const [kind] = d.left.splice(from, 1);
+    d.known.splice(from, 1);
+    if (d.old) d.old.splice(from, 1);
+    d.drawn.push(kind);
+    return true;
+  }
 };
 // v224: carta del mazzo che si può spostare: nota e, se era già nota all'apertura della finestra (d.old, scurita),
 // solo quando è in cima
@@ -4653,6 +4663,15 @@ function openTurnScreen() {
   const insertBar = el('span', 'ae-turn-insert');
   insertBar.setAttribute('aria-hidden', 'true');
   insertBar.hidden = true;
+  // v240: lo stesso segmento in fondo a destra degli scarti, per la carta rivelata del mazzo portata negli scarti
+  const pileInsert = el('span', 'ae-turn-insert');
+  pileInsert.setAttribute('aria-hidden', 'true');
+  pileInsert.hidden = true;
+  pileArea.appendChild(pileInsert);
+  // Tocco sugli scarti con una carta del mazzo selezionata: la carta va in fondo agli scarti
+  pileArea.addEventListener('click', () => {
+    if (sel && sel.source === 'deck') dropOn({ type: 'pile' }, sel);
+  });
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
   revealAll.setAttribute('aria-label', I18N_IT.turnRevealAllLabel);
@@ -4718,6 +4737,8 @@ function openTurnScreen() {
     insertBar.hidden = true;
     lane.append(revealTop, zoneTop, zoneBottom, insertBar);
     revealAll.disabled = !n;
+    // (v240: con una carta sola nel mazzo basta l'occhio sulla carta: niente Rivela tutto)
+    revealAll.hidden = n < 2;
     revealAllEye.className = 'ae-icon ae-icon--' + (allKnown() ? 'eye-off' : 'eye');
     revealAll.title = allKnown() ? I18N_IT.turnCoverAll : I18N_IT.turnRevealAll;
     revealAll.setAttribute('aria-label', allKnown() ? I18N_IT.turnCoverAllLabel : I18N_IT.turnRevealAllLabel);
@@ -4778,13 +4799,15 @@ function openTurnScreen() {
     const k = Math.max(1, d.drawn.length);
     const n = d.left.length;
     // (v236: mazzo vuoto = un posto solo, niente Cima e Fondo da far stare)
-    const units = k + (n ? Math.max(n, 3) : 1);
+    // (v240: un posto per carta, senza i 3 posti minimi del mazzo, che lasciavano spazio vuoto a destra: lo spazio per
+    // Cima e Fondo lo fanno gli scarti, che si sovrappongono mentre si sposta una loro carta)
+    const units = k + Math.max(n, 1);
     const avail = (row.clientWidth || 343) - 17; // segmento verticale con i suoi margini
     const w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
     return { k, n, w, h: w * 88 / 63, gap: TURN_GAP };
   }
   function laneWidth(g) {
-    return lane.clientWidth || ((g.n ? Math.max(g.n, 3) : 1) * (g.w + g.gap) - g.gap);
+    return lane.clientWidth || (Math.max(g.n, 1) * (g.w + g.gap) - g.gap);
   }
   // Carta presa (trascinata) o selezionata, degli scarti o (v237) del mazzo: il mazzo si stringe e compaiono Cima e
   // Fondo
@@ -4847,6 +4870,16 @@ function openTurnScreen() {
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
     zoneTop.hidden = zoneBottom.hidden = !fromPile || !m;
+    // (v240: "Cima" e "Fondo" in orizzontale, il carattere si adatta alla larghezza della carta: 5 lettere ≈ 3,6em)
+    lane.style.setProperty('--ae-zone-fs', Math.max(7, Math.min(11, Math.floor((g.w - 6) / 3.6))) + 'px');
+    // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra
+    const toPile = !!over && over.type === 'pile';
+    pileInsert.hidden = !toPile;
+    if (toPile) {
+      pileInsert.style.left = (pileArea.clientWidth + Math.min(g.gap / 2, 4) - 2) + 'px';
+      pileInsert.style.top = '-8px';
+      pileInsert.style.height = (g.h + 16) + 'px';
+    }
     lane.classList.toggle('is-empty-target', tight && !m);
     // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
     // (pochi o nessuno scarto) il carattere scende
@@ -4860,8 +4893,8 @@ function openTurnScreen() {
     const type = over ? over.type : null;
     zoneTop.classList.toggle('is-over', type === 'top');
     zoneBottom.classList.toggle('is-over', type === 'bottom');
-    insertBar.hidden = !tight || !over;
-    if (tight && over) {
+    insertBar.hidden = !tight || !over || toPile;
+    if (tight && over && !toPile) {
       // Segmento: tra Cima e la prima carta, tra due carte (a metà dello spazio tra la fine di una e l'inizio
       // dell'altra) o tra l'ultima carta e Fondo
       const i = type === 'top' ? 0 : type === 'bottom' ? m : over.index;
@@ -4901,7 +4934,9 @@ function openTurnScreen() {
   }
   function dropOn(target, s) {
     let ok = false;
-    if (s.source === 'deck') {
+    if (s.source === 'deck' && target.type === 'pile') {
+      ok = turnDraftOps.deckToPile(d, s.index);
+    } else if (s.source === 'deck') {
       const to = target.type === 'top' ? 0 : target.type === 'bottom' ? d.left.length - 1 : target.index;
       ok = turnDraftOps.moveInDeck(d, s.index, to);
     } else {
@@ -4922,6 +4957,8 @@ function openTurnScreen() {
     if (sel && sel.source === source && sel.index === index) { sel = null; draw(); return; }
     // (carta degli scarti selezionata: va al posto della carta toccata, che scende di uno; oppure su Cima o Fondo)
     if (sel && source === 'deck') { dropOn({ type: 'pos', index }, sel); return; }
+    // (v240: carta del mazzo selezionata, poi una carta degli scarti: va in fondo agli scarti)
+    if (sel && sel.source === 'deck' && source === 'pile') { dropOn({ type: 'pile' }, sel); return; }
     if (!e.currentTarget.classList.contains('is-movable')) return;
     sel = { source, index };
     draw();
@@ -4993,9 +5030,13 @@ function openTurnScreen() {
     // ai lati) o in mezzo alle altre carte del mazzo (strette), nel posto sotto la carta; il segmento dorato dice dove
     const order = shownOrder();
     let target = null;
-    if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
+    const laneRect = lane.getBoundingClientRect();
+    // v240: carta del mazzo sugli scarti (a sinistra del segmento): va in fondo a destra degli scarti (il turno di
+    // quella carta è perso)
+    if (drag.source === 'deck' && x < laneRect.left - 8 && hit(pileArea.getBoundingClientRect(), x, y, 12)) target = { type: 'pile' };
+    else if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
-    else if (hit(lane.getBoundingClientRect(), x, y, 24)) target = order.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };
+    else if (hit(laneRect, x, y, 24)) target = order.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };
     drag.target = target;
     lane.classList.toggle('is-over', !!target && target.type === 'pos');
     layoutFan(order, -1, target);
