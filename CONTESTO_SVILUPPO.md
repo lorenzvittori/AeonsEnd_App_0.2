@@ -270,7 +270,26 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         carte: in cima, in fondo o negli scarti il pallino entra nel cerchio-luogo, che si accende (contorno chiaro e
         alone, senza riempirsi). **Carta rivelata del mazzo verso gli scarti** (v244): in fondo a destra degli scarti c'è
         un cerchio-luogo (`.ae-turn-pile-zone`), spento finché la carta non ci sta per andare; dalla v245 il segmento
-        verticale si sposta a destra per fargli posto (4px dopo l'ultimo scarto), così il cerchio non lo tocca. **Carta in mano** (v243): con una carta trascinata o
+        verticale si sposta a destra per fargli posto (4px dopo l'ultimo scarto), così il cerchio non lo tocca.
+        **Mai sovrapposti** (v246): cerchi-luogo, guida, carte e segmento non si intersecano mai, nemmeno durante i
+        movimenti.
+        - **Stessa transizione** per tutto ciò che si sposta nella riga (carte, cerchi Cima/Fondo e degli scarti, guida,
+          segmento verticale): `left` (il segmento `margin-left`) in .2s ease, come le carte; se partenza e arrivo non si
+          sovrappongono, nemmeno le posizioni intermedie.
+        - **Comparsa**: cerchi e guida che compaiono (erano nascosti) appaiono in dissolvenza **dopo** il movimento delle
+          carte (`ae-turn-appear`, ritardo .2s con fill `backwards`, invisibili durante il ritardo): non compaiono mai
+          sopra carte che si stanno ancora spostando.
+        - **Disposizione** (`layoutFan`) calcolata sulle carte come si vedono (85%): per lato cerchio + 4px dalla carta +
+          lo spostamento massimo delle carte che si allargano (`spreadMax`), così i cerchi restano dentro la corsia;
+          tra due carte allargate almeno 8px liberi (il pallino della guida è 6px; l'elemento `.ae-turn-insert` è largo
+          6px, linea e pallino centrati). Se la corsia è troppo stretta anche così (poche carte nel mazzo e molti
+          scarti, per esempio mazzo 2 / scarti 4 o 1 / 5) le carte del mazzo scendono sotto l'85% quanto basta
+          (`--ae-lane-scale`, al minimo 40%: a 375px circa 69% con 2/4 e 42% con 1/5).
+        - Verifica (v246, browser interno, scenario "Carte 1/2 e 3/4", mazzo/scarti 5/1, 4/2, 3/3, 2/4, 1/5, 6/0, a
+          360x780 e 375x812, dito che scorre sulla riga a passi di 4px con una carta degli scarti e una del mazzo):
+          zero sovrapposizioni con le animazioni spente (posizioni finali) e accese (primo istante). La v245, con lo
+          stesso controllo, aveva il cerchio Cima sul segmento in tutte le combinazioni con le carte allargate e sempre
+          con 1/5. **Carta in mano** (v243): con una carta trascinata o
         selezionata tutte le altre carte, del mazzo e degli scarti, scendono all'**85%** (`.is-holding`, proprietà
         `scale`); la carta in mano resta al 100%, anche la copia che segue il dito (prima ingrandita al 108%). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**

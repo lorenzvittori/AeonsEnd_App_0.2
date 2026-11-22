@@ -1767,3 +1767,22 @@ body { overflow: hidden; }
 .ae-turn-pile-zone.is-over { transform: scale(1.15); }
 /* (la scritta "in corso" sotto la carta stava sotto il token del giocatore: un po' più in basso) */
 .ae-turn-pile-slot .ae-turn-pile-note { margin-top: 6px; }
+/* v246: nella riga del mazzo dei turni carte, cerchi-luogo (Cima, Fondo, scarti), guida e segmento verticale si
+   spostano con LA STESSA transizione delle carte (.2s ease): se la disposizione di partenza e quella d'arrivo non si
+   sovrappongono, nemmeno quelle intermedie. Prima i cerchi saltavano subito al posto finale, la guida si muoveva in
+   .12s e il segmento cambiava di colpo.
+   Comparsa: cerchi e guida che compaiono (erano nascosti) appaiono in dissolvenza DOPO il movimento delle carte (ritardo
+   .2s, ae-turn-appear con fill "backwards": invisibili durante il ritardo), così non compaiono mai sopra carte che si
+   stanno ancora spostando. È il modo più semplice: non serve calcolare dove sono le carte a metà movimento */
+.ae-turn-lane .ae-turn-zone { transition: left .2s ease, background .15s, border-color .15s; animation: ae-turn-appear .15s ease .2s backwards; }
+.ae-turn-pile-zone { transition: left .2s ease, transform .15s ease, box-shadow .15s ease; animation: ae-turn-appear .15s ease .2s backwards; }
+.ae-turn-insert, .ae-turn-lane .ae-turn-insert, .ae-turn-area--pile .ae-turn-insert {
+  transition: left .2s ease; animation: ae-turn-appear .15s ease .2s backwards;
+}
+.ae-turn-divider { transition: margin-left .2s ease; }
+@keyframes ae-turn-appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ae-turn-lane .ae-turn-zone, .ae-turn-pile-zone, .ae-turn-insert, .ae-turn-divider { transition: none; animation: none; }
+}
+/* v246: carte del mazzo con una carta in mano: all'85% o meno se la corsia è stretta (--ae-lane-scale da script.js) */
+.ae-turn-screen.is-holding .ae-turn-lane .ae-turn-card:not(.is-selected):not(.is-dragging) { scale: var(--ae-lane-scale, .85); }

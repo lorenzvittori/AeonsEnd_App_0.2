@@ -4857,15 +4857,36 @@ function openTurnScreen() {
     // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
     // nella corsia. Se la corsia è stretta i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
     const zd = Math.round(Math.min(14, g.w * 0.3));
-    const inner = fromPile ? lw - 2 * (zd + g.gap) : lw;
-    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(8, (inner - g.w) / (m - 1))) : 0) : g.w + g.gap;
+    // v246: disposizione del mazzo stretto calcolata sulle carte come si vedono (all'85%, .is-holding) perché cerchi,
+    // guida, carte e segmento verticale non si tocchino mai:
+    // - per lato: cerchio (zd) + 4px di distanza dalla prima/ultima carta + lo spostamento massimo delle carte che si
+    //   allargano (spreadMax), così i cerchi restano dentro la corsia e lontani dal segmento;
+    // - tra due carte, con le carte allargate, almeno 8px liberi: ci sta il pallino della guida (6px) senza toccarle;
+    // - se la corsia è troppo stretta anche così (poche carte nel mazzo, molti scarti) le carte del mazzo scendono sotto
+    //   l'85% quanto basta (laneScale, al minimo 40%).
+    const spreadMax = tight && m > 1 ? Math.round(Math.min(10, g.w * 0.2)) : 0;
+    const ZONE_GAP = 4;
+    let laneScale = 0.85, wv = 0, stepMin = 0, avail = 0;
+    if (tight) {
+      for (;;) {
+        wv = laneScale * g.w;
+        stepMin = m > 1 ? Math.max(8, wv - 2 * spreadMax + 8) : 0;
+        avail = lw - 2 * (zd + ZONE_GAP + spreadMax);
+        if (!m || wv + (m - 1) * stepMin <= avail || laneScale <= 0.4) break;
+        laneScale = Math.max(0.4, laneScale - 0.01);
+      }
+    }
+    lane.style.setProperty('--ae-lane-scale', String(Math.round(laneScale * 100) / 100));
+    const inset = (g.w - wv) / 2;
+    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(stepMin, (avail - wv) / (m - 1))) : 0) : g.w + g.gap;
+    const visStack = m ? wv + (m - 1) * step : 0;
     const stackW = m ? g.w + (m - 1) * step : 0;
-    const start = tight ? (lw - stackW) / 2 : 0;
+    const start = tight ? (lw - visStack) / 2 - inset : 0;
     tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
     // v242: posto d'arrivo tra due carte (segmento tra loro): le carte a sinistra si spostano un po' a sinistra e quelle
     // a destra un po' a destra, per farle spazio
     const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
-    const spread = tight && overIdx > 0 && overIdx < m ? Math.round(Math.min(10, g.w * 0.2)) : 0;
+    const spread = tight && overIdx > 0 && overIdx < m ? spreadMax : 0;
     fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
     order.forEach((idx, k) => {
       const card = fanEls[idx];
@@ -4900,7 +4921,8 @@ function openTurnScreen() {
     Object.assign(pileZone.style, { left: (pileX - zd / 2) + 'px', top: (g.h / 2 - zd / 2) + 'px' });
     pileInsert.hidden = !toPile;
     if (toPile) {
-      Object.assign(pileInsert.style, { left: (pileX - zd / 2) + 'px', width: zd + 'px', top: '0px', height: g.h + 'px' });
+      // (v246: la guida è larga quanto il suo pallino, 6px: l'aspetto non cambia, linea e pallino sono centrati)
+      Object.assign(pileInsert.style, { left: (pileX - 3) + 'px', width: '6px', top: '0px', height: g.h + 'px' });
     }
     lane.classList.toggle('is-empty-target', tight && !m);
     // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
@@ -4909,8 +4931,9 @@ function openTurnScreen() {
     board.style.setProperty('--ae-split', split + 'px');
     fitHead(pileHead, split - 9);
     // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
-    const topX = start - spread - g.gap - zd / 2;
-    const bottomX = start + stackW + spread + g.gap + zd / 2;
+    // (v246: 4px dal bordo della carta come si vede, all'85% o meno)
+    const topX = start + inset - spread - ZONE_GAP - zd / 2;
+    const bottomX = start + inset + visStack + spread + ZONE_GAP + zd / 2;
     if (fromPile) {
       Object.assign(zoneTop.style, { left: (topX - zd / 2) + 'px', width: zd + 'px' });
       Object.assign(zoneBottom.style, { left: (bottomX - zd / 2) + 'px', width: zd + 'px' });
@@ -4928,7 +4951,7 @@ function openTurnScreen() {
       const x = !m ? lw / 2 : i <= 0 ? topX : i >= m ? bottomX
         : start + (i - 1) * step + (g.w + step) / 2;
       // (v245: alta come le carte al 100%, dall'alto al basso della carta)
-      Object.assign(insertBar.style, { left: (x - zd / 2) + 'px', width: zd + 'px', height: g.h + 'px', top: '0px' });
+      Object.assign(insertBar.style, { left: (x - 3) + 'px', width: '6px', height: g.h + 'px', top: '0px' });
     }
   }
   // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
