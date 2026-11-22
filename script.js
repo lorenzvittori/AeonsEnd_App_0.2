@@ -4847,6 +4847,11 @@ function openTurnScreen() {
     row.style.setProperty('--ae-pile-step', pileStep + 'px');
     row.classList.remove('is-pile-tight');
     pileArea.style.width = (g.w + (g.k - 1) * pileStep) + 'px';
+    // v245: con una carta del mazzo in mano, tra l'ultimo scarto e il segmento verticale si fa posto per il cerchio
+    // d'arrivo degli scarti (il segmento si sposta a destra), così il cerchio non tocca il segmento
+    const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
+    const zdPre = Math.round(Math.min(14, g.w * 0.3));
+    divider.style.marginLeft = holdingDeck ? (zdPre + 12) + 'px' : '';
     const lw = laneWidth(g);
     // Cima e Fondo sono due cerchi (diametro zd: v242 la metà, al massimo 14px; v241 28px) subito prima e subito dopo
     // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
@@ -4887,15 +4892,15 @@ function openTurnScreen() {
     // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra. v244: lì c'è un cerchio come
     // Cima e Fondo (tra l'ultimo scarto e il segmento), e la figura linea-cerchio-linea si centra su di lui
     const toPile = !!over && over.type === 'pile';
-    const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
-    const pileX = pileArea.clientWidth + 4;
+    // (v245: 4px dopo l'ultimo scarto, prima del segmento spostato)
+    const pileX = pileArea.clientWidth + 4 + zd / 2;
     pileArea.style.setProperty('--ae-zone-d', zd + 'px');
     pileZone.hidden = !holdingDeck;
     pileZone.classList.toggle('is-over', toPile);
     Object.assign(pileZone.style, { left: (pileX - zd / 2) + 'px', top: (g.h / 2 - zd / 2) + 'px' });
     pileInsert.hidden = !toPile;
     if (toPile) {
-      Object.assign(pileInsert.style, { left: (pileX - zd / 2) + 'px', width: zd + 'px', top: '-8px', height: (g.h + 16) + 'px' });
+      Object.assign(pileInsert.style, { left: (pileX - zd / 2) + 'px', width: zd + 'px', top: '0px', height: g.h + 'px' });
     }
     lane.classList.toggle('is-empty-target', tight && !m);
     // v237: scritte "Scarti" a sinistra e "Mazzo turno" a destra; "Scarti" non va oltre il segmento: se non ci sta
@@ -4922,7 +4927,8 @@ function openTurnScreen() {
       const i = type === 'top' ? 0 : type === 'bottom' ? m : over.index;
       const x = !m ? lw / 2 : i <= 0 ? topX : i >= m ? bottomX
         : start + (i - 1) * step + (g.w + step) / 2;
-      Object.assign(insertBar.style, { left: (x - zd / 2) + 'px', width: zd + 'px', height: (g.h + 16) + 'px', top: '-8px' });
+      // (v245: alta come le carte al 100%, dall'alto al basso della carta)
+      Object.assign(insertBar.style, { left: (x - zd / 2) + 'px', width: zd + 'px', height: g.h + 'px', top: '0px' });
     }
   }
   // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
