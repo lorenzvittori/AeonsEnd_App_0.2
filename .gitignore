@@ -12,3 +12,6 @@ Assets/nemesis/src/
 
 # Immagini dell'anteprima dei ritagli nemesi (si rifanno con: python tools/import-db.py --anteprima)
 tools/anteprima-nemesi/*.webp
+
+# Strumenti di sviluppo con Node del branch refactoring (npm install): non vanno su GitHub
+node_modules/
