@@ -15,7 +15,8 @@ Scrive nel repository dell'app:
 
 Le carte di The New Age che l'app aveva gia' (vecchio cards.json) NON vengono riconvertite: la scansione e la
 miniatura esistenti vengono spostate con "git mv" nel nuovo percorso. Un file gia' presente non si sovrascrive
-mai, salvo con --force. Rilanciato due volte, lo script dà lo stesso risultato.
+mai, salvo con --force. Le carte il cui PNG manca (e che non hanno gia' l'immagine nell'app) NON entrano in
+cards.json: lo script le elenca per scatola nelle segnalazioni. Rilanciato due volte, lo script dà lo stesso risultato.
 
 Uso (dalla cartella del repository, servono openpyxl e Pillow):
     python tools/import-db.py                      # DataBase predefinito: ..\\DataBase
@@ -511,6 +512,16 @@ def main():
                 d.rmdir()
         if leftovers:
             issues.append('cartelle vecchie non vuote (restano dove sono): ' + ', '.join(sorted(leftovers)))
+
+    # ---- le carte senza immagine non entrano in cards.json (entreranno quando il PNG ci sara' e si rilancera' il ponte)
+    no_image = [c for c in cards if not (ROOT / c['image']).exists()]
+    if no_image:
+        cards = [c for c in cards if (ROOT / c['image']).exists()]
+        per_box = defaultdict(int)
+        for c in no_image:
+            per_box[c['boxCode']] += 1
+        issues.append(f'{len(no_image)} carte senza immagine NON messe in cards.json: ' +
+                      ', '.join(f'{k} ({v})' for k, v in sorted(per_box.items(), key=lambda kv: code_key(kv[0]))))
 
     # ---- cards.json e products.json
     out_cards = []
