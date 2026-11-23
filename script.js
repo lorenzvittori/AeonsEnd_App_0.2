@@ -3455,11 +3455,11 @@ function renderLives() {
   });
 }
 
-// v270: number scrubbing sui box delle vite: tenendo premuto e trascinando in orizzontale la vita cambia di 1 ogni
-// LIFE_SCRUB_PX (a destra sale, a sinistra scende; mai sopra il massimo né sotto 0, come nella finestra), con le cifre
-// che scorrono (renderLifeDigits). Al rilascio la vita si applica una volta sola (un passo di undo, si salva); a 0 →
-// Vittoria o Sconfitta. Un tocco senza trascinare apre ancora la finestra. In verticale la pagina scorre come prima
-// (touch-action: pan-y)
+// v270: number scrubbing sui box delle vite: tenendo premuto e trascinando (v271: in VERTICALE, in su sale, in giù
+// scende; v270 in orizzontale) la vita cambia di 1 ogni LIFE_SCRUB_PX (mai sopra il massimo né sotto 0, come nella
+// finestra), con le cifre che scorrono (renderLifeDigits). Al rilascio la vita si applica una volta sola (un passo di
+// undo, si salva); a 0 → Vittoria o Sconfitta. Un tocco senza trascinare apre ancora la finestra. Sul box la pagina
+// non scorre (touch-action: none)
 const LIFE_SCRUB_PX = 14, LIFE_SCRUB_START = 6;
 function lifeScrub(b, kind) {
   let s = null;
@@ -3472,15 +3472,16 @@ function lifeScrub(b, kind) {
   });
   b.addEventListener('pointermove', e => {
     if (!s || e.pointerId !== s.id) return;
-    const dx = e.clientX - s.x;
+    // (v271: in verticale: in su la vita sale, in giù scende)
+    const dx = s.y - e.clientY;
     if (!s.on) {
-      // (parte solo se il dito va più di lato che in su o in giù)
-      if (Math.abs(dx) < LIFE_SCRUB_START || Math.abs(dx) < Math.abs(e.clientY - s.y)) {
-        if (Math.abs(e.clientY - s.y) > LIFE_SCRUB_START) s = null;
+      // (parte solo se il dito va più in su o in giù che di lato)
+      if (Math.abs(dx) < LIFE_SCRUB_START || Math.abs(dx) < Math.abs(e.clientX - s.x)) {
+        if (Math.abs(e.clientX - s.x) > LIFE_SCRUB_START) s = null;
         return;
       }
       s.on = true;
-      s.x = e.clientX;
+      s.y = e.clientY;
       try { b.setPointerCapture(e.pointerId); } catch (err) { /* niente cattura */ }
       b.classList.add('is-scrubbing');
       return;

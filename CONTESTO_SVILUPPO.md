@@ -588,10 +588,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
-  - **Number scrubbing** (v270, `lifeScrub`): tenendo premuto un box e trascinando in orizzontale la vita cambia di
-    1 ogni 14px (`LIFE_SCRUB_PX`; a destra sale, a sinistra scende, tra 0 e il massimo come nella finestra), con le
-    cifre che scorrono nel box (`renderLifeDigits`, maschera sul bordo della riga del numero). Parte dopo 6px di lato
-    (più di lato che in verticale; in verticale la pagina scorre, `touch-action: pan-y`); mentre si trascina il box è
+  - **Number scrubbing** (v270, `lifeScrub`): tenendo premuto un box e trascinando in **verticale** (v271; v270 in
+    orizzontale) la vita cambia di 1 ogni 14px (`LIFE_SCRUB_PX`; in su sale, in giù scende, tra 0 e il massimo come
+    nella finestra), con le cifre che scorrono nel box (`renderLifeDigits`, maschera sul bordo della riga del numero).
+    Parte dopo 6px in verticale (più in verticale che di lato; sul box la pagina non scorre, `touch-action: none`); mentre si trascina il box è
     al 108% con il bordo dorato, rosso se la vita è scesa, verde se è salita. Al rilascio un solo `act` (un passo di
     undo, si salva); a 0 Vittoria o Sconfitta; il click che segue non apre la finestra. `renderLives` riscrive il
     numero solo se è cambiato (`data-shown`), così le cifre finiscono di scorrere.

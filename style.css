@@ -1983,9 +1983,9 @@ body { overflow: hidden; }
 /* v270: number scrubbing sui box delle vite (script.js lifeScrub): le cifre scorrono come nella finestra, con la
    maschera sul bordo alto e basso della riga del numero; mentre si trascina il box si ingrandisce un poco e il bordo
    diventa rosso (vita scesa) o verde (salita). In verticale la pagina scorre (pan-y) */
-.ae-life-box { touch-action: pan-y; -webkit-user-select: none; user-select: none; transition: scale .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.ae-life-box { touch-action: none; -webkit-user-select: none; user-select: none; transition: scale .15s ease, border-color .15s ease, box-shadow .15s ease; }
 .ae-life-box .ae-life-value { display: inline-flex; clip-path: inset(0 -6px); }
-.ae-life-box.is-scrubbing { scale: 1.08; border-color: var(--ae-gold); box-shadow: 0 0 10px rgba(223, 174, 89, .45); cursor: ew-resize; }
+.ae-life-box.is-scrubbing { scale: 1.08; border-color: var(--ae-gold); box-shadow: 0 0 10px rgba(223, 174, 89, .45); cursor: ns-resize; }
 .ae-life-box.is-scrubbing.is-loss { border-color: #f08a78; box-shadow: 0 0 10px rgba(240, 138, 120, .5); }
 .ae-life-box.is-scrubbing.is-gain { border-color: #8fd39a; box-shadow: 0 0 10px rgba(143, 211, 154, .5); }
 @media (prefers-reduced-motion: reduce) { .ae-life-box { transition: none; } }
