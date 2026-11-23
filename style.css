@@ -1832,3 +1832,15 @@ body { overflow: hidden; }
 .ae-turn-area--pile { transition: width .2s ease; }
 .ae-turn-heads.is-settling ~ .ae-turn-row .ae-turn-area--pile { transition: none; }
 @media (prefers-reduced-motion: reduce) { .ae-turn-area--pile { transition: none; } }
+/* v250: la cuspide dei titoli è figlia del segmento verticale: centrata su di lui (left 50% + translateX(-50%)), sopra di
+   lui con --ae-cusp-gap (4px) di spazio vuoto tra la punta e l'inizio del segmento; si muove e si arrotonda con lui.
+   Il colore del segmento passa dall'opacità al colore stesso (testi secondari al 60%, come prima), così la cuspide
+   figlia non diventa più chiara: ha il colore pieno delle scritte e della linea dei titoli */
+.ae-turn-divider {
+  --ae-cusp-gap: 4px; position: relative; overflow: visible; opacity: 1;
+  background: color-mix(in srgb, var(--ae-text-muted) 60%, transparent);
+}
+.ae-turn-divider .ae-turn-cusp {
+  position: absolute; top: auto; left: 50%; bottom: calc(100% + var(--ae-cusp-gap)); width: 14px; height: auto;
+  transform: translateX(-50%); transition: none; color: var(--ae-text-muted);
+}

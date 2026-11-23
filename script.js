@@ -4612,21 +4612,33 @@ function openTurnScreen() {
   });
   const cusp = el('span', 'ae-turn-cusp');
   cusp.setAttribute('aria-hidden', 'true');
-  // v249: la cuspide è fatta di due curve (prima una V a tratti dritti), 14x8px: ogni curva parte tangente alla linea
-  // (orizzontale) e arriva verticale nella punta in basso, che prosegue dritta fino al segmento verticale sotto
-  // (cuspPath, la coda si allunga fino a toccarlo). Misure in pixel interi, nessuna scala: curva liscia anche ad alta
-  // densità (vector-effect)
-  const CUSP_W = 14, CUSP_H = 8;
-  function cuspPath(tail) {
-    const tip = CUSP_H, mid = CUSP_W / 2, end = tip + Math.max(0, tail);
-    const d = `M0,0.5 C4,0.5 ${mid},${tip - 4} ${mid},${tip} C${mid},${tip - 4} ${CUSP_W - 4},0.5 ${CUSP_W},0.5` +
-      (end > tip ? ` M${mid},${tip} V${end}` : '');
-    return `<svg viewBox="0 0 ${CUSP_W} ${end + 0.5}" width="${CUSP_W}" height="${end + 0.5}" focusable="false">` +
+  // v249: la cuspide è fatta di due curve (prima una V a tratti dritti), larga 14px: ogni curva parte tangente alla
+  // linea (orizzontale) e arriva verticale nella punta in basso. Misure in pixel, nessuna scala: curva liscia anche ad
+  // alta densità (vector-effect).
+  // v250: la cuspide è FIGLIA del segmento verticale (.ae-turn-divider): centrata su di lui con left:50% e
+  // translateX(-50%), sopra di lui con uno spazio vuoto di --ae-cusp-gap (4px) tra la punta e l'inizio del segmento.
+  // Così si muove con la sua stessa transizione e si arrotonda ai pixel insieme a lui (prima era un oggetto a parte nella
+  // riga dei titoli, posizionato copiando la posizione del segmento: a densità non intere poteva stare 1-2px a destra).
+  // Niente più trattino verticale dopo la punta (v249 "M7,8 V…"). L'altezza (dalla linea dei titoli alla punta) dipende
+  // dalla misura delle carte e la calcola layoutHeads (cuspPath(h))
+  const CUSP_W = 14;
+  // v250: le distanze lette dalla pagina (getBoundingClientRect) si riportano in pixel CSS, quelli degli stili: con uno
+  // zoom CSS della pagina sarebbero ingrandite (rapporto tra larghezza misurata e larghezza CSS della riga)
+  function pageZoom() {
+    const w = row.offsetWidth;
+    const z = w ? row.getBoundingClientRect().width / w : 1;
+    return z > 0.1 ? z : 1;
+  }
+  function cuspPath(h) {
+    const mid = CUSP_W / 2, tip = h - 0.5;
+    const d = `M0,0.5 C4,0.5 ${mid},${tip - 4} ${mid},${tip} C${mid},${tip - 4} ${CUSP_W - 4},0.5 ${CUSP_W},0.5`;
+    return `<svg viewBox="0 0 ${CUSP_W} ${h}" width="${CUSP_W}" height="${h}" focusable="false">` +
       `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>`;
   }
-  cusp.innerHTML = cuspPath(0);
-  let cuspTail = -1;
-  heads.append(...headLines, cusp, pileHead, deckHead, shuffleBtn);
+  cusp.innerHTML = cuspPath(8.5);
+  let cuspH = -1;
+  divider.appendChild(cusp);
+  heads.append(...headLines, pileHead, deckHead, shuffleBtn);
   const board = el('div', 'ae-turn-board');
   // Corsia del mazzo: carte in fila (posizioni assolute, così si spostano con una transizione)
   const lane = el('div', 'ae-turn-lane');
@@ -4906,7 +4918,7 @@ function openTurnScreen() {
     // della riga) e quanto c'è tra il bordo destro della riga e il bordo della finestra (edgeExtra)
     const ml = holdingDeck ? zdPre + 12 : 8;
     const lw = Math.max(0, (row.clientWidth || 343) - (pileW + ml + 1 + 8));
-    const edgeExtra = Math.max(0, dialog.getBoundingClientRect().right - row.getBoundingClientRect().right);
+    const edgeExtra = Math.max(0, (dialog.getBoundingClientRect().right - row.getBoundingClientRect().right) / pageZoom());
     // Cima e Fondo sono due cerchi (diametro zd: v242 la metà, al massimo 14px; v241 28px) subito prima e subito dopo
     // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
     // nella corsia. Se la corsia è stretta i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
@@ -5034,10 +5046,10 @@ function openTurnScreen() {
   let headsGrowTimer = 0, headsGrowing = false, lastHeadsCx = 0;
   function fitHeadNoGrow(node, maxW) {
     const prevFs = node.style.fontSize, prevLs = node.style.letterSpacing;
-    const prevW = node.scrollWidth;
+    const prevW = textW(node);
     fitHead(node, maxW);
     if (headsGrowing || heads.classList.contains('is-settling') || reducedMotion.matches) return false;
-    if (node.scrollWidth > prevW + 0.5) {
+    if (textW(node) > prevW + 0.5) {
       node.style.fontSize = prevFs;
       node.style.letterSpacing = prevLs;
       return true;
@@ -5064,24 +5076,25 @@ function openTurnScreen() {
     const hr = heads.getBoundingClientRect();
     // (senza Mescola, con mazzo di 0-1 carte, la scritta può usare anche il margine destro della finestra fino a 4px
     // dal bordo: a destra della cuspide resta a volte la larghezza di una carta sola)
-    const right = shuffleBtn.hidden || !iconEl ? W + 12 : Math.min(W, iconEl.getBoundingClientRect().left - hr.left - HEAD_GAP);
-    cusp.style.left = (cx - CUSP_HALF) + 'px';
-    // (v249: la punta prosegue fino all'inizio del segmento verticale: la cuspide parte a 16px dall'alto della riga dei
-    // titoli, il segmento comincia più in basso, sopra le carte; +0,5 perché il tratto tocchi il segmento)
-    const divTop = divider.getBoundingClientRect().top - heads.getBoundingClientRect().top;
-    const tail = Math.round((divTop - 16 + 0.5 - CUSP_H) * 2) / 2;
-    if (tail !== cuspTail && isFinite(tail)) { cuspTail = tail; cusp.innerHTML = cuspPath(tail); }
+    const right = shuffleBtn.hidden || !iconEl ? W + 12 : Math.min(W, (iconEl.getBoundingClientRect().left - hr.left) / pageZoom() - HEAD_GAP);
+    // (v250: la cuspide è nel segmento verticale, in orizzontale non serve posizionarla. Qui solo la sua altezza: dalla
+    // linea dei titoli, a 16px dall'alto della loro riga, fino a --ae-cusp-gap sopra l'inizio del segmento. La posizione
+    // verticale non ha transizioni, quindi leggerla dalla pagina è sicuro)
+    const gap = parseFloat(getComputedStyle(divider).getPropertyValue('--ae-cusp-gap')) || 4;
+    const divTop = (divider.getBoundingClientRect().top - hr.top) / pageZoom();
+    const h = Math.round((divTop - gap - 16) * 4) / 4;
+    if (h !== cuspH && isFinite(h) && h > 2) { cuspH = h; cusp.innerHTML = cuspPath(h); }
     // Scarti: tra 0 e la cuspide
     const leftEnd = cx - CUSP_HALF;
     let grow = fitHeadNoGrow(pileHead, Math.max(0, leftEnd - HEAD_GAP));
-    const tw = pileHead.scrollWidth;
+    const tw = textW(pileHead);
     const x0 = Math.max(0, Math.min((leftEnd - tw) / 2, leftEnd - HEAD_GAP - tw));
     pileHead.style.left = x0 + 'px';
     // Mazzo turno: tra la cuspide e Mescola, allineata a destra
     const rightStart = cx + CUSP_HALF;
     grow = fitHeadNoGrow(deckHead, Math.max(0, right - rightStart - HEAD_GAP)) || grow;
     if (grow) scheduleHeadsGrow();
-    const tw2 = deckHead.scrollWidth;
+    const tw2 = textW(deckHead);
     const x2 = Math.max(rightStart + HEAD_GAP, right - tw2);
     deckHead.style.left = x2 + 'px';
     // Tratti di linea: [0 → Scarti], [Scarti → cuspide], [cuspide → Mazzo turno]
@@ -5093,24 +5106,26 @@ function openTurnScreen() {
       if (!line.hidden) Object.assign(line.style, { left: a + 'px', width: len + 'px' });
     });
   }
+  // (v250: larghezza esatta della scritta in pixel CSS, non scrollWidth che arrotonda ai pixel interi)
+  function textW(node) { return node.getBoundingClientRect().width / pageZoom(); }
   // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
   function fitHead(node, maxW) {
     node.style.fontSize = '';
     node.style.letterSpacing = '';
     let size = parseFloat(getComputedStyle(node).fontSize) || 12;
-    for (let i = 0; i < 12 && node.scrollWidth > maxW && size > 8; i++) {
+    for (let i = 0; i < 12 && textW(node) > maxW && size > 8; i++) {
       size = Math.max(8, size - 0.5);
       node.style.fontSize = size + 'px';
     }
     // (v247: ultima risorsa, se a 8px non ci sta ancora: senza spazio tra le lettere)
-    if (node.scrollWidth > maxW) node.style.letterSpacing = '0';
+    if (textW(node) > maxW) node.style.letterSpacing = '0';
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
   // della prima carta il cui centro è a destra di x
   function pileSlotAt(x) {
     const t = tightGeo;
     if (!t || !t.n) return 0;
-    const rel = x - lane.getBoundingClientRect().left - t.start - t.w / 2;
+    const rel = (x - lane.getBoundingClientRect().left) / pageZoom() - t.start - t.w / 2;
     return Math.max(0, Math.min(t.n, Math.floor(rel / (t.step || 1)) + 1));
   }
 

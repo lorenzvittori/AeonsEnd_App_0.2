@@ -210,8 +210,14 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       sottile**: `[linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola]` (`layoutHeads`).
       - **Linea e cuspide**: 1px, del colore delle scritte (`--ae-text-muted`), a metà altezza della riga dei titoli; la
         **cuspide** (`.ae-turn-cusp`; v249 due curve di Bézier 14x8, `cuspPath`: ognuna parte tangente alla linea e
-        arriva verticale nella punta, che prosegue dritta fino a toccare il segmento sotto; `vector-effect:
-        non-scaling-stroke`; v247 una V 10x6) è centrata sul **segmento verticale**
+        arriva verticale nella punta; `vector-effect: non-scaling-stroke`; v247 una V 10x6). Dalla v250 è **figlia del
+        segmento verticale** (`.ae-turn-divider .ae-turn-cusp`: left 50% + translateX(-50%), sopra di lui) con uno
+        **spazio vuoto** di `--ae-cusp-gap` (4px) tra la punta e l'inizio del segmento, senza il trattino verticale
+        della v249; si muove e si arrotonda ai pixel insieme al segmento (prima era un oggetto a parte posizionato
+        copiando la sua posizione: a densità non intere poteva stare 1-2px a destra). L'altezza (dalla linea dei titoli
+        alla punta) la calcola `layoutHeads`; le distanze lette dalla pagina passano in pixel CSS (`pageZoom`) e le
+        scritte si misurano con la larghezza esatta (`textW`). Il colore del segmento è nel colore (testi secondari al
+        60%), non nell'opacità, così la cuspide figlia ha il colore pieno della linea. È centrata sul **segmento verticale**
         tra scarti e mazzo, nella sua posizione finale (`split` = larghezza degli scarti + margine del segmento, non
         `offsetLeft`, che durante la transizione darebbe la partenza). Decorative (aria-hidden).
       - **Scritte**: "Scarti" al centro tra il bordo sinistro e la cuspide, "Mazzo turno" allineata a destra prima di
