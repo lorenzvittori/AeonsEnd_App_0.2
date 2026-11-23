@@ -5062,8 +5062,7 @@ function openTurnScreen() {
   // (pallino della guida, 6px, più 2px per lato)
   const TURN_GAP_MIN = 10;
   function zoneD(w) { return Math.round(Math.min(14, w * 0.3)); }
-  // (larghezza esatta in pixel CSS: clientWidth la arrotonda all'intero, e l'ultimo oggetto non arriverebbe al bordo)
-  function rowWidth() { return parseFloat(getComputedStyle(row).width) || row.clientWidth || 343; }
+  function rowWidth() { return row.clientWidth || 343; }
   // st: { holding: null | 'pile' | 'deck', selected: { source, index } | null, dragDeck: carta del mazzo trascinata }
   function rowItems(w, st) {
     const k = d.drawn.length, n = d.left.length;

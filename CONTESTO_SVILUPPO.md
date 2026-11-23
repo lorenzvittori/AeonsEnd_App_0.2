@@ -315,34 +315,6 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         corsia, il bordo della finestra 16px dopo la riga), e la disposizione lo fa se manca. Anche la larghezza degli
         scarti cambia con la transizione delle carte (v249), così il segmento non salta quando una carta passa da una
         parte all'altra.
-        **Riga EQUISPAZIATA** (v267, sostituisce le regole v246/v249 qui sotto su cerchi "al centro tra i vicini",
-        `spreadMax`, `--ae-lane-scale` sotto l'85% e scarti a passo fisso): la riga è UNA sequenza di oggetti, da
-        sinistra a destra: carte degli scarti (o il posto tratteggiato) → [cerchio degli scarti, con una carta del mazzo
-        in mano] → segmento verticale → [Cima] → carte del mazzo (o "Mazzo vuoto") → [Fondo] (Cima e Fondo con una carta
-        in mano, se nel mazzo c'è una carta oltre al segnaposto). La carta presa resta nella sequenza (segnaposto, v266).
-        Un solo calcolo (`rowItems` + `spaceItems` in `openTurnScreen`): carte larghe w, cerchi `zd`, segmento 1px;
-        lo spazio tra due oggetti consecutivi è UGUALE in tutta la riga, misurato sui bordi visibili (carte all'85% con
-        una carta in mano, scalate attorno al centro; la carta selezionata al 100%); il primo oggetto parte dal bordo
-        sinistro della riga e l'ultimo arriva al bordo destro (larghezza esatta da `getComputedStyle`). w = la più grande
-        (64px al massimo, 30 al minimo, passi di 0.5) che lascia almeno `TURN_GAP_MIN` = 10px (pallino della guida 6px +
-        2px per lato) in TUTTI gli stati della finestra (a riposo, carta degli scarti in mano, carta del mazzo trascinata
-        o selezionata): le carte non cambiano misura quando se ne prende una (scelta: per questo a riposo sono più
-        piccole di prima, per esempio a 360px 38 invece di 46). Niente più sovrapposizioni né carte che si allargano: la
-        guida sta al centro dello spazio tra due carte, sul cerchio di Cima/Fondo o su quello degli scarti. Scarti in
-        flusso con un margine sinistro calcolato per carta (`.ae-turn-pile-row` senza gap, transizione `margin-left`
-        .2s), area degli scarti larga fino al segmento (margini del segmento 0), corsia del mazzo dopo il segmento:
-        tutto con la stessa transizione .2s ease (posizioni e scale interpolano con la stessa curva, quindi nessun
-        oggetto ne attraversa un altro durante il movimento). "Rivela tutto" resta sotto le carte del mazzo a riposo.
-        Zone di rilascio sulle posizioni finali (`rowGeo`, coordinate della riga): scarti = a sinistra del centro del
-        segmento; posto nel mazzo = numero di carte il cui centro sta a sinistra della carta; Cima/Fondo sui cerchi.
-        - Verifica (v267, browser interno, scarti/mazzo 0/6, 1/5, 2/4, 3/3, 4/2, 5/1, 6/0, con e senza turno in corso
-          negli scarti, a 360x780, 375x812 e 1280x800; stati: a riposo, carta degli scarti in mano, dito tra due carte,
-          selezione col tocco degli scarti, carta del mazzo in mano, carta del mazzo sopra gli scarti, selezione col
-          tocco del mazzo; 246 casi): spazi uguali (differenza massima 0.06px), nessuna sovrapposizione nelle posizioni
-          finali e in quelle intermedie, margini ai bordi ≤ 0.01px, cuspide centrata, scritte dentro i loro spazi, guida
-          al centro dello spazio; rilasci tra due carte, su Cima, su Fondo e negli scarti nel posto giusto. (Il cerchio
-          degli scarti acceso si ingrandisce del 15%, come i cerchi di Cima e Fondo: gli spazi accanto calano di ~1px
-          mentre è acceso.)
         **Mai sovrapposti** (v246): cerchi-luogo, guida, carte e segmento non si intersecano mai, nemmeno durante i
         movimenti.
         - **Stessa transizione** per tutto ciò che si sposta nella riga (carte, cerchi Cima/Fondo e degli scarti, guida,

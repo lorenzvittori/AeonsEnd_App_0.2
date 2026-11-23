@@ -6,7 +6,8 @@
         "battle": 1,
         "flagBattle5": "Sì",
         "owned": true,
-        "life": 60
+        "life": 60,
+        "difficulty": 3
     },
     {
         "name": "Rageborne",
@@ -15,7 +16,8 @@
         "battle": 1,
         "flagBattle5": null,
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 2
     },
     {
         "name": "Wayward One",
@@ -24,7 +26,8 @@
         "battle": 3,
         "flagBattle5": null,
         "owned": false,
-        "life": 60
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "Maggoth",
@@ -33,7 +36,8 @@
         "battle": 1,
         "flagBattle5": null,
         "owned": true,
-        "life": 45
+        "life": 45,
+        "difficulty": 3
     },
     {
         "name": "Horde-Crone",
@@ -42,7 +46,8 @@
         "battle": 2,
         "flagBattle5": null,
         "owned": true,
-        "life": 60
+        "life": 60,
+        "difficulty": 6
     },
     {
         "name": "Blight Lord",
@@ -51,7 +56,8 @@
         "battle": 2,
         "flagBattle5": "Sì",
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 4
     },
     {
         "name": "Crooked Mask",
@@ -60,7 +66,8 @@
         "battle": 2,
         "flagBattle5": null,
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 5
     },
     {
         "name": "Thrice-Dead Prophet",
@@ -68,7 +75,9 @@
         "waveOrder": 2,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 40,
+        "difficulty": 5
     },
     {
         "name": "Wraithmonger",
@@ -76,7 +85,9 @@
         "waveOrder": 2,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 6
     },
     {
         "name": "Knight of Shackles",
@@ -84,7 +95,9 @@
         "waveOrder": 2,
         "battle": 1,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 4
     },
     {
         "name": "Maiden of Thorns",
@@ -92,7 +105,9 @@
         "waveOrder": 2,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 4
     },
     {
         "name": "Umbra Titan",
@@ -100,7 +115,9 @@
         "waveOrder": 2,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 3
     },
     {
         "name": "Hollow Crown",
@@ -108,7 +125,9 @@
         "waveOrder": 2,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 1,
+        "difficulty": 5
     },
     {
         "name": "Magus of Cloaks",
@@ -116,7 +135,9 @@
         "waveOrder": 2,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 35,
+        "difficulty": 7
     },
     {
         "name": "Gate Witch",
@@ -124,7 +145,9 @@
         "waveOrder": 2,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 7
     },
     {
         "name": "Bladius",
@@ -132,7 +155,9 @@
         "waveOrder": 3,
         "battle": 1,
         "flagBattle5": "No",
-        "owned": false
+        "owned": false,
+        "life": 40,
+        "difficulty": 1
     },
     {
         "name": "Spawning Horror",
@@ -140,7 +165,9 @@
         "waveOrder": 3,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 3
     },
     {
         "name": "Fungal Mesh",
@@ -148,7 +175,9 @@
         "waveOrder": 3,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 4
     },
     {
         "name": "Deathmind",
@@ -156,7 +185,9 @@
         "waveOrder": 3,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 6
     },
     {
         "name": "Maelstrom: Risen",
@@ -164,7 +195,9 @@
         "waveOrder": 3,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 65,
+        "difficulty": 8
     },
     {
         "name": "Xaxos: Ascended",
@@ -172,7 +205,9 @@
         "waveOrder": 3,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 90,
+        "difficulty": 9
     },
     {
         "name": "Haze Fiend",
@@ -180,7 +215,9 @@
         "waveOrder": 3,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 75,
+        "difficulty": 5
     },
     {
         "name": "Maelstrom",
@@ -188,7 +225,9 @@
         "waveOrder": 3,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": null
     },
     {
         "name": "Prince of Gluttons",
@@ -197,7 +236,8 @@
         "battle": 2,
         "flagBattle5": null,
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 5
     },
     {
         "name": "Arachnos",
@@ -206,7 +246,8 @@
         "battle": 2,
         "flagBattle5": "Sì",
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 4
     },
     {
         "name": "The Wailing",
@@ -215,7 +256,8 @@
         "battle": 3,
         "flagBattle5": null,
         "owned": true,
-        "life": 50
+        "life": 50,
+        "difficulty": 6
     },
     {
         "name": "The Wanderer",
@@ -224,7 +266,8 @@
         "battle": 3,
         "flagBattle5": null,
         "owned": true,
-        "life": 40
+        "life": 40,
+        "difficulty": 5
     },
     {
         "name": "Ageless Walker",
@@ -233,7 +276,8 @@
         "battle": 3,
         "flagBattle5": null,
         "owned": true,
-        "life": 80
+        "life": 80,
+        "difficulty": 5
     },
     {
         "name": "Necroswarm",
@@ -242,7 +286,8 @@
         "battle": 4,
         "flagBattle5": "Sì",
         "owned": true,
-        "life": 70
+        "life": 70,
+        "difficulty": 7
     },
     {
         "name": "Fenrix",
@@ -251,7 +296,8 @@
         "battle": 4,
         "flagBattle5": null,
         "owned": true,
-        "life": 60
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "Fortress",
@@ -259,7 +305,9 @@
         "waveOrder": 5,
         "battle": 2,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 90,
+        "difficulty": 5
     },
     {
         "name": "Burrower",
@@ -267,7 +315,9 @@
         "waveOrder": 5,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 8
     },
     {
         "name": "The Burning Kor",
@@ -275,7 +325,9 @@
         "waveOrder": 5,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "Experiment 153",
@@ -283,7 +335,9 @@
         "waveOrder": 5,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": 3
     },
     {
         "name": "Thief of Dreams",
@@ -291,7 +345,9 @@
         "waveOrder": 5,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 4
     },
     {
         "name": "Risen Thrall",
@@ -299,7 +355,9 @@
         "waveOrder": 5,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 5
     },
     {
         "name": "Fountain of Souls",
@@ -307,7 +365,9 @@
         "waveOrder": 5,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 8
     },
     {
         "name": "Bishop of Scrolls",
@@ -315,7 +375,9 @@
         "waveOrder": 6,
         "battle": 1,
         "flagBattle5": "No",
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 2
     },
     {
         "name": "Fate Shepherd",
@@ -323,7 +385,9 @@
         "waveOrder": 6,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 3
     },
     {
         "name": "Mother of Rust",
@@ -331,7 +395,9 @@
         "waveOrder": 6,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": 4
     },
     {
         "name": "Rust Superion",
@@ -339,7 +405,9 @@
         "waveOrder": 6,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 5
     },
     {
         "name": "Bishop: Returned",
@@ -347,7 +415,9 @@
         "waveOrder": 6,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "Paradox of Myth and Bone",
@@ -355,7 +425,9 @@
         "waveOrder": 6,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 40,
+        "difficulty": 5
     },
     {
         "name": "Rust Amalgam",
@@ -363,7 +435,9 @@
         "waveOrder": 6,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 6
     },
     {
         "name": "Griefweaver",
@@ -371,7 +445,9 @@
         "waveOrder": 6,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 8
     },
     {
         "name": "Mist Revealed",
@@ -379,7 +455,9 @@
         "waveOrder": 6,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 10
     },
     {
         "name": "Paradox of Bone",
@@ -387,7 +465,9 @@
         "waveOrder": 6,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 8
     },
     {
         "name": "Paradox of Myth",
@@ -395,7 +475,9 @@
         "waveOrder": 6,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 8
     },
     {
         "name": "Brama (6 - Legacy of Gravehold)",
@@ -403,7 +485,9 @@
         "waveOrder": 6,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": null
     },
     {
         "name": "Z'hana (6 - Legacy of Gravehold)",
@@ -411,7 +495,9 @@
         "waveOrder": 6,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": null
     },
     {
         "name": "The Reliquary",
@@ -419,7 +505,9 @@
         "waveOrder": 8,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 6
     },
     {
         "name": "Absorbing Wraith",
@@ -427,7 +515,9 @@
         "waveOrder": 8,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 85,
+        "difficulty": 8
     },
     {
         "name": "The Infecter",
@@ -435,7 +525,9 @@
         "waveOrder": 8,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 4
     },
     {
         "name": "The Coven",
@@ -443,7 +535,9 @@
         "waveOrder": 8,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": 5
     },
     {
         "name": "The Blight",
@@ -451,7 +545,9 @@
         "waveOrder": 8,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "The Wrath",
@@ -459,7 +555,9 @@
         "waveOrder": 8,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 6,
+        "difficulty": 8
     },
     {
         "name": "Rampaging Vin",
@@ -467,7 +565,9 @@
         "waveOrder": 9,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 8
     },
     {
         "name": "The Timeless",
@@ -475,7 +575,9 @@
         "waveOrder": 9,
         "battle": 3,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "The Terror in Brass",
@@ -483,7 +585,9 @@
         "waveOrder": 9,
         "battle": 1,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 99,
+        "difficulty": 5
     },
     {
         "name": "Crooked Mask (9 - Beyond the Breach)",
@@ -491,7 +595,9 @@
         "waveOrder": 9,
         "battle": 2,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 5
     },
     {
         "name": "Oracle of Filth",
@@ -499,7 +605,9 @@
         "waveOrder": 9,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 80,
+        "difficulty": 6
     },
     {
         "name": "Twice-Dead Prophet",
@@ -507,7 +615,9 @@
         "waveOrder": 9,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 50,
+        "difficulty": 6
     },
     {
         "name": "Wayward Reflection",
@@ -515,7 +625,9 @@
         "waveOrder": 9,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 65,
+        "difficulty": 8
     },
     {
         "name": "Kusiciele Okazji",
@@ -523,7 +635,9 @@
         "waveOrder": 99,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": null
     },
     {
         "name": "Szalony Kotokronikarz",
@@ -531,7 +645,9 @@
         "waveOrder": 99,
         "battle": null,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": null,
+        "difficulty": null
     },
     {
         "name": "Clouded Mesmer",
@@ -539,7 +655,9 @@
         "waveOrder": 7,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 7
     },
     {
         "name": "The Endless Decay",
@@ -547,7 +665,9 @@
         "waveOrder": 7,
         "battle": 3,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 70,
+        "difficulty": 5
     },
     {
         "name": "Herald of the End",
@@ -555,7 +675,9 @@
         "waveOrder": 7,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 10,
+        "difficulty": 4
     },
     {
         "name": "Stonemonger",
@@ -563,7 +685,9 @@
         "waveOrder": 7,
         "battle": 2,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 75,
+        "difficulty": 4
     },
     {
         "name": "Infested Mutation",
@@ -571,7 +695,9 @@
         "waveOrder": 7,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 6
     },
     {
         "name": "The Changeling Nest",
@@ -579,7 +705,9 @@
         "waveOrder": 7,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 40,
+        "difficulty": 6
     },
     {
         "name": "Corruption's Core",
@@ -587,7 +715,9 @@
         "waveOrder": 7,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": false
+        "owned": false,
+        "life": 60,
+        "difficulty": 8
     },
     {
         "name": "Erythiza, Consumed",
@@ -595,6 +725,8 @@
         "waveOrder": 7,
         "battle": 4,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 30,
+        "difficulty": 8
     }
 ]
