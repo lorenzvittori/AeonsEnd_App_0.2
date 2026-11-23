@@ -5076,11 +5076,20 @@ function openTurnScreen() {
     if (drag && drag.source === 'deck') order.splice(drag.index, 1);
     return order;
   }
+  // v266: carte del mazzo come si VEDONO: con una carta del mazzo trascinata, al suo posto resta un segnaposto grigio
+  // chiaro (la carta stessa, .is-dragging), piccolo come le altre. Le destinazioni restano quelle di shownOrder:
+  // un posto della fila vista dopo il segnaposto vale uno in meno (prima o dopo il segnaposto = stesso posto)
+  function displayOrder() {
+    return d.left.map((k, i) => i);
+  }
+  function placeholderAt() {
+    return drag && drag.source === 'deck' ? drag.index : -1;
+  }
   // Ultima disposizione del mazzo stretto (per sapere tra quali carte sta la carta degli scarti trascinata)
   let tightGeo = null;
   // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: destinazione della carta
   // trascinata ({ type: 'top' | 'bottom' | 'pos', index }) o null
-  function layoutFan(order = shownOrder(), lifted = -1, over = null) {
+  function layoutFan(order = displayOrder(), lifted = -1, over = null) {
     const g = rowGeometry();
     // (v237: con la riga normale il pulsante dell'occhio è lungo quanto tutte le carte del mazzo)
     const fullW = g.n ? g.n * (g.w + g.gap) - g.gap : g.w;
@@ -5174,7 +5183,9 @@ function openTurnScreen() {
     // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
     revealTop.hidden = !g.n || !!d.known[0] || tight;
     // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
-    zoneTop.hidden = zoneBottom.hidden = !fromPile || !m;
+    // (v266: carte vere del mazzo, senza il segnaposto della carta trascinata)
+    const mReal = m - (placeholderAt() >= 0 && order.includes(placeholderAt()) ? 1 : 0);
+    zoneTop.hidden = zoneBottom.hidden = !fromPile || !mReal;
     // (v240: "Cima" e "Fondo" in orizzontale, il carattere si adatta alla larghezza della carta: 5 lettere ≈ 3,6em)
     lane.style.setProperty('--ae-zone-d', zd + 'px');
     // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra. v244: lì c'è un cerchio come
@@ -5194,7 +5205,7 @@ function openTurnScreen() {
       // (v246: la guida è larga quanto il suo pallino, 6px: l'aspetto non cambia, linea e pallino sono centrati)
       Object.assign(pileInsert.style, { left: (pileX - 3) + 'px', width: '6px', top: '0px', height: g.h + 'px' });
     }
-    lane.classList.toggle('is-empty-target', tight && !m);
+    lane.classList.toggle('is-empty-target', tight && !mReal);
     // v247: centro del segmento verticale nella sua posizione FINALE (larghezza degli scarti + margine sinistro del
     // segmento: 8px, o il posto per il cerchio degli scarti con una carta del mazzo in mano). Non offsetLeft: durante
     // la transizione del margine darebbe la posizione di partenza. La cuspide dei titoli si centra qui
@@ -5454,7 +5465,9 @@ function openTurnScreen() {
     // v237: carta del mazzo e carta degli scarti si spostano allo stesso modo: su Cima o Fondo (grandi come una carta,
     // ai lati) o in mezzo alle altre carte del mazzo (strette), nel posto sotto la carta; il segmento dorato dice dove
     const order = shownOrder();
+    const ph = placeholderAt();
     let target = null;
+    let shownPos = -1; // posto nella fila VISTA (con il segnaposto), per la guida e le carte che si allargano
     const laneRect = lane.getBoundingClientRect();
     // v240: carta del mazzo sugli scarti (a sinistra del segmento): va in fondo a destra degli scarti (il turno di
     // quella carta è perso)
@@ -5463,10 +5476,15 @@ function openTurnScreen() {
     if (drag.source === 'deck' && inPileZone(x, y, laneRect)) target = { type: 'pile' };
     else if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
-    else if (hit(laneRect, x, y, 24)) target = order.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };
+    else if (hit(laneRect, x, y, 24)) {
+      if (order.length) {
+        shownPos = pileSlotAt(x);
+        target = { type: 'pos', index: ph >= 0 && shownPos > ph ? shownPos - 1 : shownPos };
+      } else target = { type: 'top' };
+    }
     drag.target = target;
     lane.classList.toggle('is-over', !!target && target.type === 'pos');
-    layoutFan(order, -1, target);
+    layoutFan(displayOrder(), -1, shownPos >= 0 ? { type: 'pos', index: shownPos } : target);
   }
   function endDrag(apply) {
     stopListening();

@@ -1369,6 +1369,18 @@ body { overflow: hidden; }
 }
 .ae-turn-pile-slot.is-current .ae-turn-card { box-shadow: 0 0 0 2px var(--ae-gold), 0 2px 6px rgba(0, 0, 0, .6); }
 .ae-turn-card.ae-turn-ghost { box-shadow: 0 0 0 3px var(--ae-gold), 0 12px 28px rgba(0, 0, 0, .55); }
+/* v266: scarti con il contorno più scuro delle carte del mazzo ancora da giocare (la carta del turno in corso resta dorata) */
+.ae-turn-pile-slot .ae-turn-card[data-card], .ae-turn-pile-slot .ae-turn-card.is-back {
+  box-shadow: 0 0 0 1.5px rgba(236, 232, 222, .28), 0 2px 6px rgba(0, 0, 0, .6);
+}
+.ae-turn-pile-slot.is-current .ae-turn-card { box-shadow: 0 0 0 2px var(--ae-gold), 0 2px 6px rgba(0, 0, 0, .6); }
+/* v266: la carta che si sta spostando (scarti o mazzo) lascia al suo posto un segnaposto grigio chiaro, senza immagine,
+   piccolo come le altre carte (85%, nel mazzo la scala della corsia) */
+.ae-turn-card.is-dragging, .ae-turn-pile-slot .ae-turn-card.is-dragging, .ae-turn-lane .ae-turn-card.is-dragging {
+  background: #d4d4d8 !important; box-shadow: none !important; filter: none !important; outline: none !important;
+  border-color: transparent; color: transparent;
+}
+.ae-turn-card.is-dragging > * { visibility: hidden; }
 /* v200: scelta ridotta nel pulsante grande in basso, diviso in due ("Giocatore x | Giocatore y") */
 /* v202: due pulsanti separati (prima uno solo diviso in due) */
 .ae-pair-dock { display: flex; gap: 10px; width: 100%; }
@@ -1786,6 +1798,9 @@ body { overflow: hidden; }
 }
 /* v246: carte del mazzo con una carta in mano: all'85% o meno se la corsia è stretta (--ae-lane-scale da script.js) */
 .ae-turn-screen.is-holding .ae-turn-lane .ae-turn-card:not(.is-selected):not(.is-dragging) { scale: var(--ae-lane-scale, .85); }
+/* v266: anche il segnaposto della carta trascinata è piccolo come le altre */
+.ae-turn-screen.is-holding .ae-turn-row .ae-turn-card.is-dragging { scale: .85; }
+.ae-turn-screen.is-holding .ae-turn-lane .ae-turn-card.is-dragging { scale: var(--ae-lane-scale, .85); }
 /* v247: titoli del mazzo dei turni su una linea sottile: [linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola].
    Linea e cuspide 1px, del colore delle scritte (--ae-text-muted); la linea passa a metà altezza della riga dei titoli
    (32px: da 16 a 17px) e la cuspide (svg 10x6, punta in giù) parte dalla linea, centrata sul segmento verticale.

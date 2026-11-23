@@ -278,7 +278,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       nessuna carta diventa trasparente (nella rosa il posto dove cadrà ha la carta al 100% con un bordo tratteggiato). In alternativa si **tocca** (o Invio) la carta e poi la
       destinazione; Esc annulla la selezione.
       - Carta del mazzo **solo se nota**, **solo dentro il mazzo**, dalla v237 **come una carta degli scarti** (qui
-        sotto): presa, lascia la fila (`.is-away`, `shownOrder`), le altre si avvicinano e il segmento dorato dice dove
+        sotto): presa, dalla v266 al suo posto resta un **segnaposto grigio chiaro** come negli scarti (la fila vista è
+        `displayOrder`, con lei; le destinazioni restano quelle di `shownOrder`, senza: un posto visto dopo il
+        segnaposto vale uno in meno; prima, v237-v265, lasciava la fila, `.is-away`), le altre si avvicinano e il segmento dorato dice dove
         cadrà, anche prima della prima (cima) o dopo l'ultima (fondo). Con i **cerchi Cima e Fondo** (v242; v238-v241
         senza) e senza stringere gli scarti. Col tocco: la carta, poi Cima, Fondo o una carta del mazzo (prende il suo posto). La
         carta in cima appena rivelata si porta così in fondo. (v233-v236: le altre carte si spostavano per farle posto.)
@@ -333,7 +335,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
           stesso controllo, aveva il cerchio Cima sul segmento in tutte le combinazioni con le carte allargate e sempre
           con 1/5. **Carta in mano** (v243): con una carta trascinata o
         selezionata tutte le altre carte, del mazzo e degli scarti, scendono all'**85%** (`.is-holding`, proprietà
-        `scale`); la carta in mano resta al 100%, anche la copia che segue il dito (prima ingrandita al 108%). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
+        `scale`); la copia che segue il dito resta al 100% (prima ingrandita al 108%). Dalla v266 nel posto da cui la
+        carta è stata presa (scarti o mazzo) non resta più una copia al 100% ma un **segnaposto grigio chiaro** senza
+        immagine, piccolo come le altre (`.ae-turn-card.is-dragging`). Gli **scarti** hanno il contorno più scuro delle
+        carte del mazzo (opacità 0.28 invece di 0.75; il turno in corso resta dorato). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli
