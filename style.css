@@ -1868,6 +1868,16 @@ body { overflow: hidden; }
 /* v252: cuspide 14x8, mai stirata (stesse misure del viewBox) */
 .ae-turn-divider .ae-turn-cusp { width: 14px; height: 8px; }
 .ae-turn-divider .ae-turn-cusp svg { width: 14px; height: 8px; }
+/* v267: riga equispaziata (script.js layoutFan): gli scarti non hanno più uno spazio fisso tra loro, ogni carta ha il
+   suo margine sinistro calcolato; si sposta con la stessa transizione (.2s ease) di carte del mazzo, cerchi, segmento e
+   larghezza dell'area degli scarti, così anche durante il movimento nessun oggetto ne attraversa un altro */
+.ae-turn-area--pile .ae-turn-pile-row { gap: 0; }
+.ae-turn-area--pile .ae-turn-pile-slot, .ae-turn-area--pile .ae-turn-pile-empty { transition: margin-left .2s ease; }
+.ae-turn-reveal-row .ae-turn-eye--all { transition: width .2s ease, margin-left .2s ease; }
+.ae-turn-heads.is-settling ~ .ae-turn-row .ae-turn-pile-slot { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ae-turn-area--pile .ae-turn-pile-slot, .ae-turn-area--pile .ae-turn-pile-empty, .ae-turn-reveal-row .ae-turn-eye--all { transition: none; }
+}
 
 /* v254: vite di Gravehold (sinistra) e della nemesi (destra) sotto la fascia delle carte piccole, ai margini della fascia */
 .ae-lives { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px 0; position: relative; z-index: 1; }

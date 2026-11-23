@@ -4922,8 +4922,10 @@ function openTurnScreen() {
     if (sel && sel.source === 'deck' && inPileZone(e.clientX, e.clientY, lane.getBoundingClientRect())) dropOn({ type: 'pile' }, sel);
   });
   function inPileZone(x, y, laneRect) {
-    const dv = divider.getBoundingClientRect(), rr = row.getBoundingClientRect();
-    return x >= rr.left - 24 && x < dv.left + dv.width / 2 && y >= laneRect.top - 24 && y <= laneRect.bottom + 24;
+    const rr = row.getBoundingClientRect();
+    // (v267: centro del segmento nella disposizione finale, non dove si trova a metà transizione)
+    const split = rowGeo ? rr.left + rowGeo.split * pageZoom() : (() => { const dv = divider.getBoundingClientRect(); return dv.left + dv.width / 2; })();
+    return x >= rr.left - 24 && x < split && y >= laneRect.top - 24 && y <= laneRect.bottom + 24;
   }
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
@@ -5045,24 +5047,62 @@ function openTurnScreen() {
   function selName(s) {
     return s.source === 'deck' ? turnCardName(d.left[s.index], -1, d) : turnCardName(d.drawn[s.index], s.index, d);
   }
-  // Misure della riga: una sola larghezza di carta per scarti e mazzo, tutte le carte in fila senza sovrapporsi.
-  // La corsia del mazzo ha almeno 3 posti, così da stretta ha spazio per Cima, carte e Fondo
-  const TURN_GAP = 6;
-  function rowGeometry() {
-    const k = Math.max(1, d.drawn.length);
-    const n = d.left.length;
-    // (v236: mazzo vuoto = un posto solo, niente Cima e Fondo da far stare)
-    // (v240: un posto per carta, senza i 3 posti minimi del mazzo, che lasciavano spazio vuoto a destra: lo spazio per
-    // Cima e Fondo lo fanno gli scarti, che si sovrappongono mentre si sposta una loro carta)
-    const units = k + Math.max(n, 1);
-    const avail = (row.clientWidth || 343) - 17; // segmento verticale con i suoi margini
-    let w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
-    // (v251: la scritta "Mazzo turno" non allarga più la corsia del mazzo, v247-v250: se non ci sta va su due righe.
-    // La larghezza delle carte dipende solo dalle carte: un posto per carta, un posto se il mazzo è vuoto)
-    return { k, n, w, h: w * 88 / 63, gap: TURN_GAP };
+  // v267: riga del mazzo dei turni EQUISPAZIATA. La riga è UNA sequenza di oggetti, da sinistra a destra:
+  //   carte degli scarti (o il posto tratteggiato) → [cerchio degli scarti, con una carta del mazzo in mano] →
+  //   segmento verticale → [cerchio Cima] → carte del mazzo (o "Mazzo vuoto") → [cerchio Fondo] (Cima e Fondo con una
+  //   carta in mano). La carta presa resta nella sequenza (segnaposto grigio, v266).
+  // Un solo calcolo (rowItems + spaceItems): tutte le carte larghe w, i cerchi zd, il segmento 1px; lo spazio tra due
+  // oggetti consecutivi è UGUALE in tutta la riga, misurato sui bordi VISIBILI (con una carta in mano le altre sono
+  // all'85%, scalate attorno al centro); il primo oggetto parte dal bordo sinistro della riga e l'ultimo arriva al
+  // bordo destro. w è la più grande (al massimo 64px, al minimo 30px) che lascia almeno TURN_GAP_MIN tra due oggetti
+  // in TUTTI gli stati della finestra (a riposo, carta degli scarti in mano, carta del mazzo trascinata o
+  // selezionata): così le carte non cambiano misura quando se ne prende una. Niente più sovrapposizioni né "spread":
+  // la guida sta al centro dello spazio tra due oggetti, che è uguale per tutti.
+  const TURN_W_MAX = 64, TURN_W_MIN = 30;
+  // (pallino della guida, 6px, più 2px per lato)
+  const TURN_GAP_MIN = 10;
+  function zoneD(w) { return Math.round(Math.min(14, w * 0.3)); }
+  // (larghezza esatta in pixel CSS: clientWidth la arrotonda all'intero, e l'ultimo oggetto non arriverebbe al bordo)
+  function rowWidth() { return parseFloat(getComputedStyle(row).width) || row.clientWidth || 343; }
+  // st: { holding: null | 'pile' | 'deck', selected: { source, index } | null, dragDeck: carta del mazzo trascinata }
+  function rowItems(w, st) {
+    const k = d.drawn.length, n = d.left.length;
+    const zd = zoneD(w);
+    const tight = !!st.holding;
+    // carta come si vede: con una carta in mano le altre all'85% (anche il segnaposto), quella selezionata al 100%
+    const sc = (source, i) => !tight ? 1 : (st.selected && st.selected.source === source && st.selected.index === i ? 1 : 0.85);
+    const items = [];
+    if (k) d.drawn.forEach((x, i) => items.push({ kind: 'pile', i, vis: sc('pile', i) * w }));
+    else items.push({ kind: 'pileEmpty', vis: w });
+    if (st.holding === 'deck') items.push({ kind: 'pileZone', vis: zd });
+    items.push({ kind: 'divider', vis: 1 });
+    // (Cima e Fondo solo se nel mazzo c'è una carta vera oltre al segnaposto della carta trascinata)
+    const mReal = n - (st.dragDeck ? 1 : 0);
+    const ends = tight && mReal > 0;
+    if (ends) items.push({ kind: 'top', vis: zd });
+    if (n) d.left.forEach((x, i) => items.push({ kind: 'deck', i, vis: sc('deck', i) * w }));
+    else items.push({ kind: 'deckEmpty', vis: w });
+    if (ends) items.push({ kind: 'bottom', vis: zd });
+    return items;
   }
-  function laneWidth(g) {
-    return lane.clientWidth || (Math.max(g.n, 1) * (g.w + g.gap) - g.gap);
+  // Mette gli oggetti in fila dal bordo sinistro (0) al destro (W) con spazi uguali; restituisce lo spazio
+  function spaceItems(items, W) {
+    const sum = items.reduce((s, it) => s + it.vis, 0);
+    const g = items.length > 1 ? (W - sum) / (items.length - 1) : 0;
+    let x = 0;
+    items.forEach(it => { it.left = x; it.right = x + it.vis; x = it.right + g; });
+    return g;
+  }
+  function rowGeometry() {
+    const k = d.drawn.length, n = d.left.length;
+    const W = rowWidth();
+    const states = [{ holding: null }];
+    if (k) states.push({ holding: 'pile', selected: { source: 'pile', index: 0 } });
+    if (n) states.push({ holding: 'deck', dragDeck: true }, { holding: 'deck', selected: { source: 'deck', index: 0 } });
+    let w = TURN_W_MAX;
+    while (w > TURN_W_MIN && !states.every(st => spaceItems(rowItems(w, st), W) >= TURN_GAP_MIN - 1e-6)) w -= 0.5;
+    w = Math.max(TURN_W_MIN, w);
+    return { k, n, w, h: w * 88 / 63, W };
   }
   // Carta presa (trascinata) o selezionata, degli scarti o (v237) del mazzo: il mazzo si stringe e compaiono Cima e
   // Fondo
@@ -5085,159 +5125,111 @@ function openTurnScreen() {
   function placeholderAt() {
     return drag && drag.source === 'deck' ? drag.index : -1;
   }
-  // Ultima disposizione del mazzo stretto (per sapere tra quali carte sta la carta degli scarti trascinata)
-  let tightGeo = null;
-  // order: indici di d.left nell'ordine da mostrare (dalla cima, a sinistra). over: destinazione della carta
-  // trascinata ({ type: 'top' | 'bottom' | 'pos', index }) o null
+  // v267: ultima disposizione (coordinate della riga): centri delle carte del mazzo come si vedono (per il posto
+  // d'arrivo), centro del segmento verticale (zona degli scarti)
+  let rowGeo = null;
+  // order e lifted: come prima (order non serve più: la fila vista è sempre tutto il mazzo, col segnaposto).
+  // over: destinazione della carta trascinata ({ type: 'top' | 'bottom' | 'pos' | 'pile', index } nella fila VISTA) o null
   function layoutFan(order = displayOrder(), lifted = -1, over = null) {
     const g = rowGeometry();
-    // (v237: con la riga normale il pulsante dell'occhio è lungo quanto tutte le carte del mazzo)
-    const fullW = g.n ? g.n * (g.w + g.gap) - g.gap : g.w;
-    revealAll.style.width = Math.max(44, fullW) + 'px';
-    // m: carte mostrate (senza quella del mazzo che si trascina)
-    const m = order.length;
-    row.style.setProperty('--ae-turn-w', g.w + 'px');
-    row.style.setProperty('--ae-turn-h', g.h + 'px');
+    const { w, h, W } = g;
+    const zd = zoneD(w);
+    row.style.setProperty('--ae-turn-w', w + 'px');
+    row.style.setProperty('--ae-turn-h', h + 'px');
     // (v252: il segmento verticale sporge del 10% sopra le carte; la riga delle carte scende quanto serve perché il
     // segmento cominci a 16 + 8 (cuspide) + 4 (spazio) = 28px dall'alto della riga dei titoli, alta 32px)
     const cuspGap = parseFloat(getComputedStyle(divider).getPropertyValue('--ae-cusp-gap')) || 4;
-    row.style.marginTop = (16 + CUSP_H + cuspGap - 32 + 0.1 * g.h) + 'px';
-    const tight = squeezed();
-    // v242: i cerchi Cima e Fondo ci sono con qualunque carta in mano (v238-v241 solo con una carta degli scarti)
-    const fromPile = tight;
-    // v241: gli scarti restano fermi anche con una loro carta in mano (v234-v240 si sovrapponevano per fare spazio)
-    const pileStep = g.w + g.gap;
-    row.style.setProperty('--ae-pile-step', pileStep + 'px');
-    row.classList.remove('is-pile-tight');
-    const pileW = g.w + (g.k - 1) * pileStep;
-    pileArea.style.width = pileW + 'px';
-    // v245: con una carta del mazzo in mano, tra l'ultimo scarto e il segmento verticale si fa posto per il cerchio
-    // d'arrivo degli scarti (il segmento si sposta a destra), così il cerchio non tocca il segmento
-    const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
-    const zdPre = Math.round(Math.min(14, g.w * 0.3));
-    divider.style.marginLeft = holdingDeck ? (zdPre + 12) + 'px' : '';
-    // v249: misure FINALI della disposizione (non quelle a metà della transizione del segmento): margine sinistro del
-    // segmento (ml), larghezza finale della corsia del mazzo (lw: dal segmento, 1px + 8px di margine, al bordo destro
-    // della riga) e quanto c'è tra il bordo destro della riga e il bordo della finestra (edgeExtra)
-    const ml = holdingDeck ? zdPre + 12 : 8;
-    const lw = Math.max(0, (row.clientWidth || 343) - (pileW + ml + 1 + 8));
-    const edgeExtra = Math.max(0, (dialog.getBoundingClientRect().right - row.getBoundingClientRect().right) / pageZoom());
-    // Cima e Fondo sono due cerchi (diametro zd: v242 la metà, al massimo 14px; v241 28px) subito prima e subito dopo
-    // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
-    // nella corsia. Se la corsia è stretta i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
-    const zd = Math.round(Math.min(14, g.w * 0.3));
-    // v246: disposizione del mazzo stretto calcolata sulle carte come si vedono (all'85%, .is-holding) perché cerchi,
-    // guida, carte e segmento verticale non si tocchino mai:
-    // - per lato: cerchio (zd) + 4px di distanza dalla prima/ultima carta + lo spostamento massimo delle carte che si
-    //   allargano (spreadMax), così i cerchi restano dentro la corsia e lontani dal segmento;
-    // - tra due carte, con le carte allargate, almeno 8px liberi: ci sta il pallino della guida (6px) senza toccarle;
-    // - se la corsia è troppo stretta anche così (poche carte nel mazzo, molti scarti) le carte del mazzo scendono sotto
-    //   l'85% quanto basta (laneScale, al minimo 40%).
-    const spreadMax = tight && m > 1 ? Math.round(Math.min(10, g.w * 0.2)) : 0;
-    const ZONE_GAP = 4;
-    // v249: i cerchi Cima e Fondo stanno AL CENTRO tra i loro vicini (bordi visibili): Cima tra il segmento verticale e
-    // la prima carta, Fondo tra l'ultima carta e il bordo della finestra. Lo spazio che serve a ciascuno (cerchio +
-    // 2px per lato, più lo spostamento delle carte che si allargano) si conta da lì: a sinistra il segmento è 8px
-    // prima della corsia, a destra il bordo della finestra è edgeExtra dopo
-    const leftNeed = Math.max(0, zd + ZONE_GAP + spreadMax - 8);
-    const rightNeed = Math.max(0, zd + ZONE_GAP + spreadMax - edgeExtra);
-    let laneScale = 0.85, wv = 0, stepMin = 0, avail = 0;
-    if (tight) {
-      for (;;) {
-        wv = laneScale * g.w;
-        stepMin = m > 1 ? Math.max(8, wv - 2 * spreadMax + 8) : 0;
-        avail = lw - leftNeed - rightNeed;
-        if (!m || wv + (m - 1) * stepMin <= avail || laneScale <= 0.4) break;
-        laneScale = Math.max(0.4, laneScale - 0.01);
-      }
-    }
-    lane.style.setProperty('--ae-lane-scale', String(Math.round(laneScale * 100) / 100));
-    const inset = (g.w - wv) / 2;
-    const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(stepMin, (avail - wv) / (m - 1))) : 0) : g.w + g.gap;
-    const visStack = m ? wv + (m - 1) * step : 0;
-    const stackW = m ? g.w + (m - 1) * step : 0;
-    const startVis = tight ? leftNeed + (avail - visStack) / 2 : 0;
-    const start = tight ? startVis - inset : 0;
-    tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
-    // v242: posto d'arrivo tra due carte (segmento tra loro): le carte a sinistra si spostano un po' a sinistra e quelle
-    // a destra un po' a destra, per farle spazio
-    const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
-    const spread = tight && overIdx > 0 && overIdx < m ? spreadMax : 0;
-    fanEls.forEach((c, i) => c.classList.toggle('is-away', !order.includes(i)));
-    order.forEach((idx, k) => {
-      const card = fanEls[idx];
+    row.style.marginTop = (16 + CUSP_H + cuspGap - 32 + 0.1 * h) + 'px';
+    const holding = drag ? drag.source : sel ? sel.source : null;
+    const tight = !!holding;
+    const st = { holding, selected: sel, dragDeck: !!drag && drag.source === 'deck' };
+    const items = rowItems(w, st);
+    const gap = spaceItems(items, W);
+    const one = kind => items.find(it => it.kind === kind) || null;
+    // (carta: la scatola è larga w e scalata attorno al centro; il bordo visibile è it.left)
+    const boxLeft = it => it.left - (w - it.vis) / 2;
+    const dv = one('divider');
+    // Scarti: l'area finisce dove comincia il segmento (niente margini), le carte in flusso con un margine sinistro
+    // ciascuna (transizione .2s come le carte del mazzo)
+    pileArea.style.width = dv.left + 'px';
+    divider.style.marginLeft = divider.style.marginRight = '0px';
+    const laneOff = dv.left + 1;
+    const pileObjs = items.filter(it => it.kind === 'pile' || it.kind === 'pileEmpty');
+    const pileNodes = d.drawn.length ? pileEls.map(c => c.parentElement) : [pileRow.querySelector('.ae-turn-pile-empty')];
+    let prevRight = 0;
+    pileObjs.forEach((it, j) => {
+      const node = pileNodes[j];
+      if (!node) return;
+      const bl = it.kind === 'pile' ? boxLeft(it) : it.left;
+      node.style.marginLeft = (bl - prevRight) + 'px';
+      prevRight = bl + w;
+    });
+    // Mazzo (coordinate della corsia = riga − laneOff)
+    const deckObjs = items.filter(it => it.kind === 'deck');
+    const m = deckObjs.length;
+    fanEls.forEach(c => c.classList.remove('is-away'));
+    deckObjs.forEach((it, kk) => {
+      const card = fanEls[it.i];
       if (!card) return;
-      card.style.left = (start + k * step + (spread ? (k < overIdx ? -spread : spread) : 0)) + 'px';
-      card.style.zIndex = String(tight ? 1 + m - k : 1 + k);
-      card.classList.toggle('is-lifted', idx === lifted);
-      if (idx === 0) {
-        revealTop.style.left = (start + k * step + g.w / 2 - 22) + 'px';
-        revealTop.style.top = (g.h / 2 - 22) + 'px';
+      card.style.left = (boxLeft(it) - laneOff) + 'px';
+      card.style.zIndex = String(1 + kk);
+      card.classList.toggle('is-lifted', it.i === lifted);
+      if (it.i === 0) {
+        revealTop.style.left = (it.left + it.vis / 2 - laneOff - 22) + 'px';
+        revealTop.style.top = (h / 2 - 22) + 'px';
         revealTop.style.zIndex = String(2 + g.n);
       }
     });
+    // "Rivela tutto": lungo quanto le carte del mazzo A RIPOSO e sotto di loro, fermo anche con una carta in mano
+    const rest = rowItems(w, { holding: null });
+    spaceItems(rest, W);
+    const restDeck = rest.filter(it => it.kind === 'deck');
+    const restFirst = restDeck.length ? restDeck[0] : rest.find(it => it.kind === 'deckEmpty');
+    const restLast = restDeck.length ? restDeck[restDeck.length - 1] : restFirst;
+    revealAll.style.width = Math.max(44, restLast.right - restFirst.left) + 'px';
+    revealAll.style.marginLeft = (restFirst.left - laneOff) + 'px';
     lane.classList.toggle('is-squeezed', tight);
-    // v243: con una carta in mano (trascinata o selezionata) tutte le altre carte, del mazzo e degli scarti, scendono
-    // all'85% (style.css .is-holding)
+    // v243: con una carta in mano (trascinata o selezionata) tutte le altre carte scendono all'85% (.is-holding)
     dialog.classList.toggle('is-holding', tight);
-    // (con il mazzo stretto l'occhio della cima starebbe sopra la pila: sparisce finché non si rilascia)
+    lane.style.setProperty('--ae-lane-scale', '0.85');
     revealTop.hidden = !g.n || !!d.known[0] || tight;
-    // (v236: con il mazzo vuoto niente Cima e Fondo: la carta degli scarti va nel mazzo vuoto)
-    // (v266: carte vere del mazzo, senza il segnaposto della carta trascinata)
-    const mReal = m - (placeholderAt() >= 0 && order.includes(placeholderAt()) ? 1 : 0);
-    zoneTop.hidden = zoneBottom.hidden = !fromPile || !mReal;
-    // (v240: "Cima" e "Fondo" in orizzontale, il carattere si adatta alla larghezza della carta: 5 lettere ≈ 3,6em)
     lane.style.setProperty('--ae-zone-d', zd + 'px');
-    // Carta del mazzo in mano: gli scarti sono una destinazione, solo in fondo a destra. v244: lì c'è un cerchio come
-    // Cima e Fondo (tra l'ultimo scarto e il segmento), e la figura linea-cerchio-linea si centra su di lui
-    const toPile = !!over && over.type === 'pile';
-    // (v245: 4px dopo l'ultimo scarto, prima del segmento spostato)
-    // v249: a metà tra il bordo visibile dell'ultimo scarto (all'85% con una carta in mano; con zero scarti il posto
-    // tratteggiato, che non si rimpicciolisce) e il bordo sinistro del segmento
-    const pileLastRight = d.drawn.length ? pileW - (tight ? (1 - 0.85) * g.w / 2 : 0) : pileW;
-    const pileX = (pileLastRight + (pileW + ml)) / 2;
     pileArea.style.setProperty('--ae-zone-d', zd + 'px');
-    pileZone.hidden = !holdingDeck;
-    pileZone.classList.toggle('is-over', toPile);
-    Object.assign(pileZone.style, { left: (pileX - zd / 2) + 'px', top: (g.h / 2 - zd / 2) + 'px' });
-    pileInsert.hidden = !toPile;
-    if (toPile) {
-      // (v246: la guida è larga quanto il suo pallino, 6px: l'aspetto non cambia, linea e pallino sono centrati)
-      Object.assign(pileInsert.style, { left: (pileX - 3) + 'px', width: '6px', top: '0px', height: g.h + 'px' });
-    }
+    const top = one('top'), bottom = one('bottom');
+    zoneTop.hidden = !top;
+    zoneBottom.hidden = !bottom;
+    if (top) Object.assign(zoneTop.style, { left: (top.left - laneOff) + 'px', width: zd + 'px' });
+    if (bottom) Object.assign(zoneBottom.style, { left: (bottom.left - laneOff) + 'px', width: zd + 'px' });
+    // Cerchio d'arrivo degli scarti (carta del mazzo in mano) e la sua guida
+    const pz = one('pileZone');
+    const toPile = !!over && over.type === 'pile';
+    pileZone.hidden = !pz;
+    pileZone.classList.toggle('is-over', toPile && !!pz);
+    if (pz) Object.assign(pileZone.style, { left: pz.left + 'px', top: (h / 2 - zd / 2) + 'px' });
+    pileInsert.hidden = !(toPile && pz);
+    if (toPile && pz) Object.assign(pileInsert.style, { left: (pz.left + zd / 2 - 3) + 'px', width: '6px', top: '0px', height: h + 'px' });
+    const mReal = g.n - (st.dragDeck ? 1 : 0);
     lane.classList.toggle('is-empty-target', tight && !mReal);
-    // v247: centro del segmento verticale nella sua posizione FINALE (larghezza degli scarti + margine sinistro del
-    // segmento: 8px, o il posto per il cerchio degli scarti con una carta del mazzo in mano). Non offsetLeft: durante
-    // la transizione del margine darebbe la posizione di partenza. La cuspide dei titoli si centra qui
-    const split = pileW + (holdingDeck ? zdPre + 12 : 8) + 0.5;
+    // Titoli: la cuspide sul centro del segmento, "Scarti" a sinistra, "Mazzo turno" a destra
+    const split = dv.left + 0.5;
     board.style.setProperty('--ae-split', split + 'px');
     layoutHeads(split);
-    if (!g.n) fitEmpty(lw, g.h, g.w);
-    // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
-    // (v246: 4px dal bordo della carta come si vede, all'85% o meno)
-    // v249: centri dei cerchi a metà tra i vicini (in coordinate della corsia): Cima tra il bordo destro del segmento
-    // (-8) e il bordo visibile della prima carta (spostata a sinistra se le carte si allargano); Fondo tra il bordo
-    // visibile dell'ultima carta e il bordo della finestra (lw + edgeExtra)
-    const topX = (-8 + (startVis - spread)) / 2;
-    const bottomX = ((startVis + visStack + spread) + (lw + edgeExtra)) / 2;
-    if (fromPile) {
-      Object.assign(zoneTop.style, { left: (topX - zd / 2) + 'px', width: zd + 'px' });
-      Object.assign(zoneBottom.style, { left: (bottomX - zd / 2) + 'px', width: zd + 'px' });
-    }
-    const type = over ? over.type : null;
-    // v242: il cerchio si accende solo se la carta sta per andare lì (sopra il cerchio, o prima della prima carta /
-    // dopo l'ultima)
-    zoneTop.classList.toggle('is-over', tight && m > 0 && overIdx === 0);
-    zoneBottom.classList.toggle('is-over', tight && m > 0 && overIdx === m);
+    const empty = one('deckEmpty');
+    if (empty) fitEmpty(empty.left - laneOff, h, w);
+    rowGeo = { centers: deckObjs.map(it => it.left + it.vis / 2), split, n: m };
+    // Guida (linea-pallino-linea): sul cerchio di Cima o Fondo, oppure al centro dello spazio tra due carte
+    const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
+    zoneTop.classList.toggle('is-over', !!top && overIdx === 0);
+    zoneBottom.classList.toggle('is-over', !!bottom && overIdx === m);
     insertBar.hidden = !tight || !over || toPile;
-    if (tight && over && !toPile) {
-      // Figura linea-cerchio-linea (v244, prima un segmento): centrata sul cerchio di Cima o di Fondo, oppure tra due
-      // carte (a metà dello spazio tra la fine di una e l'inizio dell'altra); il cerchio è all'altezza dei cerchi
-      const i = type === 'top' ? 0 : type === 'bottom' ? m : over.index;
-      const x = !m ? lw / 2 : i <= 0 ? topX : i >= m ? bottomX
-        : start + (i - 1) * step + (g.w + step) / 2;
+    if (!insertBar.hidden) {
+      let x;
+      if (!m) x = empty ? empty.left + w / 2 : laneOff;
+      else if (overIdx <= 0) x = top ? top.left + zd / 2 : deckObjs[0].left - gap / 2;
+      else if (overIdx >= m) x = bottom ? bottom.left + zd / 2 : deckObjs[m - 1].right + gap / 2;
+      else x = deckObjs[overIdx - 1].right + gap / 2;
       // (v245: alta come le carte al 100%, dall'alto al basso della carta)
-      Object.assign(insertBar.style, { left: (x - 3) + 'px', width: '6px', height: g.h + 'px', top: '0px' });
+      Object.assign(insertBar.style, { left: (x - laneOff - 3) + 'px', width: '6px', height: h + 'px', top: '0px' });
     }
   }
   // v247: riga dei titoli. cx = centro del segmento verticale (in coordinate della riga). La cuspide (10px) è centrata
@@ -5329,12 +5321,12 @@ function openTurnScreen() {
   }
   // v251: "Mazzo vuoto" sta dentro il posto del mazzo, largo come una carta (lw: larghezza finale della corsia): il
   // carattere scende finché ci sta, anche su due righe ("Mazzo" sopra e "vuoto" sotto)
-  function fitEmpty(lw, h, w) {
+  // (v267: left = bordo sinistro del posto nella corsia, dalla disposizione equispaziata)
+  function fitEmpty(left, h, w) {
     const e = lane.querySelector('.ae-turn-fan-empty');
     if (!e) return;
-    // (largo come una carta, centrato nella corsia)
-    lw = Math.min(lw, w);
-    Object.assign(e.style, { left: '50%', right: 'auto', width: lw + 'px', transform: 'translateX(-50%)', fontSize: '' });
+    const lw = w;
+    Object.assign(e.style, { left: left + 'px', right: 'auto', width: lw + 'px', transform: 'none', fontSize: '' });
     // (misura del testo vero, con un Range: scrollWidth non vede il testo che esce da un contenitore a griglia)
     const range = document.createRange();
     range.selectNodeContents(e);
@@ -5351,11 +5343,13 @@ function openTurnScreen() {
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
   // della prima carta il cui centro è a destra di x
+  // (v267: dai centri delle carte nella disposizione finale, in coordinate della riga: il posto è il numero di carte
+  // il cui centro sta a sinistra di x; la riga non si sposta durante le transizioni, la corsia sì)
   function pileSlotAt(x) {
-    const t = tightGeo;
+    const t = rowGeo;
     if (!t || !t.n) return 0;
-    const rel = (x - lane.getBoundingClientRect().left) / pageZoom() - t.start - t.w / 2;
-    return Math.max(0, Math.min(t.n, Math.floor(rel / (t.step || 1)) + 1));
+    const rel = (x - row.getBoundingClientRect().left) / pageZoom();
+    return t.centers.filter(c => c < rel).length;
   }
 
   // Destinazioni permesse per la carta s (solo quelle si evidenziano): carta del mazzo = la corsia del mazzo; carta
@@ -5513,8 +5507,9 @@ function openTurnScreen() {
     if (!animate) { turnDraftOps.shuffle(d); sel = null; draw(); return; }
     shuffling = true;
     dialog.classList.add('is-shuffling');
-    // new_turn: le carte sono dritte in fila; si raccolgono al centro della fila
-    const cx = (g.n - 1) * (g.w + g.gap) / 2;
+    // new_turn: le carte sono dritte in fila; si raccolgono al centro della fila (v267: media delle posizioni, la fila
+    // è equispaziata)
+    const cx = fanEls.reduce((s, c) => s + parseFloat(c.style.left || 0), 0) / Math.max(1, fanEls.length);
     const toCenter = c => (cx - parseFloat(c.style.left)) + 'px';
     const gather = fanEls.map(c => c.animate([{ translate: '0 0' }, { translate: toCenter(c) + ' 0' }],
       { duration: 220, easing: 'ease-in', fill: 'forwards' }));
