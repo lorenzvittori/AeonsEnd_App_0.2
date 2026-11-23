@@ -3415,7 +3415,12 @@ function ensureLivesRow() {
     tag.setAttribute('aria-hidden', 'true');
     b.appendChild(tag);
     b.setAttribute('aria-haspopup', 'dialog');
-    b.addEventListener('click', () => openLifeDialog(kind));
+    b.addEventListener('click', () => {
+      // (v270: il click che chiude uno scrubbing non apre la finestra)
+      if (b.dataset.scrubbed) { delete b.dataset.scrubbed; return; }
+      openLifeDialog(kind);
+    });
+    lifeScrub(b, kind);
     return b;
   };
   livesRow.append(box('grave'), box('nemesis'));
@@ -3439,10 +3444,82 @@ function renderLives() {
   setBg(row.querySelector('[data-kind="nemesis"]'), art && art.portrait);
   [['grave', I18N_IT.graveholdName, graveLife], ['nemesis', settings.nemesis || '', nemesisLife]].forEach(([kind, name, value]) => {
     const b = row.querySelector(`[data-kind="${kind}"]`);
-    b.querySelector('.ae-life-value').textContent = String(value);
+    // (v270: il numero si riscrive solo se è cambiato: dopo uno scrubbing le cifre stanno ancora scorrendo)
+    const v = b.querySelector('.ae-life-value');
+    if (v.dataset.shown !== String(value) && !b.classList.contains('is-scrubbing')) {
+      v.textContent = String(value);
+      v.dataset.shown = String(value);
+    }
     b.classList.toggle('is-zero', value <= 0);
     b.setAttribute('aria-label', I18N_IT.lifeAria(name, value));
   });
+}
+
+// v270: number scrubbing sui box delle vite: tenendo premuto e trascinando in orizzontale la vita cambia di 1 ogni
+// LIFE_SCRUB_PX (a destra sale, a sinistra scende; mai sopra il massimo né sotto 0, come nella finestra), con le cifre
+// che scorrono (renderLifeDigits). Al rilascio la vita si applica una volta sola (un passo di undo, si salva); a 0 →
+// Vittoria o Sconfitta. Un tocco senza trascinare apre ancora la finestra. In verticale la pagina scorre come prima
+// (touch-action: pan-y)
+const LIFE_SCRUB_PX = 14, LIFE_SCRUB_START = 6;
+function lifeScrub(b, kind) {
+  let s = null;
+  const grave = kind === 'grave';
+  const cur = () => grave ? graveLife : nemesisLife;
+  b.addEventListener('pointerdown', e => {
+    if (e.button > 0 || ui.isTransitioning || modals.length) return;
+    s = { x: e.clientX, y: e.clientY, id: e.pointerId, start: cur(), value: cur(), on: false,
+      cap: Math.max(cur(), grave ? GRAVEHOLD_LIFE : nemesisStartLife()) };
+  });
+  b.addEventListener('pointermove', e => {
+    if (!s || e.pointerId !== s.id) return;
+    const dx = e.clientX - s.x;
+    if (!s.on) {
+      // (parte solo se il dito va più di lato che in su o in giù)
+      if (Math.abs(dx) < LIFE_SCRUB_START || Math.abs(dx) < Math.abs(e.clientY - s.y)) {
+        if (Math.abs(e.clientY - s.y) > LIFE_SCRUB_START) s = null;
+        return;
+      }
+      s.on = true;
+      s.x = e.clientX;
+      try { b.setPointerCapture(e.pointerId); } catch (err) { /* niente cattura */ }
+      b.classList.add('is-scrubbing');
+      return;
+    }
+    e.preventDefault();
+    const next = Math.min(s.cap, Math.max(0, s.start + Math.round(dx / LIFE_SCRUB_PX)));
+    if (next === s.value) return;
+    const v = b.querySelector('.ae-life-value');
+    renderLifeDigits(v, String(next), String(s.value), next < s.value ? -1 : 1);
+    v.dataset.shown = String(next);
+    s.value = next;
+    b.classList.toggle('is-loss', next < s.start);
+    b.classList.toggle('is-gain', next > s.start);
+    if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) {
+      try { navigator.vibrate(5); } catch (err) { /* niente vibrazione */ }
+    }
+  });
+  const end = apply => e => {
+    if (!s || e.pointerId !== s.id) return;
+    const { on, value, start } = s;
+    s = null;
+    if (!on) return;
+    b.classList.remove('is-scrubbing', 'is-loss', 'is-gain');
+    b.dataset.scrubbed = '1';
+    setTimeout(() => { delete b.dataset.scrubbed; }, 0);
+    if (!apply || value === start) {
+      if (value !== start) {
+        const v = b.querySelector('.ae-life-value');
+        renderLifeDigits(v, String(start), String(value), start < value ? -1 : 1);
+        v.dataset.shown = String(start);
+      }
+      return;
+    }
+    act(() => { if (grave) graveLife = value; else nemesisLife = value; });
+    render();
+    if (value === 0) { if (grave) showDefeat(); else showVictory(); }
+  };
+  b.addEventListener('pointerup', end(true));
+  b.addEventListener('pointercancel', end(false));
 }
 
 // v254: finestra della vita di Gravehold o della nemesi, come quella del minion: numero, −5 −1 +1 +5 (mai sopra la vita
@@ -4935,12 +5012,13 @@ function openTurnScreen() {
     const rr = row.getBoundingClientRect();
     // (v267: centro del segmento nella disposizione finale, non dove si trova a metà transizione)
     const split = rowGeo ? rr.left + rowGeo.split * pageZoom() : (() => { const dv = divider.getBoundingClientRect(); return dv.left + dv.width / 2; })();
-    // (v269: in verticale solo l'altezza delle carte, niente più 24px sopra e sotto)
     return x >= rr.left - 24 && x < split && inCardBand(y, laneRect);
   }
-  // v269: fascia verticale delle carte (dall'alto al basso della corsia del mazzo): le zone di rilascio non vanno oltre
+  // Fascia verticale delle zone di rilascio: le carte più 24px sopra e (v270) 32px sotto (v269: solo le carte, troppo
+  // stretta)
+  const DROP_PAD_TOP = 24, DROP_PAD_BOTTOM = 32;
   function inCardBand(y, laneRect) {
-    return y >= laneRect.top && y <= laneRect.bottom;
+    return y >= laneRect.top - DROP_PAD_TOP && y <= laneRect.bottom + DROP_PAD_BOTTOM;
   }
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
@@ -5113,13 +5191,19 @@ function openTurnScreen() {
   // Mette in fila gli oggetti con spazi uguali; restituisce lo spazio.
   // v269: lo spazio è al massimo TURN_GAP_MAX (prima riempiva tutta la riga: con poche carte spazi enormi); la fila
   // sta al centro della riga. Gli oggetti con it.on non sono in fila: stanno al centro dell'oggetto it.on
-  const TURN_GAP_MAX = 12;
+  // v270: tra due carte vicine (scarti-scarti, mazzo-mazzo) lo spazio è la METÀ (CARD_GAP_K) di quello tra gli altri
+  // oggetti (carta-cerchio, cerchio-segmento, carta-segmento); quando la guida sta tra due carte, quelle due si scostano
+  // (layoutFan, TURN_SPREAD)
+  const TURN_GAP_MAX = 12, CARD_GAP_K = 0.5, TURN_SPREAD = 3;
+  const isCardItem = it => it.kind === 'pile' || it.kind === 'deck' || it.kind === 'pileEmpty' || it.kind === 'deckEmpty';
   function spaceItems(items, W) {
     const flow = items.filter(it => !it.on);
     const sum = flow.reduce((s, it) => s + it.vis, 0);
-    const g = flow.length > 1 ? Math.min(TURN_GAP_MAX, (W - sum) / (flow.length - 1)) : 0;
-    let x = Math.max(0, (W - sum - g * Math.max(0, flow.length - 1)) / 2);
-    flow.forEach(it => { it.left = x; it.right = x + it.vis; x = it.right + g; });
+    const f = flow.slice(1).map((it, i) => isCardItem(it) && isCardItem(flow[i]) ? CARD_GAP_K : 1);
+    const units = f.reduce((s, x) => s + x, 0);
+    const g = units ? Math.min(TURN_GAP_MAX, (W - sum) / units) : 0;
+    let x = Math.max(0, (W - sum - g * units) / 2);
+    flow.forEach((it, i) => { it.left = x; it.right = x + it.vis; x = it.right + g * (f[i] || 0); });
     items.forEach(it => {
       if (!it.on) return;
       it.left = it.on.left + it.on.vis / 2 - it.vis / 2;
@@ -5201,11 +5285,17 @@ function openTurnScreen() {
     // Mazzo (coordinate della corsia = riga − laneOff)
     const deckObjs = items.filter(it => it.kind === 'deck');
     const m = deckObjs.length;
+    // (posto della guida nella fila vista: 0 = prima della prima carta, m = dopo l'ultima)
+    const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
+    // v270: guida tra due carte del mazzo → quelle due si scostano di TURN_SPREAD ciascuna (la sinistra a sinistra, la
+    // destra a destra) per farle spazio; solo da vedere: posti d'arrivo e centri (rowGeo) restano quelli senza scosto
+    const spreadAt = tight && over && over.type === 'pos' && overIdx > 0 && overIdx < m ? overIdx : -1;
+    const shiftOf = kk => spreadAt < 0 ? 0 : kk === spreadAt - 1 ? -TURN_SPREAD : kk === spreadAt ? TURN_SPREAD : 0;
     fanEls.forEach(c => c.classList.remove('is-away'));
     deckObjs.forEach((it, kk) => {
       const card = fanEls[it.i];
       if (!card) return;
-      card.style.left = (boxLeft(it) - laneOff) + 'px';
+      card.style.left = (boxLeft(it) + shiftOf(kk) - laneOff) + 'px';
       card.style.zIndex = String(1 + kk);
       card.classList.toggle('is-lifted', it.i === lifted);
       if (it.i === 0) {
@@ -5254,7 +5344,6 @@ function openTurnScreen() {
     if (empty) fitEmpty(empty.left - laneOff, h, w);
     rowGeo = { centers: deckObjs.map(it => it.left + it.vis / 2), split, n: m };
     // Guida (linea-pallino-linea): sul cerchio di Cima o Fondo, oppure al centro dello spazio tra due carte
-    const overIdx = !over ? -1 : over.type === 'top' ? 0 : over.type === 'bottom' ? m : over.type === 'pos' ? over.index : -1;
     zoneTop.classList.toggle('is-over', !!top && overIdx === 0);
     zoneBottom.classList.toggle('is-over', !!bottom && overIdx === m);
     insertBar.hidden = !tight || !over || toPile;
@@ -5263,7 +5352,7 @@ function openTurnScreen() {
       if (!m) x = empty ? empty.left + w / 2 : laneOff;
       else if (overIdx <= 0) x = top ? top.left + zd / 2 : deckObjs[0].left - gap / 2;
       else if (overIdx >= m) x = bottom ? bottom.left + zd / 2 : deckObjs[m - 1].right + gap / 2;
-      else x = deckObjs[overIdx - 1].right + gap / 2;
+      else x = (deckObjs[overIdx - 1].right + deckObjs[overIdx].left) / 2;
       // (v245: alta come le carte al 100%, dall'alto al basso della carta)
       Object.assign(insertBar.style, { left: (x - laneOff - 3) + 'px', width: '6px', height: h + 'px', top: '0px' });
     }
@@ -5492,7 +5581,7 @@ function openTurnScreen() {
     else if (!inCardBand(y, laneRect)) target = null;
     else if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
-    else if (hit(laneRect, x, y, 24)) {
+    else if (x >= laneRect.left - 24 && x <= laneRect.right + 24) {
       if (order.length) {
         shownPos = pileSlotAt(x);
         target = { type: 'pos', index: ph >= 0 && shownPos > ph ? shownPos - 1 : shownPos };

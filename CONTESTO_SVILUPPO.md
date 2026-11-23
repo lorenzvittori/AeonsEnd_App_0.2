@@ -347,8 +347,12 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         centro del posto tratteggiato (oggetti con `it.on` in `rowItems`: fuori dalla fila, centrati su un altro).
         Posti vuoti (scarti e mazzo) tratteggiati, grandi come una carta, con il simbolo **∅** (`emptySetIcon`, al
         posto della scritta "Mazzo vuoto", che resta come nome per i lettori di schermo); il simbolo sparisce quando
-        al centro c'è il cerchio o la guida. Le zone di rilascio valgono solo nell'**altezza delle carte**
-        (`inCardBand`; prima ±24px sopra e sotto). Mescola senza sfondo grigio al passaggio (sul telefono il `:hover`
+        al centro c'è il cerchio o la guida. Le zone di rilascio valgono nell'altezza delle carte più **24px sopra e
+        32px sotto** (`inCardBand`, v270; v269 solo le carte, prima ±24px). **v270**: tra due carte vicine
+        (scarti-scarti, mazzo-mazzo) lo spazio è la **metà** di quello tra gli altri oggetti (`CARD_GAP_K`: 6px
+        invece di 12px al massimo; a 375px w sale da 41 a 44px); con la guida tra due carte del mazzo quelle due si
+        **scostano** di 3px ciascuna (`TURN_SPREAD`, 6 → 12px; solo da vedere, i centri per `pileSlotAt` restano
+        quelli senza scosto) e la guida sta a metà tra le due. Mescola senza sfondo grigio al passaggio (sul telefono il `:hover`
         restava acceso dopo il tocco): lo sfondo c'è solo mentre è premuto.
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
@@ -584,6 +588,13 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
+  - **Number scrubbing** (v270, `lifeScrub`): tenendo premuto un box e trascinando in orizzontale la vita cambia di
+    1 ogni 14px (`LIFE_SCRUB_PX`; a destra sale, a sinistra scende, tra 0 e il massimo come nella finestra), con le
+    cifre che scorrono nel box (`renderLifeDigits`, maschera sul bordo della riga del numero). Parte dopo 6px di lato
+    (più di lato che in verticale; in verticale la pagina scorre, `touch-action: pan-y`); mentre si trascina il box è
+    al 108% con il bordo dorato, rosso se la vita è scesa, verde se è salita. Al rilascio un solo `act` (un passo di
+    undo, si salva); a 0 Vittoria o Sconfitta; il click che segue non apre la finestra. `renderLives` riscrive il
+    numero solo se è cambiato (`data-shown`), così le cifre finiscono di scorrere.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
     stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px,
     sempre bianco con un contorno grigio scuro attorno alle cifre, v263; il velo nero della v261 è tolto; a destra
