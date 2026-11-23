@@ -3460,6 +3460,10 @@ function openLifeDialog(kind) {
   if (bg) { dialog.style.setProperty('--ae-life-bg', bg); dialog.classList.add('has-bg'); }
   const number = el('p', 'ae-life-modal-number');
   number.setAttribute('aria-live', 'polite');
+  // v260: in basso a destra del numero il cambio rispetto a prima ("+x" / "−y"), solo se c'è
+  const value = el('span', 'ae-life-modal-value');
+  const delta = el('span', 'ae-life-modal-delta');
+  number.append(value, delta);
   const controls = el('div', 'ae-life-modal-controls');
   const steps = [];
   [-5, -1, 1, 5].forEach(step => {
@@ -3473,8 +3477,10 @@ function openLifeDialog(kind) {
   });
   dialog.append(number, controls);
   function update() {
-    number.textContent = String(draft);
+    value.textContent = String(draft);
     const change = draft - original;
+    delta.textContent = change > 0 ? '+' + change : change < 0 ? '−' + Math.abs(change) : '';
+    delta.hidden = change === 0;
     number.classList.toggle('is-loss', change < 0);
     number.classList.toggle('is-gain', change > 0);
     steps.forEach(([step, b]) => { b.disabled = step > 0 ? draft >= cap : draft <= 0; });

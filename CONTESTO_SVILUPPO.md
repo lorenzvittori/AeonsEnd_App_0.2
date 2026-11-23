@@ -564,7 +564,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
     stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px, rosso
-    se scende, verde se sale), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    se scende, verde se sale; dalla v260 in basso a destra del numero il cambio rispetto a prima, "+x" / "−y", solo se
+    c'è), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
     Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
     volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della

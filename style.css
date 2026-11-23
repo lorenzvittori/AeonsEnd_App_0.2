@@ -1889,6 +1889,10 @@ body { overflow: hidden; }
   margin: 0; font: 700 64px/72px var(--ae-font-ui); font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 6px rgba(0, 0, 0, .9); transition: color .15s;
 }
+/* v260: delta in basso a destra del numero, fuori dal flusso (il numero resta centrato) */
+.ae-life-modal-number { position: relative; }
+.ae-life-modal-delta { position: absolute; left: 100%; bottom: 8px; margin-left: 4px; font-size: 20px; line-height: 24px; white-space: nowrap; }
+.ae-life-modal-delta[hidden] { display: none; }
 .ae-life-modal-number.is-loss { color: #f08a78; }
 .ae-life-modal-number.is-gain { color: #8fd39a; }
 .ae-life-modal-controls { display: flex; align-items: center; gap: 8px; }
