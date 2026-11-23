@@ -3409,7 +3409,12 @@ function ensureLivesRow() {
     b.type = 'button';
     b.dataset.kind = kind;
     // v257: solo il numero (niente nome né goccia); il nome resta nell'etichetta per i lettori di schermo
-    b.append(el('span', 'ae-life-value'));
+    // (v273: numero e, durante lo scrubbing, il cambio "+x" / "−y" a destra in alto, come nella finestra)
+    const num = el('span', 'ae-life-num');
+    const delta = el('span', 'ae-life-box-delta');
+    delta.setAttribute('aria-hidden', 'true');
+    num.append(el('span', 'ae-life-value'), delta);
+    b.append(num);
     // v262: scritta piccolissima sopra il box (alta 7px, solo da vedere: il nome è già nell'etichetta del pulsante)
     const tag = el('span', 'ae-life-tag', kind === 'grave' ? 'Gravehold' : 'Nemesis');
     tag.setAttribute('aria-hidden', 'true');
@@ -3496,6 +3501,8 @@ function lifeScrub(b, kind) {
     s.value = next;
     b.classList.toggle('is-loss', next < s.start);
     b.classList.toggle('is-gain', next > s.start);
+    const change = next - s.start;
+    b.querySelector('.ae-life-box-delta').textContent = change > 0 ? '+' + change : change < 0 ? '−' + Math.abs(change) : '';
     if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) {
       try { navigator.vibrate(5); } catch (err) { /* niente vibrazione */ }
     }
@@ -3506,6 +3513,7 @@ function lifeScrub(b, kind) {
     s = null;
     if (!on) return;
     b.classList.remove('is-scrubbing', 'is-loss', 'is-gain');
+    b.querySelector('.ae-life-box-delta').textContent = '';
     b.dataset.scrubbed = '1';
     setTimeout(() => { delete b.dataset.scrubbed; }, 0);
     if (!apply || value === start) {

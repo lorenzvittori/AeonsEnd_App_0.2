@@ -593,7 +593,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     nella finestra), con le cifre che scorrono nel box (`renderLifeDigits`, maschera sul bordo della riga del numero).
     Parte dopo 6px in verticale (più in verticale che di lato; sul box la pagina non scorre, `touch-action: none`); mentre si trascina il box è
     al 108% con il bordo dorato, rosso se la vita è scesa, verde se è salita. Al rilascio un solo `act` (un passo di
-    undo, si salva); a 0 Vittoria o Sconfitta; il click che segue non apre la finestra. `renderLives` riscrive il
+    undo, si salva); a 0 Vittoria o Sconfitta; il click che segue non apre la finestra. Dalla v273 durante lo
+    scrubbing a destra del numero, in alto (cime delle cifre alla stessa altezza, `top: 2.75px`), il cambio "+x"
+    verde / "−y" rosso, 11px, come nella finestra (`.ae-life-box-delta` dentro `.ae-life-num`); sparisce al rilascio. `renderLives` riscrive il
     numero solo se è cambiato (`data-shown`), così le cifre finiscono di scorrere.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
     stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px,
