@@ -91,6 +91,7 @@ const I18N_IT = {
   victoryTitle: 'Vittoria',
   defeatTitle: 'Sconfitta',
   graveholdName: 'Gravehold',
+  nemesisWord: 'Nemesi',
   lifeKind: 'Punti vita',
   lifeAria: (name, n) => `${name}: ${n} punti vita. Tocca per cambiare`,
   nemesisKilled: 'Nemesi uccisa',
@@ -3481,7 +3482,9 @@ function openLifeDialog(kind) {
     if (step === 1) controls.appendChild(el('span', 'ae-life-step-gap'));
     controls.appendChild(b);
   });
-  dialog.append(number, controls);
+  // v265: sopra la pillola, in Cinzel, "Gravehold" o "Nemesi" (fa parte della finestra: si ingrandisce con lei)
+  const title = el('h2', 'ae-life-modal-title', grave ? I18N_IT.graveholdName : I18N_IT.nemesisWord);
+  dialog.append(title, number, controls);
   let shown = null;
   function update() {
     renderLifeDigits(value, String(draft), shown === null ? null : String(shown), draft < shown ? -1 : 1);

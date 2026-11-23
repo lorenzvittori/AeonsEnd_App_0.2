@@ -1934,6 +1934,13 @@ body { overflow: hidden; }
 .ae-life-digit { display: inline-block; }
 .ae-life-digit--old { position: absolute; left: 0; top: 0; }
 .ae-life-digit--old.is-alone { position: static; }
+/* v265: titolo in Cinzel sopra la pillola (fuori dalla forma, ma dentro la finestra per l'animazione) */
+.ae-life-modal { position: relative; }
+.ae-life-modal-title {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 12px); margin: 0; text-align: center;
+  font: 600 26px/32px var(--ae-font-display); letter-spacing: .04em; color: var(--ae-text);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .85); pointer-events: none;
+}
 /* v263: ingrandimento dal box (animato da JS): niente animazione d'entrata standard */
 .ae-life-modal.is-zooming { animation: none; }
 .ae-life-modal-number.is-loss .ae-life-modal-delta { color: #f08a78; }

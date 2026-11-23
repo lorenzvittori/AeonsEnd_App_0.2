@@ -577,7 +577,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     Dalla v264 le cifre **scorrono** (`renderLifeDigits`, 260ms): ogni cifra ha il suo posto, la maschera è il bordo
     alto e basso della riga del numero (`clip-path`); scendendo la cifra vecchia sale e sparisce sotto la linea in alto
     mentre la nuova arriva da sotto quella in basso (salendo il contrario), la vecchia sfuma e la nuova compare. Solo
-    le cifre che cambiano (unità con unità, decine con decine; 10 → 9: la decina se ne va) (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    le cifre che cambiano (unità con unità, decine con decine; 10 → 9: la decina se ne va). Dalla v265 sopra la
+    pillola il titolo in Cinzel **Gravehold** o **Nemesi** (`.ae-life-modal-title`, 26px, 12px sopra la pillola; fa
+    parte della finestra e si ingrandisce con lei) (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
     Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
     volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
