@@ -1927,6 +1927,13 @@ body { overflow: hidden; }
 }
 .ae-life-modal-delta { text-shadow: none; }
 .ae-life-modal-delta { top: 7px; bottom: auto; margin-left: 10px; }
+/* v264: cifre che scorrono (renderLifeDigits). La maschera è il bordo alto e basso della riga del numero: si taglia
+   solo in verticale (ai lati c'è spazio per il contorno) */
+.ae-life-modal-value { display: inline-flex; clip-path: inset(0 -12px); }
+.ae-life-digit-slot { position: relative; display: inline-block; }
+.ae-life-digit { display: inline-block; }
+.ae-life-digit--old { position: absolute; left: 0; top: 0; }
+.ae-life-digit--old.is-alone { position: static; }
 /* v263: ingrandimento dal box (animato da JS): niente animazione d'entrata standard */
 .ae-life-modal.is-zooming { animation: none; }
 .ae-life-modal-number.is-loss .ae-life-modal-delta { color: #f08a78; }

@@ -3482,8 +3482,10 @@ function openLifeDialog(kind) {
     controls.appendChild(b);
   });
   dialog.append(number, controls);
+  let shown = null;
   function update() {
-    value.textContent = String(draft);
+    renderLifeDigits(value, String(draft), shown === null ? null : String(shown), draft < shown ? -1 : 1);
+    shown = draft;
     const change = draft - original;
     delta.textContent = change > 0 ? '+' + change : change < 0 ? '−' + Math.abs(change) : '';
     delta.hidden = change === 0;
@@ -3534,6 +3536,38 @@ function openLifeDialog(kind) {
   }
 }
 const LIFE_ZOOM_MS = 280;
+
+// v264: cifre della vita che scorrono. Ogni cifra ha il suo posto; sopra e sotto il numero c'è una maschera (il bordo
+// della riga, clip-path su .ae-life-modal-value). Quando una cifra cambia, scendendo (−) la vecchia sale e sparisce
+// sotto la linea in alto mentre la nuova arriva da sotto la linea in basso; salendo (+) il contrario. La vecchia
+// diventa via via trasparente, la nuova il contrario. Cifre allineate da destra (unità con unità, decine con decine).
+const LIFE_DIGIT_MS = 260;
+function renderLifeDigits(holder, text, before, dir) {
+  holder.replaceChildren();
+  const animate = before !== null && before !== text && !reducedMotion.matches && !!holder.animate;
+  const len = Math.max(text.length, before ? before.length : 0);
+  // dir −1 (scende): la vecchia va su (−100%), la nuova arriva da giù (+100%); dir +1 il contrario (% dell'altezza)
+  const out = dir * 100, inFrom = -dir * 100;
+  const opts = { duration: LIFE_DIGIT_MS, easing: 'cubic-bezier(.3, 0, .2, 1)' };
+  for (let i = len - 1; i >= 0; i--) {
+    const now = text[text.length - len + i] || '';
+    const old = before ? before[before.length - len + i] || '' : '';
+    const slot = el('span', 'ae-life-digit-slot');
+    if (now) slot.appendChild(el('span', 'ae-life-digit', now));
+    holder.prepend(slot);
+    if (!animate || now === old) continue;
+    const digit = slot.querySelector('.ae-life-digit');
+    if (digit) digit.animate([{ transform: `translateY(${inFrom}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], opts);
+    if (old) {
+      const ghost = el('span', 'ae-life-digit ae-life-digit--old' + (now ? '' : ' is-alone'), old);
+      ghost.setAttribute('aria-hidden', 'true');
+      slot.appendChild(ghost);
+      const a = ghost.animate([{ transform: 'none', opacity: 1 }, { transform: `translateY(${out}%)`, opacity: 0 }], { ...opts, fill: 'forwards' });
+      // la cifra che se ne va senza una nuova al suo posto (per esempio 10 → 9) tiene il posto finché scorre
+      animDone([a], LIFE_DIGIT_MS).then(() => { if (now) ghost.remove(); else slot.remove(); });
+    }
+  }
+}
 
 // Fascia del turno nemesi dentro .ae-rail-row (creata qui una volta sola) e classi della fase di pesca
 function renderResolveInfo(drawStep) {

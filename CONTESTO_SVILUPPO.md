@@ -573,7 +573,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     sempre bianco con un contorno grigio scuro attorno alle cifre, v263; il velo nero della v261 è tolto; a destra
     delle cifre, 10px dopo e IN ALTO, il cambio rispetto a prima "+x" verde / "−y" rosso, senza contorno, con la cima
     delle cifre alla stessa altezza di quella della vita), sotto **−5 −1 · +1 +5**. Dalla v263 la finestra esce dal
-    box e si ingrandisce al centro (280ms, `LIFE_ZOOM_MS`); chiudendo torna nel box (il box è nascosto mentre è aperta) (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    box e si ingrandisce al centro (280ms, `LIFE_ZOOM_MS`); chiudendo torna nel box (il box è nascosto mentre è aperta).
+    Dalla v264 le cifre **scorrono** (`renderLifeDigits`, 260ms): ogni cifra ha il suo posto, la maschera è il bordo
+    alto e basso della riga del numero (`clip-path`); scendendo la cifra vecchia sale e sparisce sotto la linea in alto
+    mentre la nuova arriva da sotto quella in basso (salendo il contrario), la vecchia sfuma e la nuova compare. Solo
+    le cifre che cambiano (unità con unità, decine con decine; 10 → 9: la decina se ne va) (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
     Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
     volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
