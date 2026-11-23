@@ -1850,3 +1850,6 @@ body { overflow: hidden; }
 .ae-turn-head--deck.is-two-lines .ae-turn-head-w { display: block; }
 /* v251: "Mazzo vuoto" dentro il posto del mazzo (largo una carta), anche su due righe; il carattere lo adatta JS */
 .ae-turn-lane .ae-turn-fan-empty { line-height: 1.15; padding: 0; overflow-wrap: normal; word-break: normal; box-sizing: border-box; }
+/* v252: cuspide 14x8, mai stirata (stesse misure del viewBox) */
+.ae-turn-divider .ae-turn-cusp { width: 14px; height: 8px; }
+.ae-turn-divider .ae-turn-cusp svg { width: 14px; height: 8px; }

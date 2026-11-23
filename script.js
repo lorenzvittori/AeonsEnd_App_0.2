@@ -4624,8 +4624,8 @@ function openTurnScreen() {
   // translateX(-50%), sopra di lui con uno spazio vuoto di --ae-cusp-gap (4px) tra la punta e l'inizio del segmento.
   // Così si muove con la sua stessa transizione e si arrotonda ai pixel insieme a lui (prima era un oggetto a parte nella
   // riga dei titoli, posizionato copiando la posizione del segmento: a densità non intere poteva stare 1-2px a destra).
-  // Niente più trattino verticale dopo la punta (v249 "M7,8 V…"). L'altezza (dalla linea dei titoli alla punta) dipende
-  // dalla misura delle carte e la calcola layoutHeads (cuspPath(h))
+  // Niente più trattino verticale dopo la punta (v249 "M7,8 V…"). (v250-v251 altezza variabile; v252 fissa 14x8 con due
+  // archi di circonferenza, qui sotto)
   const CUSP_W = 14;
   // v250: le distanze lette dalla pagina (getBoundingClientRect) si riportano in pixel CSS, quelli degli stili: con uno
   // zoom CSS della pagina sarebbero ingrandite (rapporto tra larghezza misurata e larghezza CSS della riga)
@@ -4634,14 +4634,14 @@ function openTurnScreen() {
     const z = w ? row.getBoundingClientRect().width / w : 1;
     return z > 0.1 ? z : 1;
   }
-  function cuspPath(h) {
-    const mid = CUSP_W / 2, tip = h - 0.5;
-    const d = `M0,0.5 C4,0.5 ${mid},${tip - 4} ${mid},${tip} C${mid},${tip - 4} ${CUSP_W - 4},0.5 ${CUSP_W},0.5`;
-    return `<svg viewBox="0 0 ${CUSP_W} ${h}" width="${CUSP_W}" height="${h}" focusable="false">` +
-      `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>`;
-  }
-  cusp.innerHTML = cuspPath(8.5);
-  let cuspH = -1;
+  // v252: due archi di circonferenza identici (raggio 7, prima curve di Bézier che sembravano ellissi): il sinistro di
+  // centro (0,7), dal punto (0,0) con tangente orizzontale (raccordato alla linea) alla punta (7,7) con tangente
+  // verticale; il destro di centro (14,7), dalla punta a (14,0). Mezzo pixel per lo spessore 1px. SVG 14x8 come il
+  // viewBox, mai stirato. La punta sta --ae-cusp-gap (4px) sopra il segmento: la riga delle carte si sposta in verticale
+  // perché il segmento cominci a 28px dall'alto dei titoli (layoutFan)
+  const CUSP_H = 8;
+  cusp.innerHTML = '<svg viewBox="0 0 14 8" width="14" height="8" focusable="false">' +
+    '<path d="M0,0.5 A7,7 0 0 1 7,7.5 A7,7 0 0 1 14,0.5" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>';
   divider.appendChild(cusp);
   heads.append(...headLines, pileHead, deckHead, shuffleBtn);
   const board = el('div', 'ae-turn-board');
@@ -4716,9 +4716,14 @@ function openTurnScreen() {
   pileZone.hidden = true;
   pileArea.appendChild(pileZone);
   // Tocco sugli scarti con una carta del mazzo selezionata: la carta va in fondo agli scarti
-  pileArea.addEventListener('click', () => {
-    if (sel && sel.source === 'deck') dropOn({ type: 'pile' }, sel);
+  // (v253: col tocco la zona degli scarti è la stessa del trascinamento: tutta l'area a sinistra del segmento)
+  row.addEventListener('click', e => {
+    if (sel && sel.source === 'deck' && inPileZone(e.clientX, e.clientY, lane.getBoundingClientRect())) dropOn({ type: 'pile' }, sel);
   });
+  function inPileZone(x, y, laneRect) {
+    const dv = divider.getBoundingClientRect(), rr = row.getBoundingClientRect();
+    return x >= rr.left - 24 && x < dv.left + dv.width / 2 && y >= laneRect.top - 24 && y <= laneRect.bottom + 24;
+  }
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
   revealAll.setAttribute('aria-label', I18N_IT.turnRevealAllLabel);
@@ -4883,6 +4888,10 @@ function openTurnScreen() {
     const m = order.length;
     row.style.setProperty('--ae-turn-w', g.w + 'px');
     row.style.setProperty('--ae-turn-h', g.h + 'px');
+    // (v252: il segmento verticale sporge del 10% sopra le carte; la riga delle carte scende quanto serve perché il
+    // segmento cominci a 16 + 8 (cuspide) + 4 (spazio) = 28px dall'alto della riga dei titoli, alta 32px)
+    const cuspGap = parseFloat(getComputedStyle(divider).getPropertyValue('--ae-cusp-gap')) || 4;
+    row.style.marginTop = (16 + CUSP_H + cuspGap - 32 + 0.1 * g.h) + 'px';
     const tight = squeezed();
     // v242: i cerchi Cima e Fondo ci sono con qualunque carta in mano (v238-v241 solo con una carta degli scarti)
     const fromPile = tight;
@@ -5063,13 +5072,6 @@ function openTurnScreen() {
     // (v251: senza Mescola la scritta arriva al bordo destro della riga delle carte, mai oltre: v248-v250 poteva usare
     // 12px del margine della finestra)
     const right = shuffleBtn.hidden || !iconEl ? W : Math.min(W, (iconEl.getBoundingClientRect().left - hr.left) / pageZoom() - HEAD_GAP);
-    // (v250: la cuspide è nel segmento verticale, in orizzontale non serve posizionarla. Qui solo la sua altezza: dalla
-    // linea dei titoli, a 16px dall'alto della loro riga, fino a --ae-cusp-gap sopra l'inizio del segmento. La posizione
-    // verticale non ha transizioni, quindi leggerla dalla pagina è sicuro)
-    const gap = parseFloat(getComputedStyle(divider).getPropertyValue('--ae-cusp-gap')) || 4;
-    const divTop = (divider.getBoundingClientRect().top - hr.top) / pageZoom();
-    const h = Math.round((divTop - gap - 16) * 4) / 4;
-    if (h !== cuspH && isFinite(h) && h > 2) { cuspH = h; cusp.innerHTML = cuspPath(h); }
     // Scarti: tra 0 e la cuspide
     const leftEnd = cx - CUSP_HALF;
     let grow = fitHeadNoGrow(pileHead, Math.max(0, leftEnd - HEAD_GAP));
@@ -5254,7 +5256,9 @@ function openTurnScreen() {
     const laneRect = lane.getBoundingClientRect();
     // v240: carta del mazzo sugli scarti (a sinistra del segmento): va in fondo a destra degli scarti (il turno di
     // quella carta è perso)
-    if (drag.source === 'deck' && x < laneRect.left - 8 && hit(pileArea.getBoundingClientRect(), x, y, 12)) target = { type: 'pile' };
+    // (v253: zona "scarti" = tutta l'area a sinistra del centro del segmento verticale, nella stessa fascia verticale
+    // della corsia del mazzo (±24px): nessuna fascia morta tra scarti e Cima; prima solo le carte degli scarti ±12px)
+    if (drag.source === 'deck' && inPileZone(x, y, laneRect)) target = { type: 'pile' };
     else if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
     else if (hit(laneRect, x, y, 24)) target = order.length ? { type: 'pos', index: pileSlotAt(x) } : { type: 'top' };

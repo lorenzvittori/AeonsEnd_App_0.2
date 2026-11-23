@@ -209,7 +209,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) i titoli. Dalla v247 sono **su una linea
       sottile**: `[linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola]` (`layoutHeads`).
       - **Linea e cuspide**: 1px, del colore delle scritte (`--ae-text-muted`), a metà altezza della riga dei titoli; la
-        **cuspide** (`.ae-turn-cusp`; v249 due curve di Bézier 14x8, `cuspPath`: ognuna parte tangente alla linea e
+        **cuspide** (`.ae-turn-cusp`; dalla v252 **due archi di circonferenza** di raggio 7, SVG 14x8 come il viewBox,
+        `d="M0,0.5 A7,7 0 0 1 7,7.5 A7,7 0 0 1 14,0.5"`; la riga delle carte scende quanto serve perché il segmento
+        cominci a 28px dall'alto dei titoli, 4px sotto la punta; v249-v251 curve di Bézier, ognuna parte tangente alla linea e
         arriva verticale nella punta; `vector-effect: non-scaling-stroke`; v247 una V 10x6). Dalla v250 è **figlia del
         segmento verticale** (`.ae-turn-divider .ae-turn-cusp`: left 50% + translateX(-50%), sopra di lui) con uno
         **spazio vuoto** di `--ae-cusp-gap` (4px) tra la punta e l'inizio del segmento, senza il trattino verticale
