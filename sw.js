@@ -4,7 +4,7 @@
 // - Immagini e font: prima la copia salvata (non cambiano), altrimenti la rete, e si salvano.
 // Le immagini delle carte del mazzo si scaricano all'inizio della partita (script.js, prefetchDeckImages).
 const CODE_CACHE = 'ae-code-v1';
-const MEDIA_CACHE = 'ae-media-v1';
+const MEDIA_CACHE = 'ae-media-v2'; // v256: carte turno rimesse com'erano prima di "nre cards" (stesso nome di file)
 const SHELL = ['./', 'index.html', 'version.json', 'manifest.webmanifest'];
 
 self.addEventListener('install', e => {

@@ -652,7 +652,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   file, senza `?v=N`). Immagini e font: prima la copia salvata. All'inizio o alla ripresa della partita si scaricano le
   immagini di tutte le carte in gioco nel mazzo (`prefetchDeckImages`), non con "Risparmio dati". Se un'immagine già
   pubblicata viene **sostituita** con lo stesso nome, i telefoni tengono la vecchia: in quel caso si cambia
-  `MEDIA_CACHE` in `sw.js` (per esempio `ae-media-v2`). Il workflow di Pages copia anche `sw.js` e
+  `MEDIA_CACHE` in `sw.js` (dalla v256 è `ae-media-v2`: le carte turno di `Assets/ui/turn-cards/` sono tornate quelle
+  di prima del commit "nre cards"). Il workflow di Pages copia anche `sw.js` e
   `manifest.webmanifest`.
 
 **Tablet e desktop (da 768px di larghezza)**
