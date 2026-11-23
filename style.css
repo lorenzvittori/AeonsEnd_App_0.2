@@ -1813,3 +1813,14 @@ body { overflow: hidden; }
 /* (v247: un tratto di linea che compare appare in dissolvenza dopo lo spostamento, come i cerchi-luogo) */
 .ae-turn-head-line { animation: ae-turn-appear .15s ease .2s backwards; }
 @media (prefers-reduced-motion: reduce) { .ae-turn-head-line { animation: none; } }
+/* v248: i cerchi-luogo (Cima, Fondo e il cerchio degli scarti) sono il cerchio a pennello dato dall'utente
+   (Assets/ui/icons/place-circle.webp, 64x64), stessa misura (--ae-zone-d) e stessa posizione di prima; spento
+   leggermente trasparente, acceso pieno con un alone (il pallino della guida ci entra dentro) */
+.ae-turn-lane .ae-turn-zone::before, .ae-turn-pile-zone {
+  border: 0; border-radius: 0; box-shadow: none; opacity: .75;
+  background: url('Assets/ui/icons/place-circle.webp') center / contain no-repeat;
+}
+.ae-turn-lane .ae-turn-zone.is-over::before, .ae-turn-pile-zone.is-over {
+  border: 0; box-shadow: none; opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 186, 72, .85));
+  background: url('Assets/ui/icons/place-circle.webp') center / contain no-repeat;
+}

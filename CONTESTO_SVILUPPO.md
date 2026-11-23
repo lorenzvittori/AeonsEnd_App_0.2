@@ -287,6 +287,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         alone, senza riempirsi). **Carta rivelata del mazzo verso gli scarti** (v244): in fondo a destra degli scarti c'è
         un cerchio-luogo (`.ae-turn-pile-zone`), spento finché la carta non ci sta per andare; dalla v245 il segmento
         verticale si sposta a destra per fargli posto (4px dopo l'ultimo scarto), così il cerchio non lo tocca.
+        **Aspetto dei cerchi-luogo** (v248): il cerchio a pennello dato dall'utente (`Assets/ui/icons/place-circle.webp`,
+        64x64 con trasparenza), stessa misura (`--ae-zone-d`) e posizione; spento al 75%, acceso pieno con un alone
+        (prima un cerchio disegnato con il bordo).
         **Mai sovrapposti** (v246): cerchi-luogo, guida, carte e segmento non si intersecano mai, nemmeno durante i
         movimenti.
         - **Stessa transizione** per tutto ciò che si sposta nella riga (carte, cerchi Cima/Fondo e degli scarti, guida,
