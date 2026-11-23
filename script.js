@@ -200,6 +200,9 @@ const I18N_IT = {
   background: 'Sfondo',
   backgroundChosen: name => `Sfondo: ${name}`,
   backgrounds: { masked: 'Nemesi mascherata', horned: 'Demone cornuto', maw: 'Bocca con tentacoli' },
+  graveholdBg: 'Sfondo Gravehold',
+  graveholdBgChosen: name => `Sfondo Gravehold: ${name}`,
+  graveholdBgs: { city: 'Città', tower: 'Torre' },
   cardBack: 'Dorso delle carte',
   cardBackChosen: name => `Dorso: ${name}`,
   cardBacks: {
@@ -3418,6 +3421,15 @@ function renderLives() {
   const anchor = resolving ? (rail.parentElement.classList.contains('ae-rail-row') ? rail.parentElement : rail) : ensureQueueRail();
   if (row.previousElementSibling !== anchor) anchor.after(row);
   row.hidden = !!ui.deckBuilding;
+  // v258: sfondi dei box: Gravehold = immagine scelta nel Menu; nemesi = ritratto della nemesi della partita
+  const setBg = (b, src) => {
+    if (src) b.style.setProperty('--ae-life-bg', `url("${encodeURI(src)}")`);
+    else b.style.removeProperty('--ae-life-bg');
+    b.classList.toggle('has-bg', !!src);
+  };
+  setBg(row.querySelector('[data-kind="grave"]'), currentGraveholdBg().src);
+  const art = settings.nemesis && nemesisArt[settings.nemesis];
+  setBg(row.querySelector('[data-kind="nemesis"]'), art && art.portrait);
   [['grave', I18N_IT.graveholdName, graveLife], ['nemesis', settings.nemesis || '', nemesisLife]].forEach(([kind, name, value]) => {
     const b = row.querySelector(`[data-kind="${kind}"]`);
     b.querySelector('.ae-life-value').textContent = String(value);
@@ -6602,6 +6614,32 @@ function setBackground(id) {
   applyBackground();
 }
 applyBackground();
+// Scelta dello sfondo di tutta l'app (Menu e Opzioni)
+const APP_BG_CHOICE = {
+  className: '', title: () => I18N_IT.background, list: BACKGROUNDS, current: currentBackground, set: setBackground,
+  name: id => I18N_IT.backgrounds[id], chosen: n => I18N_IT.backgroundChosen(n)
+};
+
+// v258: sfondo del box della vita di Gravehold (Assets/ui/gravehold/), scelto nel Menu della partita e salvato nel
+// browser (non fa parte della partita, niente undo). Il box della nemesi ha il ritratto della nemesi (renderLives).
+const GRAVEHOLD_BG_KEY = 'aeonsend-app-0.2-gravehold-bg';
+const GRAVEHOLD_BGS = [
+  { id: 'city', src: 'Assets/ui/gravehold/gravehold-city.webp' },
+  { id: 'tower', src: 'Assets/ui/gravehold/gravehold-tower.webp' }
+];
+function currentGraveholdBg() {
+  let id = null;
+  try { id = localStorage.getItem(GRAVEHOLD_BG_KEY); } catch (err) { /* si usa quello predefinito */ }
+  return GRAVEHOLD_BGS.find(b => b.id === id) || GRAVEHOLD_BGS[0];
+}
+function setGraveholdBg(id) {
+  try { localStorage.setItem(GRAVEHOLD_BG_KEY, id); } catch (err) { console.warn(err); }
+  renderLives();
+}
+const GRAVEHOLD_BG_CHOICE = {
+  className: ' ae-bg-choice--gravehold', title: () => I18N_IT.graveholdBg, list: GRAVEHOLD_BGS, current: currentGraveholdBg,
+  set: setGraveholdBg, name: id => I18N_IT.graveholdBgs[id], chosen: n => I18N_IT.graveholdBgChosen(n)
+};
 
 // v224: leave (facoltativo) = cosa chiudere prima di una voce che porta altrove (Menu aperto dalla finestra del mazzo
 // dei turni: la finestra si chiude prima di undo, scarti, vittoria, esci, ricomincia)
@@ -6619,6 +6657,10 @@ function openSideMenu(leave) {
   // Sfondo: anteprima dello sfondo scelto con il nome; si tocca per scegliere tra le anteprime di tutti gli sfondi
   const bgRow = el('div', 'ae-side-field ae-side-field--row');
   bgRow.append(el('span', 'ae-side-field-label', I18N_IT.background), backgroundChoiceButton(null, { compact: true }));
+  // v258: sfondo del box della vita di Gravehold (stessa riga con anteprima)
+  const graveRow = el('div', 'ae-side-field ae-side-field--row');
+  graveRow.append(el('span', 'ae-side-field-label', I18N_IT.graveholdBg),
+    backgroundChoiceButton(null, { compact: true, choice: GRAVEHOLD_BG_CHOICE }));
   // Dorso delle carte: miniatura del dorso scelto con il nome; si tocca per scegliere tra tutti i dorsi
   const backRow = el('div', 'ae-side-field ae-side-field--row');
   backRow.append(el('span', 'ae-side-field-label', I18N_IT.cardBack), cardBackChoiceButton(null, { compact: true }));
@@ -6649,7 +6691,7 @@ function openSideMenu(leave) {
     restartTest.classList.add('ae-button--full', 'ae-side-test-restart');
     items.splice(1, 0, restartTest);
   }
-  panel.append(...items, bgRow, backRow, exit);
+  panel.append(...items, bgRow, graveRow, backRow, exit);
   close = openModal(panel, { onCancel: cancel });
   // v249: anche l'uscita è animata (prima il menu entrava da destra ma spariva di colpo): il pannello torna a destra e
   // lo sfondo scuro svanisce, poi il menu si chiude. Parte da dove si trova (se lo si è già trascinato fuori, niente salto)
@@ -6693,42 +6735,43 @@ function cardBackChoiceButton(onClosed, { compact = false } = {}) {
 
 // Pulsante con l'anteprima e il nome dello sfondo scelto: apre la scelta con le anteprime (Menu della partita e Opzioni)
 // compact: solo l'anteprima, senza nome (il nome resta per i lettori di schermo)
-function backgroundChoiceButton(onClosed, { compact = false } = {}) {
-  const btn = el('button', 'ae-bg-choice' + (compact ? ' ae-bg-choice--compact' : ''));
+// (v258: choice = quale scelta, sfondo dell'app o sfondo di Gravehold; stessa anteprima e stessa finestra)
+function backgroundChoiceButton(onClosed, { compact = false, choice = APP_BG_CHOICE } = {}) {
+  const btn = el('button', 'ae-bg-choice' + (compact ? ' ae-bg-choice--compact' : '') + choice.className);
   btn.type = 'button';
   const thumb = el('img', 'ae-bg-choice-thumb');
   thumb.alt = '';
   const name = el('span', 'ae-bg-choice-name');
   const sync = () => {
-    const b = currentBackground();
+    const b = choice.current();
     thumb.src = b.src;
-    name.textContent = I18N_IT.backgrounds[b.id];
-    btn.setAttribute('aria-label', I18N_IT.backgroundChosen(I18N_IT.backgrounds[b.id]));
+    name.textContent = choice.name(b.id);
+    btn.setAttribute('aria-label', choice.chosen(choice.name(b.id)));
   };
   btn.append(thumb, name);
-  btn.addEventListener('click', () => openBackgroundPicker(sync, onClosed));
+  btn.addEventListener('click', () => openBackgroundPicker(sync, onClosed, choice));
   sync();
   return btn;
 }
 
 // Scelta dello sfondo: le anteprime di tutti gli sfondi una sotto l'altra; un tocco lo applica subito e chiude
-function openBackgroundPicker(onChosen, onClosed) {
+function openBackgroundPicker(onChosen, onClosed, choice = APP_BG_CHOICE) {
   let closeModalFn = () => {};
   const close = () => { closeModalFn(); if (onClosed) onClosed(); };
-  const dialog = dialogShell(I18N_IT.background, '', close, { displayTitle: false });
+  const dialog = dialogShell(choice.title(), '', close, { displayTitle: false });
   dialog.classList.add('ae-bg-picker');
   const list = el('div', 'ae-bg-grid');
-  const chosen = currentBackground().id;
-  BACKGROUNDS.forEach(b => {
+  const chosen = choice.current().id;
+  choice.list.forEach(b => {
     const item = el('button', 'ae-bg-item');
     item.type = 'button';
     item.setAttribute('aria-pressed', String(b.id === chosen));
     const img = el('img');
     img.alt = '';
     img.src = b.src;
-    item.append(img, el('span', 'ae-bg-item-name', I18N_IT.backgrounds[b.id]));
+    item.append(img, el('span', 'ae-bg-item-name', choice.name(b.id)));
     item.addEventListener('click', () => {
-      setBackground(b.id);
+      choice.set(b.id);
       close();
       if (onChosen) onChosen();
     });

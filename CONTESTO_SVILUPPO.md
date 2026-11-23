@@ -557,7 +557,10 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Vite di Gravehold e della nemesi** (v255): sotto la fascia delle carte piccole, nei due turni, una riga
   (`.ae-lives`, `renderLives`) con il box di **Gravehold** a sinistra e quello della **nemesi** a destra, ai margini
   della fascia. Dalla v257 ogni box ha **solo il numero**, a pillola (34px di altezza, raggio 17px: i lati sono mezzi
-  cerchi); il nome resta solo nell'etichetta per i lettori di schermo. Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
+  cerchi); il nome resta solo nell'etichetta per i lettori di schermo. Dalla v258 i box hanno uno **sfondo** velato
+  (larghi almeno 72px): Gravehold = immagine scelta nel Menu della partita con la riga **"Sfondo Gravehold"** (Città
+  o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
+  con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`, come quella del minion): titolo, "x / max",
     −5 −1 +1 +5 (mai sopra la vita iniziale né sotto 0), Annulla / Conferma modifiche. La conferma è un passo di undo
@@ -752,7 +755,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   - L'undo arriva fino a `UNDO_LIMIT = 300` passi; `restore()` ripristina.
   - Chiavi di `localStorage`: `aeonsend-app-0.2-save` (partita), `aeonsend-app-0.2-collection` (collezione),
     `aeonsend-app-0.2-background` (sfondo), `aeonsend-app-0.2-card-back` (dorso delle carte) e, dalla v213,
-    `aeonsend-app-0.2-deck-options` (opzioni del mazzo della pagina Nuova partita), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48 con in più
+    `aeonsend-app-0.2-deck-options` (opzioni del mazzo della pagina Nuova partita), dalla v258
+    `aeonsend-app-0.2-gravehold-bg` (sfondo del box della vita di Gravehold: `city` o `tower`), diverse da quelle della v1 perché il dominio github.io è condiviso. Il formato del salvataggio è quello della v48 con in più
     `version` (v210, `SAVE_VERSION`): `readSave` cancella i salvataggi di un'altra versione.
 - **Rendering:** `render()` disegna tutto.
   - Turno nemesi: `renderResolve()`, con la fascia e `renderFocus` (carosello). Il carosello si ricostruisce solo quando
@@ -820,6 +824,8 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
     `<slug>-portrait.webp` (ritaglio) e `nemesis-art.json` (elenco).
   - `Assets/ui/decor/`: `card-back-logo.webp` (dorso predefinito), `battle-bg.webp`, `battle-bg-2.webp`,
     `battle-bg-3.webp` (sfondi scelti nel Menu).
+  - `Assets/ui/gravehold/` (v258): `gravehold-city.webp` e `gravehold-tower.webp` (1000 x 500, dalle immagini date
+    dall'utente), sfondi del box della vita di Gravehold.
   - `Assets/ui/backs/`: gli altri 28 dorsi (`<nome>.webp`, ritagliati al centro alle proporzioni 63:88) con le
     miniature `<nome>-thumb.webp` (150 x 210) per la griglia di scelta; `logo-thumb.webp` è la miniatura del dorso
     predefinito. I dorsi arrivati in alta risoluzione sono 630 x 880; i 10 della serie "back_nemesi_10" (pietra

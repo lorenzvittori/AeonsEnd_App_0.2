@@ -1870,3 +1870,8 @@ body { overflow: hidden; }
 .ae-victory-screen.is-defeat .ae-tier-banner-text { color: #e06c5a; }
 /* v257: box delle vite = solo il numero, a pillola (angoli tondi quanto metà altezza: i lati sono mezzi cerchi) */
 .ae-life-box { justify-content: center; min-width: 56px; padding: 0 16px; border-radius: 17px; }
+/* v258: sfondo dei box (Gravehold: immagine scelta nel Menu; nemesi: il suo ritratto), velato per leggere il numero */
+.ae-life-box.has-bg {
+  min-width: 72px; background: linear-gradient(rgba(10, 11, 14, .42), rgba(10, 11, 14, .42)), var(--ae-life-bg) center / cover no-repeat;
+}
+.ae-life-box.has-bg .ae-life-value { text-shadow: 0 1px 3px rgba(0, 0, 0, .9), 0 0 2px rgba(0, 0, 0, .9); }
