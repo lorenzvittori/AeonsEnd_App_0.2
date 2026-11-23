@@ -4601,7 +4601,12 @@ function openTurnScreen() {
   // (--ae-split, da layoutFan), così non cambiano la larghezza delle carte né lo spazio; Mescola in fondo a destra
   const heads = el('div', 'ae-turn-heads');
   const pileHead = el('h3', 'ae-turn-subtitle ae-turn-head--pile', I18N_IT.turnPileTitle);
-  const deckHead = el('h3', 'ae-turn-subtitle ae-turn-head--deck', I18N_IT.turnDeckRowTitle);
+  const deckHead = el('h3', 'ae-turn-subtitle ae-turn-head--deck');
+  // (v251: le due parole in due elementi, così con .is-two-lines vanno una sotto l'altra; il testo letto resta lo stesso)
+  {
+    const words = I18N_IT.turnDeckRowTitle.split(' ');
+    deckHead.append(el('span', 'ae-turn-head-w', words[0]), document.createTextNode(' '), el('span', 'ae-turn-head-w', words.slice(1).join(' ')));
+  }
   // v247: una linea sottile attraversa la riga dei titoli: [linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola].
   // La cuspide (punta in giù) sta esattamente sopra il segmento verticale tra scarti e mazzo. Decorative (aria-hidden);
   // posizioni da layoutHeads
@@ -4846,30 +4851,9 @@ function openTurnScreen() {
     const units = k + Math.max(n, 1);
     const avail = (row.clientWidth || 343) - 17; // segmento verticale con i suoi margini
     let w = Math.max(30, Math.min(64, Math.floor((avail - TURN_GAP * (units - 1)) / units)));
-    // v247: la corsia del mazzo è larga almeno quanto serve a "Mazzo turno" a 8px (a destra della cuspide, prima di
-    // Mescola, anche con il segmento spostato da una carta del mazzo in mano); se no le carte si stringono un po'
-    const laneMin = deckHeadMinLane(n);
-    const laneNow = avail - k * w - (k - 1) * TURN_GAP;
-    if (laneNow < laneMin) w = Math.max(30, Math.floor((avail - laneMin - (k - 1) * TURN_GAP) / k));
+    // (v251: la scritta "Mazzo turno" non allarga più la corsia del mazzo, v247-v250: se non ci sta va su due righe.
+    // La larghezza delle carte dipende solo dalle carte: un posto per carta, un posto se il mazzo è vuoto)
     return { k, n, w, h: w * 88 / 63, gap: TURN_GAP };
-  }
-  // Larghezza minima della corsia del mazzo perché "Mazzo turno" (a 8px, senza spazio tra le lettere) stia tra la
-  // cuspide e Mescola. La cuspide è sopra il segmento, 8px prima della corsia: la scritta parte 1,5px dopo l'inizio
-  // della corsia (cuspide 5px + 4px). Mescola (con meno di 2 carte non c'è) prende 34px a destra; senza Mescola la
-  // scritta può usare 12px del margine destro. Con una carta del mazzo in mano il segmento va a destra di zd + 4px
-  let deckHeadMin = 0;
-  function deckHeadMinLane(n) {
-    if (!deckHeadMin) {
-      const fs = deckHead.style.fontSize, ls = deckHead.style.letterSpacing;
-      deckHead.style.fontSize = '8px';
-      deckHead.style.letterSpacing = '0';
-      deckHeadMin = deckHead.scrollWidth;
-      deckHead.style.fontSize = fs;
-      deckHead.style.letterSpacing = ls;
-    }
-    if (!deckHeadMin) return 0;
-    const shift = n >= 1 ? 18 : 0;
-    return n >= 2 ? deckHeadMin + 1.5 + 34 + shift : deckHeadMin + 1.5 - 12 + shift;
   }
   function laneWidth(g) {
     return lane.clientWidth || (Math.max(g.n, 1) * (g.w + g.gap) - g.gap);
@@ -5007,6 +4991,7 @@ function openTurnScreen() {
     const split = pileW + (holdingDeck ? zdPre + 12 : 8) + 0.5;
     board.style.setProperty('--ae-split', split + 'px');
     layoutHeads(split);
+    if (!g.n) fitEmpty(lw, g.h, g.w);
     // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
     // (v246: 4px dal bordo della carta come si vede, all'85% o meno)
     // v249: centri dei cerchi a metà tra i vicini (in coordinate della corsia): Cima tra il bordo destro del segmento
@@ -5044,14 +5029,15 @@ function openTurnScreen() {
   // salisse subito, la scritta più grande toccherebbe per un attimo la cuspide che si sta ancora spostando. Poi la
   // scritta si rimette al suo posto senza transizione)
   let headsGrowTimer = 0, headsGrowing = false, lastHeadsCx = 0;
-  function fitHeadNoGrow(node, maxW) {
-    const prevFs = node.style.fontSize, prevLs = node.style.letterSpacing;
+  function fitHeadNoGrow(node, maxW, allowTwo) {
+    const prevFs = node.style.fontSize, prevLs = node.style.letterSpacing, prevTwo = node.classList.contains('is-two-lines');
     const prevW = textW(node);
-    fitHead(node, maxW);
+    fitHead(node, maxW, allowTwo);
     if (headsGrowing || heads.classList.contains('is-settling') || reducedMotion.matches) return false;
     if (textW(node) > prevW + 0.5) {
       node.style.fontSize = prevFs;
       node.style.letterSpacing = prevLs;
+      node.classList.toggle('is-two-lines', prevTwo);
       return true;
     }
     return false;
@@ -5074,9 +5060,9 @@ function openTurnScreen() {
     // (fino a 4px prima dell'icona di Mescola, non del suo pulsante, che è più largo)
     const iconEl = shuffleBtn.querySelector('.ae-icon');
     const hr = heads.getBoundingClientRect();
-    // (senza Mescola, con mazzo di 0-1 carte, la scritta può usare anche il margine destro della finestra fino a 4px
-    // dal bordo: a destra della cuspide resta a volte la larghezza di una carta sola)
-    const right = shuffleBtn.hidden || !iconEl ? W + 12 : Math.min(W, (iconEl.getBoundingClientRect().left - hr.left) / pageZoom() - HEAD_GAP);
+    // (v251: senza Mescola la scritta arriva al bordo destro della riga delle carte, mai oltre: v248-v250 poteva usare
+    // 12px del margine della finestra)
+    const right = shuffleBtn.hidden || !iconEl ? W : Math.min(W, (iconEl.getBoundingClientRect().left - hr.left) / pageZoom() - HEAD_GAP);
     // (v250: la cuspide è nel segmento verticale, in orizzontale non serve posizionarla. Qui solo la sua altezza: dalla
     // linea dei titoli, a 16px dall'alto della loro riga, fino a --ae-cusp-gap sopra l'inizio del segmento. La posizione
     // verticale non ha transizioni, quindi leggerla dalla pagina è sicuro)
@@ -5092,8 +5078,12 @@ function openTurnScreen() {
     pileHead.style.left = x0 + 'px';
     // Mazzo turno: tra la cuspide e Mescola, allineata a destra
     const rightStart = cx + CUSP_HALF;
-    grow = fitHeadNoGrow(deckHead, Math.max(0, right - rightStart - HEAD_GAP)) || grow;
+    // (v251: se su una riga non ci sta va su due, "Mazzo" sopra e "Turno" sotto, allineate a destra; poi, se serve, il
+    // carattere scende. Il blocco di due righe è centrato sulla linea dei titoli, a 16,5px dall'alto)
+    grow = fitHeadNoGrow(deckHead, Math.max(0, right - rightStart - HEAD_GAP), true) || grow;
     if (grow) scheduleHeadsGrow();
+    deckHead.style.top = deckHead.classList.contains('is-two-lines')
+      ? (16.5 - deckHead.getBoundingClientRect().height / pageZoom() / 2) + 'px' : '';
     const tw2 = textW(deckHead);
     const x2 = Math.max(rightStart + HEAD_GAP, right - tw2);
     deckHead.style.left = x2 + 'px';
@@ -5108,10 +5098,13 @@ function openTurnScreen() {
   }
   // (v250: larghezza esatta della scritta in pixel CSS, non scrollWidth che arrotonda ai pixel interi)
   function textW(node) { return node.getBoundingClientRect().width / pageZoom(); }
-  // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta
-  function fitHead(node, maxW) {
+  // Scritta che non deve superare maxW: il carattere scende (fino a 8px) finché ci sta. allowTwo (v251, "Mazzo
+  // turno"): prima di rimpicciolire si prova su due righe
+  function fitHead(node, maxW, allowTwo) {
     node.style.fontSize = '';
     node.style.letterSpacing = '';
+    node.classList.remove('is-two-lines');
+    if (allowTwo && textW(node) > maxW) node.classList.add('is-two-lines');
     let size = parseFloat(getComputedStyle(node).fontSize) || 12;
     for (let i = 0; i < 12 && textW(node) > maxW && size > 8; i++) {
       size = Math.max(8, size - 0.5);
@@ -5119,6 +5112,27 @@ function openTurnScreen() {
     }
     // (v247: ultima risorsa, se a 8px non ci sta ancora: senza spazio tra le lettere)
     if (textW(node) > maxW) node.style.letterSpacing = '0';
+  }
+  // v251: "Mazzo vuoto" sta dentro il posto del mazzo, largo come una carta (lw: larghezza finale della corsia): il
+  // carattere scende finché ci sta, anche su due righe ("Mazzo" sopra e "vuoto" sotto)
+  function fitEmpty(lw, h, w) {
+    const e = lane.querySelector('.ae-turn-fan-empty');
+    if (!e) return;
+    // (largo come una carta, centrato nella corsia)
+    lw = Math.min(lw, w);
+    Object.assign(e.style, { left: '50%', right: 'auto', width: lw + 'px', transform: 'translateX(-50%)', fontSize: '' });
+    // (misura del testo vero, con un Range: scrollWidth non vede il testo che esce da un contenitore a griglia)
+    const range = document.createRange();
+    range.selectNodeContents(e);
+    const fits = () => {
+      const r = range.getBoundingClientRect(), z = pageZoom();
+      return r.width / z <= lw && r.height / z <= h;
+    };
+    let size = parseFloat(getComputedStyle(e).fontSize) || 14;
+    for (let i = 0; i < 16 && !fits() && size > 8; i++) {
+      size = Math.max(8, size - 0.5);
+      e.style.fontSize = size + 'px';
+    }
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
   // della prima carta il cui centro è a destra di x

@@ -1844,3 +1844,9 @@ body { overflow: hidden; }
   position: absolute; top: auto; left: 50%; bottom: calc(100% + var(--ae-cusp-gap)); width: 14px; height: auto;
   transform: translateX(-50%); transition: none; color: var(--ae-text-muted);
 }
+/* v251: "Mazzo turno" su due righe ("Mazzo" sopra, "Turno" sotto, allineate a destra) quando su una non ci sta; il
+   blocco è centrato sulla linea dei titoli (top da script.js) */
+.ae-turn-heads .ae-turn-head--deck.is-two-lines { height: auto; line-height: 1.15; text-align: right; }
+.ae-turn-head--deck.is-two-lines .ae-turn-head-w { display: block; }
+/* v251: "Mazzo vuoto" dentro il posto del mazzo (largo una carta), anche su due righe; il carattere lo adatta JS */
+.ae-turn-lane .ae-turn-fan-empty { line-height: 1.15; padding: 0; overflow-wrap: normal; word-break: normal; box-sizing: border-box; }

@@ -228,9 +228,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       - **Movimenti**: cuspide, linee e scritte si spostano con la transizione del segmento e delle carte (.2s ease); al
         primo disegno senza transizione (`.is-settling`); il carattere scende subito ma sale solo dopo lo spostamento
         (0,2s), e i tratti che compaiono arrivano in dissolvenza: niente sovrapposizioni nemmeno a metà movimento.
-      - **Corsia minima** (`deckHeadMinLane`): la corsia del mazzo è larga almeno quanto serve a "Mazzo turno" a 8px
-        (anche con il segmento spostato da una carta del mazzo in mano); se no le carte si stringono un po' (succede con
-        molti scarti e mazzo di 0-2 carte).
+      - **"Mazzo turno" su due righe** (v251): se su una riga non ci sta va su due ("Mazzo" sopra, "Turno" sotto,
+        `.is-two-lines`, allineate a destra, blocco centrato sulla linea dei titoli), poi se serve il carattere scende
+        (min 8px); mai oltre il bordo destro della riga delle carte. La scritta non allarga più la corsia del mazzo
+        (v247-v250 `deckHeadMinLane`): un posto per carta. **"Mazzo vuoto"** sta in un posto largo come una carta,
+        anche su due righe, con il carattere che scende finché ci sta (`fitEmpty`).
       - Verifica (v247): scarti/mazzo 0/6, 1/5, 2/4, 3/3, 4/2, 5/1, 6/0, 0/4, 2/2, 4/0, a 360x780, 375x812 e
         1280x800, a riposo e con una carta degli scarti o del mazzo in mano, animazioni spente e accese: cuspide sul
         segmento (differenza 0px), nessuna sovrapposizione tra scritte, cuspide, linee e Mescola, carattere mai sotto
