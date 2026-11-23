@@ -3460,7 +3460,8 @@ function renderLives() {
 // finestra), con le cifre che scorrono (renderLifeDigits). Al rilascio la vita si applica una volta sola (un passo di
 // undo, si salva); a 0 → Vittoria o Sconfitta. Un tocco senza trascinare apre ancora la finestra. Sul box la pagina
 // non scorre (touch-action: none)
-const LIFE_SCRUB_PX = 14, LIFE_SCRUB_START = 6;
+// (v272: 30px per punto, prima 14: si cambiava troppo con poco movimento)
+const LIFE_SCRUB_PX = 30, LIFE_SCRUB_START = 6;
 function lifeScrub(b, kind) {
   let s = null;
   const grave = kind === 'grave';
