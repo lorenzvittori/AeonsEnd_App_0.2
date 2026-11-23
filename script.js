@@ -89,6 +89,10 @@ const I18N_IT = {
   collectionSaved: 'Collezione salvata',
   collectionSummary: (w, p) => `${w} wave · ${p} ${p === 1 ? 'prodotto' : 'prodotti'}`,
   victoryTitle: 'Vittoria',
+  defeatTitle: 'Sconfitta',
+  graveholdName: 'Gravehold',
+  lifeKind: 'Punti vita',
+  lifeAria: (name, n) => `${name}: ${n} punti vita. Tocca per cambiare`,
   nemesisKilled: 'Nemesi uccisa',
   statsTitle: 'Statistiche',
   statsRows: {
@@ -3349,6 +3353,7 @@ function render() {
     showBanner(I18N_IT.tierN(ui.tierBanner));
     ui.tierBanner = null;
   }
+  renderLives();
   if (resolving) renderResolve();
   else {
     resolveBtn.hidden = true;
@@ -3386,6 +3391,100 @@ function actionText(entry, isNew) {
   if (data.type === 'Power') return tokens > 1 ? I18N_IT.ctaPowerNext : I18N_IT.ctaPowerLast;
   // Minion (resta in gioco) e attacco (va negli scarti)
   return I18N_IT.ctaResolved;
+}
+
+// v254: riga delle vite SOTTO la fascia delle carte piccole, nei due turni: Gravehold a sinistra, nemesi a destra.
+// Un solo elemento, spostato dopo la fascia del turno attivo (le carte grandi prendono lo spazio che resta: flex).
+// Non c'è durante "Crea mazzo". Toccando un box si apre la finestra della vita (openLifeDialog).
+let livesRow = null;
+function ensureLivesRow() {
+  if (livesRow) return livesRow;
+  livesRow = el('div', 'ae-lives');
+  const box = kind => {
+    const b = el('button', 'ae-life-box ae-life-box--' + kind);
+    b.type = 'button';
+    b.dataset.kind = kind;
+    const heart = icon('heart');
+    heart.classList.add('ae-life-heart');
+    b.append(el('span', 'ae-life-label'), heart, el('span', 'ae-life-value'));
+    b.setAttribute('aria-haspopup', 'dialog');
+    b.addEventListener('click', () => openLifeDialog(kind));
+    return b;
+  };
+  livesRow.append(box('grave'), box('nemesis'));
+  return livesRow;
+}
+function renderLives() {
+  const row = ensureLivesRow();
+  const anchor = resolving ? (rail.parentElement.classList.contains('ae-rail-row') ? rail.parentElement : rail) : ensureQueueRail();
+  if (row.previousElementSibling !== anchor) anchor.after(row);
+  row.hidden = !!ui.deckBuilding;
+  [['grave', I18N_IT.graveholdName, graveLife], ['nemesis', settings.nemesis || '', nemesisLife]].forEach(([kind, name, value]) => {
+    const b = row.querySelector(`[data-kind="${kind}"]`);
+    b.querySelector('.ae-life-label').textContent = name;
+    b.querySelector('.ae-life-value').textContent = String(value);
+    b.classList.toggle('is-zero', value <= 0);
+    b.setAttribute('aria-label', I18N_IT.lifeAria(name, value));
+  });
+}
+
+// v254: finestra della vita di Gravehold o della nemesi, come quella del minion: numero, −5 −1 +1 +5 (mai sopra la vita
+// iniziale né sotto 0), Conferma = un passo di undo e salvataggio. A 0: nemesi → Vittoria, Gravehold → Sconfitta.
+function openLifeDialog(kind) {
+  if (ui.isTransitioning || modals.length) return;
+  const grave = kind === 'grave';
+  const name = grave ? I18N_IT.graveholdName : (settings.nemesis || '');
+  const original = grave ? graveLife : nemesisLife;
+  const cap = Math.max(original, grave ? GRAVEHOLD_LIFE : nemesisStartLife());
+  let draft = original;
+  let close = () => {};
+  const cancel = () => close();
+  const dialog = dialogShell(name, I18N_IT.lifeKind, cancel);
+  dialog.classList.add('ae-modal--life');
+  const panel = el('div', 'ae-card-panel ae-life-panel');
+  const row = el('div', 'ae-hp-row');
+  const number = el('p', 'ae-hp-number');
+  number.setAttribute('aria-live', 'polite');
+  const delta = el('p', 'ae-hp-delta');
+  row.append(number, delta);
+  const controls = el('div', 'ae-hp-controls');
+  const steps = [];
+  [-5, -1, 1, 5].forEach(step => {
+    const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
+      draft = Math.min(cap, Math.max(0, draft + step));
+      update();
+    });
+    b.setAttribute('aria-label', (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita');
+    steps.push([step, b]);
+    controls.appendChild(b);
+  });
+  panel.append(row, controls);
+  const footer = el('div', 'ae-modal-footer');
+  const confirm = button(I18N_IT.confirmHp, 'primary', commit);
+  footer.append(button(I18N_IT.cancel, 'secondary', cancel), confirm);
+  dialog.append(panel, footer);
+  function update() {
+    number.textContent = `${draft} / ${cap}`;
+    const change = draft - original;
+    delta.className = 'ae-hp-delta' + (change < 0 ? ' is-loss' : change > 0 ? ' is-gain' : '');
+    delta.replaceChildren();
+    if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
+    steps.forEach(([step, b]) => {
+      const off = step > 0 ? draft >= cap : draft <= 0;
+      b.disabled = off;
+      b.classList.toggle('is-dimmed', off);
+    });
+  }
+  function commit() {
+    close();
+    if (draft === original) return;
+    const value = draft;
+    act(() => { if (grave) graveLife = value; else nemesisLife = value; });
+    render();
+    if (value === 0) { if (grave) showDefeat(); else showVictory(); }
+  }
+  update();
+  close = openModal(dialog, { onCancel: cancel, initialFocus: confirm });
 }
 
 // Fascia del turno nemesi dentro .ae-rail-row (creata qui una volta sola) e classi della fase di pesca
@@ -5688,16 +5787,18 @@ function checkVictory() {
 
 // Schermata Vittoria: scritta "Vittoria" come il banner dei Tier, ma resta ferma sullo schermo; sotto Statistiche e
 // Menu iniziale; un tocco su una parte vuota torna alla partita com'era. Si apre da sola (checkVictory) o dal Menu ("Nemesi uccisa").
-function showVictory() {
-  // Fine del tempo di partita (statistiche): l'ultima volta che si arriva alla Vittoria
+function showVictory() { showEndScreen(I18N_IT.victoryTitle, false); }
+// v254: Sconfitta (vita di Gravehold a 0): stessa schermata della Vittoria, con la scritta "Sconfitta"
+function showDefeat() { showEndScreen(I18N_IT.defeatTitle, true); }
+function showEndScreen(text, defeat) {
+  // Fine del tempo di partita (statistiche): l'ultima volta che si arriva alla Vittoria (o alla Sconfitta)
   stats.endedAt = Date.now();
   save();
   let close = () => {};
   const cancel = () => close();
-  const screen = el('div', 'ae-victory-screen');
+  const screen = el('div', 'ae-victory-screen' + (defeat ? ' is-defeat' : ''));
   screen.setAttribute('role', 'dialog');
   screen.setAttribute('aria-modal', 'true');
-  const text = I18N_IT.victoryTitle;
   const title = el('h2', 'ae-tier-banner-text' + (text.length > 8 ? ' is-long' : ''), text);
   title.id = 'victory-title';
   screen.setAttribute('aria-labelledby', title.id);
@@ -6975,6 +7076,15 @@ const SCENARI = [
     queue: [{ name: 'Volcanic Zala', hp: 4 }],
     deck: [],
     turnOrder: { left: ['nemesis', 'p2', 'p1', 'nemesis'], drawn: ['p1', 'p2'], round: 4 }
+  },
+  {
+    id: 'low-lives', name: 'Vite quasi a zero',
+    desc: 'Nemesi e Gravehold a 3 di vita: togli 3 alla nemesi per la Vittoria, a Gravehold per la Sconfitta (Undo torna indietro)',
+    players: 2, nemesis: 'Maggoth', phase: 'players', turn: 6, maxTier: 2,
+    queue: [{ name: 'Volcanic Zala', hp: 6 }],
+    deck: ['Gore', 'Eliminate', 'Crushing Storm'],
+    turnOrder: { left: ['nemesis', 'p2', 'p1', 'nemesis'], drawn: ['p1', 'p2'], round: 2 },
+    graveLife: 3, nemesisLife: 3
   }
 ];
 
@@ -7027,6 +7137,9 @@ function buildScenarioState(sc) {
     currentIndex: 0,
     newIndex: -1,
     maxTierDrawn: sc.maxTier || 0,
+    // v254: vite dello scenario (se mancano: valori iniziali, li mette restore)
+    ...(typeof sc.graveLife === 'number' ? { graveLife: sc.graveLife } : {}),
+    ...(typeof sc.nemesisLife === 'number' ? { nemesisLife: sc.nemesisLife } : {}),
     stats,
     turnOrder: { left: (order.left || []).slice(), drawn: (order.drawn || []).slice(), round: order.round || 1,
       wild: order.wild || null, picks: JSON.parse(JSON.stringify(order.picks || {})), known: (order.left || []).map(() => false),

@@ -2,7 +2,7 @@
  "larghezza_mm": 68.0,
  "larghezza_px": 360.0,
  "mm_per_px": 0.1889,
- "nota": "Misure prese con getBoundingClientRect su localhost a 360 px CSS di larghezza; mm = px x 68/360. Partita di prova con 7 carte in gioco (fascia piccola piena) e la 4a carta al centro della vista grande; i box che escono dallo schermo sono tagliati al bordo. Solo turno giocatori: dalla v207 il turno nemesi ha box e carta alla stessa altezza (non ha i comandi sotto la carta).",
+ "nota": "Misure prese con getBoundingClientRect su localhost a 360 px CSS di larghezza; mm = px x 68/360. Partita di prova con 7 carte in gioco (fascia piccola piena) e la 4a carta al centro della vista grande; i box che escono dallo schermo sono tagliati al bordo. Sotto la fascia piccola le vite di Gravehold e della nemesi (v254). Solo turno giocatori: dalla v207 il turno nemesi ha box e carta alla stessa altezza (non ha i comandi sotto la carta).",
  "formati": [
   {
    "formato": "18:9",
@@ -35,13 +35,13 @@
        "px": {
         "x": 16,
         "y": 13,
-        "w": 146.3,
+        "w": 171.8,
         "h": 42
        },
        "mm": {
         "x": 3.0,
         "y": 2.5,
-        "w": 27.6,
+        "w": 32.5,
         "h": 7.9
        }
       },
@@ -199,73 +199,101 @@
         "h": 13.7
        }
       },
+      "Vita Gravehold": {
+       "px": {
+        "x": 16,
+        "y": 210,
+        "w": 135,
+        "h": 34
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 39.7,
+        "w": 25.5,
+        "h": 6.4
+       }
+      },
+      "Vita nemesi": {
+       "px": {
+        "x": 186,
+        "y": 210,
+        "w": 158,
+        "h": 34
+       },
+       "mm": {
+        "x": 35.1,
+        "y": 39.7,
+        "w": 29.8,
+        "h": 6.4
+       }
+      },
       "Box vita/token": {
        "px": {
-        "x": 143.6,
-        "y": 234.4,
+        "x": 144.2,
+        "y": 272.3,
         "w": 72,
         "h": 37
        },
        "mm": {
-        "x": 27.1,
-        "y": 44.3,
+        "x": 27.2,
+        "y": 51.4,
         "w": 13.6,
         "h": 7.0
        }
       },
       "Carta grande": {
        "px": {
-        "x": 73.6,
-        "y": 279.4,
-        "w": 212,
-        "h": 296.1
+        "x": 87.7,
+        "y": 317.3,
+        "w": 185,
+        "h": 258.4
        },
        "mm": {
-        "x": 13.9,
-        "y": 52.8,
-        "w": 40.0,
-        "h": 55.9
+        "x": 16.6,
+        "y": 59.9,
+        "w": 34.9,
+        "h": 48.8
        }
       },
       "Carta laterale sinistra": {
        "px": {
         "x": 0,
-        "y": 279.4,
-        "w": 55.6,
-        "h": 296.1
+        "y": 317.3,
+        "w": 69.7,
+        "h": 258.4
        },
        "mm": {
         "x": 0.0,
-        "y": 52.8,
-        "w": 10.5,
-        "h": 55.9
+        "y": 59.9,
+        "w": 13.2,
+        "h": 48.8
        }
       },
       "Carta laterale destra": {
        "px": {
-        "x": 303.6,
-        "y": 279.4,
-        "w": 56.4,
-        "h": 296.1
+        "x": 290.7,
+        "y": 317.3,
+        "w": 69.3,
+        "h": 258.4
        },
        "mm": {
-        "x": 57.3,
-        "y": 52.8,
-        "w": 10.7,
-        "h": 55.9
+        "x": 54.9,
+        "y": 59.9,
+        "w": 13.1,
+        "h": 48.8
        }
       },
       "Comandi": {
        "px": {
-        "x": 73.6,
-        "y": 583.6,
-        "w": 212,
+        "x": 87.7,
+        "y": 583.7,
+        "w": 185,
         "h": 44
        },
        "mm": {
-        "x": 13.9,
-        "y": 110.2,
-        "w": 40.0,
+        "x": 16.6,
+        "y": 110.3,
+        "w": 34.9,
         "h": 8.3
        }
       },
@@ -288,7 +316,7 @@
       {
        "da": "alto dello schermo",
        "a": "Testata",
-       "px": 0.0,
+       "px": 0,
        "mm": 0.0
       },
       {
@@ -311,27 +339,33 @@
       },
       {
        "da": "Fascia piccola 1",
+       "a": "Vita Gravehold",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Vita Gravehold",
        "a": "Box vita/token",
-       "px": 45.1,
-       "mm": 8.5
+       "px": 28.3,
+       "mm": 5.3
       },
       {
        "da": "Box vita/token",
        "a": "Carta grande",
-       "px": 8.0,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Carta grande",
        "a": "Comandi",
-       "px": 8.1,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Comandi",
        "a": "Pulsante",
-       "px": 28.4,
-       "mm": 5.4
+       "px": 28.3,
+       "mm": 5.3
       },
       {
        "da": "Pulsante",
@@ -374,13 +408,13 @@
        "px": {
         "x": 16,
         "y": 13,
-        "w": 146.3,
+        "w": 171.8,
         "h": 42
        },
        "mm": {
         "x": 3.0,
         "y": 2.5,
-        "w": 27.6,
+        "w": 32.5,
         "h": 7.9
        }
       },
@@ -538,73 +572,101 @@
         "h": 13.7
        }
       },
+      "Vita Gravehold": {
+       "px": {
+        "x": 16,
+        "y": 210,
+        "w": 135,
+        "h": 34
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 39.7,
+        "w": 25.5,
+        "h": 6.4
+       }
+      },
+      "Vita nemesi": {
+       "px": {
+        "x": 186,
+        "y": 210,
+        "w": 158,
+        "h": 34
+       },
+       "mm": {
+        "x": 35.1,
+        "y": 39.7,
+        "w": 29.8,
+        "h": 6.4
+       }
+      },
       "Box vita/token": {
        "px": {
-        "x": 144.2,
-        "y": 234.2,
+        "x": 144,
+        "y": 272,
         "w": 72,
         "h": 37
        },
        "mm": {
         "x": 27.2,
-        "y": 44.2,
+        "y": 51.4,
         "w": 13.6,
         "h": 7.0
        }
       },
       "Carta grande": {
        "px": {
-        "x": 59.7,
-        "y": 279.2,
-        "w": 241,
-        "h": 336.6
+        "x": 73,
+        "y": 317,
+        "w": 214,
+        "h": 298.9
        },
        "mm": {
-        "x": 11.3,
-        "y": 52.7,
-        "w": 45.5,
-        "h": 63.6
+        "x": 13.8,
+        "y": 59.9,
+        "w": 40.4,
+        "h": 56.5
        }
       },
       "Carta laterale sinistra": {
        "px": {
         "x": 0,
-        "y": 279.2,
-        "w": 41.7,
-        "h": 336.6
+        "y": 317,
+        "w": 55,
+        "h": 298.9
        },
        "mm": {
         "x": 0.0,
-        "y": 52.7,
-        "w": 7.9,
-        "h": 63.6
+        "y": 59.9,
+        "w": 10.4,
+        "h": 56.5
        }
       },
       "Carta laterale destra": {
        "px": {
-        "x": 318.7,
-        "y": 279.2,
-        "w": 41.3,
-        "h": 336.6
+        "x": 305,
+        "y": 317,
+        "w": 55,
+        "h": 298.9
        },
        "mm": {
-        "x": 60.2,
-        "y": 52.7,
-        "w": 7.8,
-        "h": 63.6
+        "x": 57.6,
+        "y": 59.9,
+        "w": 10.4,
+        "h": 56.5
        }
       },
       "Comandi": {
        "px": {
-        "x": 59.7,
-        "y": 623.8,
-        "w": 241,
+        "x": 73,
+        "y": 624,
+        "w": 214,
         "h": 44
        },
        "mm": {
-        "x": 11.3,
-        "y": 117.8,
-        "w": 45.5,
+        "x": 13.8,
+        "y": 117.9,
+        "w": 40.4,
         "h": 8.3
        }
       },
@@ -627,7 +689,7 @@
       {
        "da": "alto dello schermo",
        "a": "Testata",
-       "px": 0.0,
+       "px": 0,
        "mm": 0.0
       },
       {
@@ -650,26 +712,32 @@
       },
       {
        "da": "Fascia piccola 1",
+       "a": "Vita Gravehold",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Vita Gravehold",
        "a": "Box vita/token",
-       "px": 44.9,
-       "mm": 8.5
+       "px": 28,
+       "mm": 5.3
       },
       {
        "da": "Box vita/token",
        "a": "Carta grande",
-       "px": 8.0,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Carta grande",
        "a": "Comandi",
-       "px": 8.0,
+       "px": 8.1,
        "mm": 1.5
       },
       {
        "da": "Comandi",
        "a": "Pulsante",
-       "px": 28.2,
+       "px": 28,
        "mm": 5.3
       },
       {
@@ -713,13 +781,13 @@
        "px": {
         "x": 16,
         "y": 13,
-        "w": 146.3,
+        "w": 171.8,
         "h": 42
        },
        "mm": {
         "x": 3.0,
         "y": 2.5,
-        "w": 27.6,
+        "w": 32.5,
         "h": 7.9
        }
       },
@@ -877,73 +945,101 @@
         "h": 13.7
        }
       },
+      "Vita Gravehold": {
+       "px": {
+        "x": 16,
+        "y": 210,
+        "w": 135,
+        "h": 34
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 39.7,
+        "w": 25.5,
+        "h": 6.4
+       }
+      },
+      "Vita nemesi": {
+       "px": {
+        "x": 186,
+        "y": 210,
+        "w": 158,
+        "h": 34
+       },
+       "mm": {
+        "x": 35.1,
+        "y": 39.7,
+        "w": 29.8,
+        "h": 6.4
+       }
+      },
       "Box vita/token": {
        "px": {
-        "x": 143.8,
-        "y": 234.4,
+        "x": 143.6,
+        "y": 272.3,
         "w": 72,
         "h": 37
        },
        "mm": {
-        "x": 27.2,
-        "y": 44.3,
+        "x": 27.1,
+        "y": 51.4,
         "w": 13.6,
         "h": 7.0
        }
       },
       "Carta grande": {
        "px": {
-        "x": 52.3,
-        "y": 279.4,
-        "w": 255,
-        "h": 356.2
+        "x": 65.6,
+        "y": 317.3,
+        "w": 228,
+        "h": 318.5
        },
        "mm": {
-        "x": 9.9,
-        "y": 52.8,
-        "w": 48.2,
-        "h": 67.3
+        "x": 12.4,
+        "y": 59.9,
+        "w": 43.1,
+        "h": 60.2
        }
       },
       "Carta laterale sinistra": {
        "px": {
         "x": 0,
-        "y": 279.4,
-        "w": 34.3,
-        "h": 356.2
+        "y": 317.3,
+        "w": 47.6,
+        "h": 318.5
        },
        "mm": {
         "x": 0.0,
-        "y": 52.8,
-        "w": 6.5,
-        "h": 67.3
+        "y": 59.9,
+        "w": 9.0,
+        "h": 60.2
        }
       },
       "Carta laterale destra": {
        "px": {
-        "x": 325.3,
-        "y": 279.4,
-        "w": 34.7,
-        "h": 356.2
+        "x": 311.6,
+        "y": 317.3,
+        "w": 48.4,
+        "h": 318.5
        },
        "mm": {
-        "x": 61.4,
-        "y": 52.8,
-        "w": 6.6,
-        "h": 67.3
+        "x": 58.9,
+        "y": 59.9,
+        "w": 9.1,
+        "h": 60.2
        }
       },
       "Comandi": {
        "px": {
-        "x": 52.3,
-        "y": 643.6,
-        "w": 255,
+        "x": 65.6,
+        "y": 643.7,
+        "w": 228,
         "h": 44
        },
        "mm": {
-        "x": 9.9,
+        "x": 12.4,
         "y": 121.6,
-        "w": 48.2,
+        "w": 43.1,
         "h": 8.3
        }
       },
@@ -966,7 +1062,7 @@
       {
        "da": "alto dello schermo",
        "a": "Testata",
-       "px": 0.0,
+       "px": 0,
        "mm": 0.0
       },
       {
@@ -989,27 +1085,33 @@
       },
       {
        "da": "Fascia piccola 1",
+       "a": "Vita Gravehold",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Vita Gravehold",
        "a": "Box vita/token",
-       "px": 45.1,
-       "mm": 8.5
+       "px": 28.3,
+       "mm": 5.3
       },
       {
        "da": "Box vita/token",
        "a": "Carta grande",
-       "px": 8.0,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Carta grande",
        "a": "Comandi",
-       "px": 8.0,
+       "px": 7.9,
        "mm": 1.5
       },
       {
        "da": "Comandi",
        "a": "Pulsante",
-       "px": 28.4,
-       "mm": 5.4
+       "px": 28.3,
+       "mm": 5.3
       },
       {
        "da": "Pulsante",
@@ -1052,13 +1154,13 @@
        "px": {
         "x": 16,
         "y": 13,
-        "w": 146.3,
+        "w": 171.8,
         "h": 42
        },
        "mm": {
         "x": 3.0,
         "y": 2.5,
-        "w": 27.6,
+        "w": 32.5,
         "h": 7.9
        }
       },
@@ -1216,73 +1318,101 @@
         "h": 13.7
        }
       },
+      "Vita Gravehold": {
+       "px": {
+        "x": 16,
+        "y": 210,
+        "w": 135,
+        "h": 34
+       },
+       "mm": {
+        "x": 3.0,
+        "y": 39.7,
+        "w": 25.5,
+        "h": 6.4
+       }
+      },
+      "Vita nemesi": {
+       "px": {
+        "x": 186,
+        "y": 210,
+        "w": 158,
+        "h": 34
+       },
+       "mm": {
+        "x": 35.1,
+        "y": 39.7,
+        "w": 29.8,
+        "h": 6.4
+       }
+      },
       "Box vita/token": {
        "px": {
-        "x": 144.2,
-        "y": 234.6,
+        "x": 144,
+        "y": 272.5,
         "w": 72,
         "h": 37
        },
        "mm": {
         "x": 27.2,
-        "y": 44.3,
+        "y": 51.5,
         "w": 13.6,
         "h": 7.0
        }
       },
       "Carta grande": {
        "px": {
-        "x": 45.7,
-        "y": 279.6,
-        "w": 269,
-        "h": 375.7
+        "x": 59,
+        "y": 317.5,
+        "w": 242,
+        "h": 338
        },
        "mm": {
-        "x": 8.6,
-        "y": 52.8,
-        "w": 50.8,
-        "h": 71.0
+        "x": 11.1,
+        "y": 60.0,
+        "w": 45.7,
+        "h": 63.8
        }
       },
       "Carta laterale sinistra": {
        "px": {
         "x": 0,
-        "y": 279.6,
-        "w": 27.7,
-        "h": 375.7
+        "y": 317.5,
+        "w": 41,
+        "h": 338
        },
        "mm": {
         "x": 0.0,
-        "y": 52.8,
-        "w": 5.2,
-        "h": 71.0
+        "y": 60.0,
+        "w": 7.7,
+        "h": 63.8
        }
       },
       "Carta laterale destra": {
        "px": {
-        "x": 332.7,
-        "y": 279.6,
-        "w": 27.3,
-        "h": 375.7
+        "x": 319,
+        "y": 317.5,
+        "w": 41,
+        "h": 338
        },
        "mm": {
-        "x": 62.8,
-        "y": 52.8,
-        "w": 5.2,
-        "h": 71.0
+        "x": 60.3,
+        "y": 60.0,
+        "w": 7.7,
+        "h": 63.8
        }
       },
       "Comandi": {
        "px": {
-        "x": 45.7,
-        "y": 663.4,
-        "w": 269,
+        "x": 59,
+        "y": 663.5,
+        "w": 242,
         "h": 44
        },
        "mm": {
-        "x": 8.6,
+        "x": 11.1,
         "y": 125.3,
-        "w": 50.8,
+        "w": 45.7,
         "h": 8.3
        }
       },
@@ -1305,7 +1435,7 @@
       {
        "da": "alto dello schermo",
        "a": "Testata",
-       "px": 0.0,
+       "px": 0,
        "mm": 0.0
       },
       {
@@ -1328,26 +1458,32 @@
       },
       {
        "da": "Fascia piccola 1",
+       "a": "Vita Gravehold",
+       "px": 20.7,
+       "mm": 3.9
+      },
+      {
+       "da": "Vita Gravehold",
        "a": "Box vita/token",
-       "px": 45.3,
-       "mm": 8.6
+       "px": 28.5,
+       "mm": 5.4
       },
       {
        "da": "Box vita/token",
        "a": "Carta grande",
-       "px": 8.0,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Carta grande",
        "a": "Comandi",
-       "px": 8.1,
+       "px": 8,
        "mm": 1.5
       },
       {
        "da": "Comandi",
        "a": "Pulsante",
-       "px": 28.6,
+       "px": 28.5,
        "mm": 5.4
       },
       {

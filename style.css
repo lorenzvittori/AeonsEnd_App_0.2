@@ -1853,3 +1853,18 @@ body { overflow: hidden; }
 /* v252: cuspide 14x8, mai stirata (stesse misure del viewBox) */
 .ae-turn-divider .ae-turn-cusp { width: 14px; height: 8px; }
 .ae-turn-divider .ae-turn-cusp svg { width: 14px; height: 8px; }
+
+/* v254: vite di Gravehold (sinistra) e della nemesi (destra) sotto la fascia delle carte piccole, ai margini della fascia */
+.ae-lives { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px 0; position: relative; z-index: 1; }
+.ae-lives[hidden] { display: none; }
+.ae-life-box {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: calc(50% - 6px); height: 34px; padding: 0 10px;
+  border: 1px solid var(--ae-border); border-radius: 8px; background: rgba(16, 17, 22, .85); color: inherit; cursor: pointer;
+  font: 700 20px/24px var(--ae-font-ui); font-variant-numeric: tabular-nums;
+}
+.ae-life-box .ae-life-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; font-weight: 600; opacity: .8; }
+.ae-life-box .ae-life-heart { flex: 0 0 auto; width: 16px; height: 16px; }
+.ae-life-box .ae-life-value { flex: 0 0 auto; }
+.ae-life-box.is-zero .ae-life-value { color: #e06c5a; }
+.ae-modal--life .ae-life-panel { padding-top: 4px; }
+.ae-victory-screen.is-defeat .ae-tier-banner-text { color: #e06c5a; }

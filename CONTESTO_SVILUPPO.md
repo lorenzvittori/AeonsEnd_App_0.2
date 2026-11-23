@@ -92,7 +92,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
     TO DISCARD), Vittoria (un minion a 1 di vita, una carta nel mazzo), Carte 1/2 e 3/4 (4 giocatori, la prossima carta
     turno è 1/2), Memoria 1/2 tra i giri (v220: 4 giocatori, memoria p12 = 'p2', la prossima 1/2 la gioca il 2 senza
     scelta), Wild e fine giro (3 giocatori, ultima carta del giro, wild = giocatore 2), Statistiche piene (turno 8,
-    giro 3, statistiche riempite), Mazzo nemesi vuoto (un minion in gioco).
+    giro 3, statistiche riempite), Mazzo nemesi vuoto (un minion in gioco), Vite quasi a zero (v255: nemesi e
+    Gravehold a 3; campi `graveLife` / `nemesisLife` dello scenario).
 
 **Pagina Nuova partita** (`startMode = 'setup'`)
 - In alto la testata **Nuova partita** con la **X** (torna al menu iniziale), ferma mentre la pagina scorre; sotto di
@@ -553,6 +554,15 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Vittoria:** mazzo vuoto e nessun potere né minion in gioco (dopo il primo turno nemesi), oppure "Nemesi uccisa" nel
   Menu → schermata Vittoria: la scritta "Vittoria" entra come il banner dei Tier e resta ferma; sotto *Statistiche* e
   *Menu iniziale*. Un tocco in una parte vuota dello schermo torna alla partita, che non cambia.
+- **Vite di Gravehold e della nemesi** (v255): sotto la fascia delle carte piccole, nei due turni, una riga
+  (`.ae-lives`, `renderLives`) con il box di **Gravehold** a sinistra e quello della **nemesi** a destra, ai margini
+  della fascia (nome piccolo, cuore, numero). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
+  Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
+  - Toccando un box si apre la finestra della vita (`openLifeDialog`, come quella del minion): titolo, "x / max",
+    −5 −1 +1 +5 (mai sopra la vita iniziale né sotto 0), Annulla / Conferma modifiche. La conferma è un passo di undo
+    e si salva.
+  - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
+    Vittoria con la scritta rossa, `showEndScreen`). Chiusa la schermata, Undo rimette la vita e la partita continua.
 - **Statistiche:** turni nemesi, carte giocate del mazzo nemesi (mazzo iniziale − carte rimaste, quindi anche quelle
   scartate con "Pesca carta"), carte rimanenti, minion uccisi, poteri scartati pagando il costo, poteri risolti, Æ spesi
   per i poteri (solo i costi "Spend N Æ"; gli altri costi valgono 0), attacchi risolti e, per ogni minion, i turni nemesi
@@ -633,6 +643,7 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   misura fallisce (per esempio se cambiano i nomi interni usati: `centredQueueUid`, `scrollToCard`, `makeEntry`,
   `turnTrackBar`, `turnTrackLabels`, `nemesisBtn`, `.ae-compact-rail`, `.queue-slot`, `.queue-controls`...) mostra
   le misure salvate in `misure.json` e lo dice. Con un cambio di posizionamento lo scheletro si aggiorna da solo.
+  Dalla v255 misura anche i box **Vita Gravehold** e **Vita nemesi** (`.ae-lives`); `misure.json` rifatto il 23/11/2026.
 - **App installabile:** `manifest.webmanifest` (a tutto schermo, verticale) e icone in `Assets/ui/app-icons/`
   (rifatte da `tools/build-app-icons.py`; dalla v198 a partire da `Assets/ui/decor/app-icon.png` (400×400), l'immagine
   quadrata scelta dall'utente con il logo e il ragno sotto la luna; prima dal dorso). Icona maskable: immagine nel 72%
@@ -716,6 +727,9 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `data`; si pesca dalla fine di `deck`), `currentIndex`, `newIndex` (≥0 quando c'è una carta appena pescata),
   `resolving`, `turn`, `maxTierDrawn`, `stats` (statistiche: `deckSize`, contatori e `minions`; si aggiornano in
   `discardGone`, `removeWhileResolving` e `resolveCurrent`). I salvataggi senza `stats` ripartono da zero.
+- Vite (v254): `graveLife` (parte da `GRAVEHOLD_LIFE = 30`) e `nemesisLife` (parte da `nemesisStartLife()`, il campo
+  `life` di `nemesis.json`). Entrano in snapshot, restore, salvataggio e undo; `newGame` (Nuova partita e "Ricomincia")
+  le rimette ai valori iniziali; salvataggi senza i campi: valori iniziali.
 - Mazzo dei turni: `turnOrder = { left, drawn, round, wild, picks, known, waiting, pairNext, history }`. Dalla v222
   `history = [{ kind, player, forced, pos }]`: un turno per ogni carta pescata nel giro (l'ultimo è il turno in corso,
   `currentTurn()`; `pos` = posizione negli scarti dei turni o null se la carta è tornata nel mazzo); salvataggi senza:
@@ -788,7 +802,10 @@ nemesi** (`save()` non scrive con `turn < 1`, a meno che la partita sia già sta
   `"4.1": "Shattered Dreams"`...). Il codice senza punto è la scatola base della wave; la wave di un codice è la parte
   prima del punto. Da qui vengono le wave e le mini espansioni della collezione e i loro nomi.
 - `nemesis.json`: `name`, `boxCode` (codice del prodotto della nemesi; null per le Promo, mai giocabili), `waveOrder`,
-  `battle`, `flagBattle5`, `owned` (dalla v194 non si usa più: la collezione iniziale è vuota).
+  `battle`, `flagBattle5`, `owned` (dalla v194 non si usa più: la collezione iniziale è vuota), `life` (v254, vita
+  iniziale della nemesi, solo le 14 giocabili: Carapace Queen 60, Rageborne 70, Crooked Mask 70, Prince of Gluttons 70,
+  Horde-Crone 60, Blight Lord 70, Wayward One 60, Maggoth 45, Arachnos 70, Ageless Walker 80, Fenrix 60, The Wailing 50,
+  The Wanderer 40, Necroswarm 70).
   - Una nemesi è giocabile (`isPlayable`) se ha `boxCode` e battaglia, il suo prodotto è nella collezione, ha carte
     Specific.
 - `deck-setup.json`: la tabella del Nemesis Deck Setup.
