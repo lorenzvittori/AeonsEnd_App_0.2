@@ -5128,7 +5128,8 @@ function openTurnScreen() {
     range.selectNodeContents(e);
     const fits = () => {
       const r = range.getBoundingClientRect(), z = pageZoom();
-      return r.width / z <= lw && r.height / z <= h;
+      // (mezzo pixel di margine: il testo resta dentro anche con gli arrotondamenti)
+      return r.width / z <= lw - 0.5 && r.height / z <= h - 0.5;
     };
     let size = parseFloat(getComputedStyle(e).fontSize) || 14;
     for (let i = 0; i < 16 && !fits() && size > 8; i++) {
