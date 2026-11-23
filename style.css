@@ -1824,3 +1824,11 @@ body { overflow: hidden; }
   border: 0; box-shadow: none; opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 186, 72, .85));
   background: url('Assets/ui/icons/place-circle.webp') center / contain no-repeat;
 }
+/* v249: cuspide a due curve, 14px (prima 10x6); l'altezza la dà lo svg, con la coda fino al segmento verticale */
+.ae-turn-cusp { width: 14px; height: auto; }
+/* v249: anche la larghezza della parte degli scarti cambia con la transizione delle carte (.2s ease): quando una carta
+   passa dagli scarti al mazzo (o viceversa) il segmento verticale si sposta piano, insieme alla cuspide dei titoli e
+   ai cerchi, invece di saltare */
+.ae-turn-area--pile { transition: width .2s ease; }
+.ae-turn-heads.is-settling ~ .ae-turn-row .ae-turn-area--pile { transition: none; }
+@media (prefers-reduced-motion: reduce) { .ae-turn-area--pile { transition: none; } }

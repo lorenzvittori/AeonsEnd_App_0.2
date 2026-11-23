@@ -209,7 +209,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
       **Sopra la riga** (v236, `.ae-turn-heads`, prima dentro le due parti) i titoli. Dalla v247 sono **su una linea
       sottile**: `[linea] SCARTI [linea] cuspide [linea] MAZZO TURNO [Mescola]` (`layoutHeads`).
       - **Linea e cuspide**: 1px, del colore delle scritte (`--ae-text-muted`), a metà altezza della riga dei titoli; la
-        **cuspide** (`.ae-turn-cusp`, svg 10x6, punta in giù che nasce dalla linea) è centrata sul **segmento verticale**
+        **cuspide** (`.ae-turn-cusp`; v249 due curve di Bézier 14x8, `cuspPath`: ognuna parte tangente alla linea e
+        arriva verticale nella punta, che prosegue dritta fino a toccare il segmento sotto; `vector-effect:
+        non-scaling-stroke`; v247 una V 10x6) è centrata sul **segmento verticale**
         tra scarti e mazzo, nella sua posizione finale (`split` = larghezza degli scarti + margine del segmento, non
         `offsetLeft`, che durante la transizione darebbe la partenza). Decorative (aria-hidden).
       - **Scritte**: "Scarti" al centro tra il bordo sinistro e la cuspide, "Mazzo turno" allineata a destra prima di
@@ -290,6 +292,16 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         **Aspetto dei cerchi-luogo** (v248): il cerchio a pennello dato dall'utente (`Assets/ui/icons/place-circle.webp`,
         64x64 con trasparenza), stessa misura (`--ae-zone-d`) e posizione; spento al 75%, acceso pieno con un alone
         (prima un cerchio disegnato con il bordo).
+        **Cerchi al centro tra i vicini** (v249): ogni cerchio-luogo sta esattamente a metà (in orizzontale) tra i bordi
+        **visibili** dei suoi vicini: Cima tra il segmento verticale e la prima carta del mazzo, Fondo tra l'ultima carta
+        e il bordo della finestra (a tutto schermo sul telefono; sul desktop il bordo della colonna), il cerchio degli
+        scarti tra l'ultimo scarto (con zero scarti il posto tratteggiato) e il segmento. Le carte con una carta in mano
+        sono all'85% (o meno), quindi conta il loro bordo visibile; si usano le posizioni finali della disposizione
+        (larghezza finale della corsia, non quella a metà transizione del segmento). Lo spazio per ogni cerchio (cerchio +
+        2px per lato + spostamento delle carte che si allargano) si conta dai vicini veri (il segmento è 8px prima della
+        corsia, il bordo della finestra 16px dopo la riga), e la disposizione lo fa se manca. Anche la larghezza degli
+        scarti cambia con la transizione delle carte (v249), così il segmento non salta quando una carta passa da una
+        parte all'altra.
         **Mai sovrapposti** (v246): cerchi-luogo, guida, carte e segmento non si intersecano mai, nemmeno durante i
         movimenti.
         - **Stessa transizione** per tutto ciò che si sposta nella riga (carte, cerchi Cima/Fondo e degli scarti, guida,
@@ -550,6 +562,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   si adatta (`min(64px, 12.5vw)`).
 
 **Menu (pannello laterale al 70%)**
+- Entra da destra e (v249) esce verso destra mentre lo sfondo scuro svanisce (0,22s, `SIDE_MENU_OUT_MS`), con
+  qualunque chiusura (X, tocco fuori, Indietro, una voce); se lo si è trascinato fuori col dito non salta.
 - Turno nemesi N e carte nel mazzo.
 - **Annulla ultima azione:** chiude il menu e lascia un pulsante sospeso che si può toccare più volte. Il primo Annulla
   toglie le modifiche non salvate, poi si torna indietro fino all'inizio della partita.

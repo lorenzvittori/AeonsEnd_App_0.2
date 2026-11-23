@@ -4612,7 +4612,20 @@ function openTurnScreen() {
   });
   const cusp = el('span', 'ae-turn-cusp');
   cusp.setAttribute('aria-hidden', 'true');
-  cusp.innerHTML = '<svg viewBox="0 0 10 6" width="10" height="6" focusable="false"><polyline points="0,0.5 5,5.5 10,0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>';
+  // v249: la cuspide è fatta di due curve (prima una V a tratti dritti), 14x8px: ogni curva parte tangente alla linea
+  // (orizzontale) e arriva verticale nella punta in basso, che prosegue dritta fino al segmento verticale sotto
+  // (cuspPath, la coda si allunga fino a toccarlo). Misure in pixel interi, nessuna scala: curva liscia anche ad alta
+  // densità (vector-effect)
+  const CUSP_W = 14, CUSP_H = 8;
+  function cuspPath(tail) {
+    const tip = CUSP_H, mid = CUSP_W / 2, end = tip + Math.max(0, tail);
+    const d = `M0,0.5 C4,0.5 ${mid},${tip - 4} ${mid},${tip} C${mid},${tip - 4} ${CUSP_W - 4},0.5 ${CUSP_W},0.5` +
+      (end > tip ? ` M${mid},${tip} V${end}` : '');
+    return `<svg viewBox="0 0 ${CUSP_W} ${end + 0.5}" width="${CUSP_W}" height="${end + 0.5}" focusable="false">` +
+      `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>`;
+  }
+  cusp.innerHTML = cuspPath(0);
+  let cuspTail = -1;
   heads.append(...headLines, cusp, pileHead, deckHead, shuffleBtn);
   const board = el('div', 'ae-turn-board');
   // Corsia del mazzo: carte in fila (posizioni assolute, così si spostano con una transizione)
@@ -4888,7 +4901,12 @@ function openTurnScreen() {
     const holdingDeck = tight && (drag ? drag.source : sel ? sel.source : null) === 'deck';
     const zdPre = Math.round(Math.min(14, g.w * 0.3));
     divider.style.marginLeft = holdingDeck ? (zdPre + 12) + 'px' : '';
-    const lw = laneWidth(g);
+    // v249: misure FINALI della disposizione (non quelle a metà della transizione del segmento): margine sinistro del
+    // segmento (ml), larghezza finale della corsia del mazzo (lw: dal segmento, 1px + 8px di margine, al bordo destro
+    // della riga) e quanto c'è tra il bordo destro della riga e il bordo della finestra (edgeExtra)
+    const ml = holdingDeck ? zdPre + 12 : 8;
+    const lw = Math.max(0, (row.clientWidth || 343) - (pileW + ml + 1 + 8));
+    const edgeExtra = Math.max(0, dialog.getBoundingClientRect().right - row.getBoundingClientRect().right);
     // Cima e Fondo sono due cerchi (diametro zd: v242 la metà, al massimo 14px; v241 28px) subito prima e subito dopo
     // le carte del mazzo, che si avvicinano (sovrapposte quanto serve, almeno 8px l'una dall'altra) e restano centrate
     // nella corsia. Se la corsia è stretta i cerchi escono un po' dai suoi bordi o coprono il bordo delle carte
@@ -4902,12 +4920,18 @@ function openTurnScreen() {
     //   l'85% quanto basta (laneScale, al minimo 40%).
     const spreadMax = tight && m > 1 ? Math.round(Math.min(10, g.w * 0.2)) : 0;
     const ZONE_GAP = 4;
+    // v249: i cerchi Cima e Fondo stanno AL CENTRO tra i loro vicini (bordi visibili): Cima tra il segmento verticale e
+    // la prima carta, Fondo tra l'ultima carta e il bordo della finestra. Lo spazio che serve a ciascuno (cerchio +
+    // 2px per lato, più lo spostamento delle carte che si allargano) si conta da lì: a sinistra il segmento è 8px
+    // prima della corsia, a destra il bordo della finestra è edgeExtra dopo
+    const leftNeed = Math.max(0, zd + ZONE_GAP + spreadMax - 8);
+    const rightNeed = Math.max(0, zd + ZONE_GAP + spreadMax - edgeExtra);
     let laneScale = 0.85, wv = 0, stepMin = 0, avail = 0;
     if (tight) {
       for (;;) {
         wv = laneScale * g.w;
         stepMin = m > 1 ? Math.max(8, wv - 2 * spreadMax + 8) : 0;
-        avail = lw - 2 * (zd + ZONE_GAP + spreadMax);
+        avail = lw - leftNeed - rightNeed;
         if (!m || wv + (m - 1) * stepMin <= avail || laneScale <= 0.4) break;
         laneScale = Math.max(0.4, laneScale - 0.01);
       }
@@ -4917,7 +4941,8 @@ function openTurnScreen() {
     const step = tight ? (m > 1 ? Math.min(g.w + g.gap, Math.max(stepMin, (avail - wv) / (m - 1))) : 0) : g.w + g.gap;
     const visStack = m ? wv + (m - 1) * step : 0;
     const stackW = m ? g.w + (m - 1) * step : 0;
-    const start = tight ? (lw - visStack) / 2 - inset : 0;
+    const startVis = tight ? leftNeed + (avail - visStack) / 2 : 0;
+    const start = tight ? startVis - inset : 0;
     tightGeo = tight ? { start, step, stackW, w: g.w, gap: g.gap, n: m } : null;
     // v242: posto d'arrivo tra due carte (segmento tra loro): le carte a sinistra si spostano un po' a sinistra e quelle
     // a destra un po' a destra, per farle spazio
@@ -4950,7 +4975,10 @@ function openTurnScreen() {
     // Cima e Fondo (tra l'ultimo scarto e il segmento), e la figura linea-cerchio-linea si centra su di lui
     const toPile = !!over && over.type === 'pile';
     // (v245: 4px dopo l'ultimo scarto, prima del segmento spostato)
-    const pileX = pileArea.clientWidth + 4 + zd / 2;
+    // v249: a metà tra il bordo visibile dell'ultimo scarto (all'85% con una carta in mano; con zero scarti il posto
+    // tratteggiato, che non si rimpicciolisce) e il bordo sinistro del segmento
+    const pileLastRight = d.drawn.length ? pileW - (tight ? (1 - 0.85) * g.w / 2 : 0) : pileW;
+    const pileX = (pileLastRight + (pileW + ml)) / 2;
     pileArea.style.setProperty('--ae-zone-d', zd + 'px');
     pileZone.hidden = !holdingDeck;
     pileZone.classList.toggle('is-over', toPile);
@@ -4969,8 +4997,11 @@ function openTurnScreen() {
     layoutHeads(split);
     // (v244: i cerchi si spostano insieme alle carte che si allargano, così nessuna carta li copre)
     // (v246: 4px dal bordo della carta come si vede, all'85% o meno)
-    const topX = start + inset - spread - ZONE_GAP - zd / 2;
-    const bottomX = start + inset + visStack + spread + ZONE_GAP + zd / 2;
+    // v249: centri dei cerchi a metà tra i vicini (in coordinate della corsia): Cima tra il bordo destro del segmento
+    // (-8) e il bordo visibile della prima carta (spostata a sinistra se le carte si allargano); Fondo tra il bordo
+    // visibile dell'ultima carta e il bordo della finestra (lw + edgeExtra)
+    const topX = (-8 + (startVis - spread)) / 2;
+    const bottomX = ((startVis + visStack + spread) + (lw + edgeExtra)) / 2;
     if (fromPile) {
       Object.assign(zoneTop.style, { left: (topX - zd / 2) + 'px', width: zd + 'px' });
       Object.assign(zoneBottom.style, { left: (bottomX - zd / 2) + 'px', width: zd + 'px' });
@@ -4996,7 +5027,7 @@ function openTurnScreen() {
   // Mescola (o al bordo destro se Mescola non c'è); le scritte restano su una riga, almeno 4px dalla cuspide, e se non
   // ci stanno il carattere scende (fitHead, fino a 8px). I tratti di linea lasciano 6px attorno alle scritte e
   // spariscono se sono più corti di 6px
-  const CUSP_HALF = 5, HEAD_GAP = 4, LINE_PAD = 6, LINE_MIN = 6;
+  const CUSP_HALF = CUSP_W / 2, HEAD_GAP = 4, LINE_PAD = 6, LINE_MIN = 6;
   // (v247: il carattere di una scritta scende subito ma sale solo DOPO lo spostamento di cuspide e linee, 0,2s: se
   // salisse subito, la scritta più grande toccherebbe per un attimo la cuspide che si sta ancora spostando. Poi la
   // scritta si rimette al suo posto senza transizione)
@@ -5035,6 +5066,11 @@ function openTurnScreen() {
     // dal bordo: a destra della cuspide resta a volte la larghezza di una carta sola)
     const right = shuffleBtn.hidden || !iconEl ? W + 12 : Math.min(W, iconEl.getBoundingClientRect().left - hr.left - HEAD_GAP);
     cusp.style.left = (cx - CUSP_HALF) + 'px';
+    // (v249: la punta prosegue fino all'inizio del segmento verticale: la cuspide parte a 16px dall'alto della riga dei
+    // titoli, il segmento comincia più in basso, sopra le carte; +0,5 perché il tratto tocchi il segmento)
+    const divTop = divider.getBoundingClientRect().top - heads.getBoundingClientRect().top;
+    const tail = Math.round((divTop - 16 + 0.5 - CUSP_H) * 2) / 2;
+    if (tail !== cuspTail && isFinite(tail)) { cuspTail = tail; cusp.innerHTML = cuspPath(tail); }
     // Scarti: tra 0 e la cuspide
     const leftEnd = cx - CUSP_HALF;
     let grow = fitHeadNoGrow(pileHead, Math.max(0, leftEnd - HEAD_GAP));
@@ -6419,6 +6455,7 @@ applyBackground();
 
 // v224: leave (facoltativo) = cosa chiudere prima di una voce che porta altrove (Menu aperto dalla finestra del mazzo
 // dei turni: la finestra si chiude prima di undo, scarti, vittoria, esci, ricomincia)
+const SIDE_MENU_OUT_MS = 220;
 function openSideMenu(leave) {
   if (ui.isTransitioning) return;
   let close = () => {};
@@ -6464,6 +6501,20 @@ function openSideMenu(leave) {
   }
   panel.append(...items, bgRow, backRow, exit);
   close = openModal(panel, { onCancel: cancel });
+  // v249: anche l'uscita è animata (prima il menu entrava da destra ma spariva di colpo): il pannello torna a destra e
+  // lo sfondo scuro svanisce, poi il menu si chiude. Parte da dove si trova (se lo si è già trascinato fuori, niente salto)
+  const closeNow = close;
+  let leaving = false;
+  close = () => {
+    if (leaving) return;
+    leaving = true;
+    const back = panel.parentElement;
+    if (reducedMotion.matches || !panel.animate || !back) { closeNow(); return; }
+    back.style.pointerEvents = 'none';
+    const out = panel.animate([{ transform: 'translateX(100%)' }], { duration: SIDE_MENU_OUT_MS, easing: 'cubic-bezier(.4, 0, 1, 1)', fill: 'forwards' });
+    back.animate([{ opacity: 0 }], { duration: SIDE_MENU_OUT_MS, easing: 'ease-in', fill: 'forwards' });
+    animDone([out], SIDE_MENU_OUT_MS).then(closeNow);
+  };
   panel.parentElement.classList.add('ae-modal-backdrop--side');
   swipeToClose(panel, cancel);
   menuCloseToggle(menuBtn, panel.parentElement, cancel);
