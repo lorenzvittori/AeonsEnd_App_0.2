@@ -340,6 +340,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         in cima o in fondo.) **Mazzo vuoto** (v236): niente Cima e Fondo; la carta va nel mazzo vuoto (trascinata sulla
         corsia o, selezionata, con un tocco sulla corsia). Nel mazzo resta **nota** e si sposta come le rivelate. I giocatori scelti per le carte 1/2 e 3/4 si ricalcolano (`takeFromTurnPile`, la logica della v206
         `shuffleTurnCardsBack`): la scelta della carta che torna nel mazzo si perde;
+      - **Zona degli scarti** (v252): per una carta del mazzo è tutta l'area a sinistra del centro del segmento
+        verticale, nella stessa fascia verticale della corsia (±24px), sia trascinando sia col tocco (`inPileZone`):
+        nessuna fascia morta tra scarti e Cima.
       - **Carta rivelata del mazzo negli scarti** (v240, `turnDraftOps.deckToPile`): solo **in fondo a destra** degli
         scarti (trascinata sugli scarti, a sinistra del segmento, con il segmento dorato dopo l'ultimo scarto; col tocco:
         la carta, poi gli scarti). **Non è un turno**: la storia del giro non cambia, la carta "in corso" resta quella e
