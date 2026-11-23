@@ -5,7 +5,8 @@
         "waveOrder": 1,
         "battle": 1,
         "flagBattle5": "Sì",
-        "owned": true
+        "owned": true,
+        "life": 60
     },
     {
         "name": "Rageborne",
@@ -13,7 +14,8 @@
         "waveOrder": 1,
         "battle": 1,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "Wayward One",
@@ -21,7 +23,8 @@
         "waveOrder": 1,
         "battle": 3,
         "flagBattle5": null,
-        "owned": false
+        "owned": false,
+        "life": 60
     },
     {
         "name": "Maggoth",
@@ -29,7 +32,8 @@
         "waveOrder": 4,
         "battle": 1,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 45
     },
     {
         "name": "Horde-Crone",
@@ -37,7 +41,8 @@
         "waveOrder": 1,
         "battle": 2,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 60
     },
     {
         "name": "Blight Lord",
@@ -45,7 +50,8 @@
         "waveOrder": 1,
         "battle": 2,
         "flagBattle5": "Sì",
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "Crooked Mask",
@@ -53,7 +59,8 @@
         "waveOrder": 1,
         "battle": 2,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "Thrice-Dead Prophet",
@@ -189,7 +196,8 @@
         "waveOrder": 1,
         "battle": 2,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "Arachnos",
@@ -197,7 +205,8 @@
         "waveOrder": 4,
         "battle": 2,
         "flagBattle5": "Sì",
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "The Wailing",
@@ -205,7 +214,8 @@
         "waveOrder": 4,
         "battle": 3,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 50
     },
     {
         "name": "The Wanderer",
@@ -213,7 +223,8 @@
         "waveOrder": 4,
         "battle": 3,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 40
     },
     {
         "name": "Ageless Walker",
@@ -221,7 +232,8 @@
         "waveOrder": 4,
         "battle": 3,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 80
     },
     {
         "name": "Necroswarm",
@@ -229,7 +241,8 @@
         "waveOrder": 4,
         "battle": 4,
         "flagBattle5": "Sì",
-        "owned": true
+        "owned": true,
+        "life": 70
     },
     {
         "name": "Fenrix",
@@ -237,7 +250,8 @@
         "waveOrder": 4,
         "battle": 4,
         "flagBattle5": null,
-        "owned": true
+        "owned": true,
+        "life": 60
     },
     {
         "name": "Fortress",

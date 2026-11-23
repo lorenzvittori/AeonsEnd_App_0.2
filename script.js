@@ -431,6 +431,15 @@ let turn = 0;
 let turnOrder = { left: [], drawn: [], round: 0 };
 // Tier più alto pescato finora: alla prima carta del Tier 2 e del Tier 3 compare la scritta "Tier N"
 let maxTierDrawn = 0;
+// v254: vita di Gravehold (parte da 30) e della nemesi (campo "life" di nemesis.json); nessuna supera il valore iniziale.
+// Entrano nel salvataggio e nell'undo (snapshot / restore). (I box sotto la fascia arriveranno dopo)
+const GRAVEHOLD_LIFE = 30;
+let graveLife = GRAVEHOLD_LIFE;
+let nemesisLife = 0;
+function nemesisStartLife() {
+  const n = (typeof nemeses !== 'undefined' && nemeses || []).find(x => x.name === settings.nemesis);
+  return n && typeof n.life === 'number' ? n.life : 0;
+}
 // Statistiche della partita (finestra Statistiche della Vittoria). Fanno parte della partita: entrano nel salvataggio e
 // nell'undo. minions: minion usciti dal gioco uccisi, con i turni nemesi passati da quando erano stati pescati.
 let stats = emptyStats(0);
@@ -698,6 +707,8 @@ function buildDeck() {
 
 // Nuova partita: mazzo nuovo per le scelte correnti, scarti vuoti, turni a zero
 function newGame() {
+  graveLife = GRAVEHOLD_LIFE;
+  nemesisLife = nemesisStartLife();
   deck = buildDeck();
   discard = [];
   turn = 0;
@@ -2955,6 +2966,9 @@ function snapshot() {
     newIndex,
     // In più rispetto alla v48 (i salvataggi senza questi campi restano validi)
     maxTierDrawn,
+    // v254: vite di Gravehold e della nemesi
+    graveLife,
+    nemesisLife,
     stats: JSON.parse(JSON.stringify(stats)),
     turnOrder: { left: turnOrder.left.slice(), drawn: turnOrder.drawn.slice(), round: turnOrder.round, wild: turnOrder.wild || null,
       picks: JSON.parse(JSON.stringify(turnOrder.picks || {})),
@@ -3002,6 +3016,9 @@ function restore(s) {
   // Salvataggi senza il campo: il tier più alto tra le carte già uscite (coda e scarti)
   maxTierDrawn = typeof s.maxTierDrawn === 'number' ? s.maxTierDrawn
     : Math.max(0, ...queue.map(e => e.data.tier || 0), ...discard.map(c => c.tier || 0));
+  // v254: vite (salvataggi senza i campi: valori iniziali)
+  graveLife = typeof s.graveLife === 'number' ? s.graveLife : GRAVEHOLD_LIFE;
+  nemesisLife = typeof s.nemesisLife === 'number' ? s.nemesisLife : nemesisStartLife();
   // Salvataggi senza statistiche: si parte da zero (mazzo iniziale = tutte le carte della partita)
   stats = Object.assign(emptyStats(deck.length + queue.length + discard.length), s.stats ? JSON.parse(JSON.stringify(s.stats)) : {});
   stats.minions = Array.isArray(stats.minions) ? stats.minions : [];
