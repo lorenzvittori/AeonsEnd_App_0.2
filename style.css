@@ -1868,3 +1868,5 @@ body { overflow: hidden; }
 .ae-life-box.is-zero .ae-life-value { color: #e06c5a; }
 .ae-modal--life .ae-life-panel { padding-top: 4px; }
 .ae-victory-screen.is-defeat .ae-tier-banner-text { color: #e06c5a; }
+/* v257: box delle vite = solo il numero, a pillola (angoli tondi quanto metà altezza: i lati sono mezzi cerchi) */
+.ae-life-box { justify-content: center; min-width: 56px; padding: 0 16px; border-radius: 17px; }

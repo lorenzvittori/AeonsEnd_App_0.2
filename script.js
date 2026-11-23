@@ -3404,9 +3404,8 @@ function ensureLivesRow() {
     const b = el('button', 'ae-life-box ae-life-box--' + kind);
     b.type = 'button';
     b.dataset.kind = kind;
-    const heart = icon('heart');
-    heart.classList.add('ae-life-heart');
-    b.append(el('span', 'ae-life-label'), heart, el('span', 'ae-life-value'));
+    // v257: solo il numero (niente nome né goccia); il nome resta nell'etichetta per i lettori di schermo
+    b.append(el('span', 'ae-life-value'));
     b.setAttribute('aria-haspopup', 'dialog');
     b.addEventListener('click', () => openLifeDialog(kind));
     return b;
@@ -3421,7 +3420,6 @@ function renderLives() {
   row.hidden = !!ui.deckBuilding;
   [['grave', I18N_IT.graveholdName, graveLife], ['nemesis', settings.nemesis || '', nemesisLife]].forEach(([kind, name, value]) => {
     const b = row.querySelector(`[data-kind="${kind}"]`);
-    b.querySelector('.ae-life-label').textContent = name;
     b.querySelector('.ae-life-value').textContent = String(value);
     b.classList.toggle('is-zero', value <= 0);
     b.setAttribute('aria-label', I18N_IT.lifeAria(name, value));

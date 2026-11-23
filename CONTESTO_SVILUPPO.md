@@ -556,7 +556,8 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   *Menu iniziale*. Un tocco in una parte vuota dello schermo torna alla partita, che non cambia.
 - **Vite di Gravehold e della nemesi** (v255): sotto la fascia delle carte piccole, nei due turni, una riga
   (`.ae-lives`, `renderLives`) con il box di **Gravehold** a sinistra e quello della **nemesi** a destra, ai margini
-  della fascia (nome piccolo, cuore, numero). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
+  della fascia. Dalla v257 ogni box ha **solo il numero**, a pillola (34px di altezza, raggio 17px: i lati sono mezzi
+  cerchi); il nome resta solo nell'etichetta per i lettori di schermo. Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`, come quella del minion): titolo, "x / max",
     −5 −1 +1 +5 (mai sopra la vita iniziale né sotto 0), Annulla / Conferma modifiche. La conferma è un passo di undo
