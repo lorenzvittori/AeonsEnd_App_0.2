@@ -557,7 +557,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
 - **Vite di Gravehold e della nemesi** (v255): sotto la fascia delle carte piccole, nei due turni, una riga
   (`.ae-lives`, `renderLives`) con il box di **Gravehold** a sinistra e quello della **nemesi** a destra, ai margini
   della fascia. Dalla v257 ogni box ha **solo il numero**, a pillola (34px di altezza, raggio 17px: i lati sono mezzi
-  cerchi); il nome resta solo nell'etichetta per i lettori di schermo. Dalla v258 i box hanno uno **sfondo** velato
+  cerchi); il nome resta solo nell'etichetta per i lettori di schermo. Dalla v262 sopra ogni box una scritta
+  piccolissima **GRAVEHOLD** / **NEMESIS** (`.ae-life-tag`, 8px, alta 7px, 3px sopra il box); i box scendono di 3.8px
+  (`.ae-lives` padding sopra 7.8px e margine sotto −3.8px: la riga resta alta uguale, le carte grandi non cambiano),
+  così nello scheletro gli spazi 5 (fascia piccola → box vita) e 6 (box vita → riga vita/token) sono uguali (24.5px;
+  ±0.3px in 19:9 e 20:9 per l'arrotondamento della carta centrata). Dalla v258 i box hanno uno **sfondo** velato
   (larghi almeno 72px): Gravehold = immagine scelta nel Menu della partita con la riga **"Sfondo Gravehold"** (Città
   o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).

@@ -3409,6 +3409,10 @@ function ensureLivesRow() {
     b.dataset.kind = kind;
     // v257: solo il numero (niente nome né goccia); il nome resta nell'etichetta per i lettori di schermo
     b.append(el('span', 'ae-life-value'));
+    // v262: scritta piccolissima sopra il box (alta 7px, solo da vedere: il nome è già nell'etichetta del pulsante)
+    const tag = el('span', 'ae-life-tag', kind === 'grave' ? 'Gravehold' : 'Nemesis');
+    tag.setAttribute('aria-hidden', 'true');
+    b.appendChild(tag);
     b.setAttribute('aria-haspopup', 'dialog');
     b.addEventListener('click', () => openLifeDialog(kind));
     return b;
