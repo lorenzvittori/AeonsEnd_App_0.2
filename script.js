@@ -3448,42 +3448,36 @@ function openLifeDialog(kind) {
   const cap = Math.max(original, grave ? GRAVEHOLD_LIFE : nemesisStartLife());
   let draft = original;
   let close = () => {};
-  const cancel = () => close();
-  const dialog = dialogShell(name, I18N_IT.lifeKind, cancel);
-  dialog.classList.add('ae-modal--life');
-  const panel = el('div', 'ae-card-panel ae-life-panel');
-  const row = el('div', 'ae-hp-row');
-  const number = el('p', 'ae-hp-number');
+  // v259: finestra a pillola al centro, come il box (stesso sfondo): in alto il numero grande, sotto −5 −1 · +1 +5.
+  // Niente Conferma: i tocchi cambiano il numero, chiudendo (tocco fuori, Esc, Indietro) la vita si applica una volta
+  // sola (un passo di undo, si salva); a 0 → Vittoria o Sconfitta.
+  const dialog = el('div', 'ae-life-modal ae-life-modal--' + kind);
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-label', `${name}, ${I18N_IT.lifeKind}`);
+  const box = livesRow && livesRow.querySelector(`[data-kind="${kind}"]`);
+  const bg = box && box.style.getPropertyValue('--ae-life-bg');
+  if (bg) { dialog.style.setProperty('--ae-life-bg', bg); dialog.classList.add('has-bg'); }
+  const number = el('p', 'ae-life-modal-number');
   number.setAttribute('aria-live', 'polite');
-  const delta = el('p', 'ae-hp-delta');
-  row.append(number, delta);
-  const controls = el('div', 'ae-hp-controls');
+  const controls = el('div', 'ae-life-modal-controls');
   const steps = [];
   [-5, -1, 1, 5].forEach(step => {
-    const b = button(step > 0 ? '+' + step : '−' + Math.abs(step), 'secondary', () => {
-      draft = Math.min(cap, Math.max(0, draft + step));
-      update();
-    });
+    const b = el('button', 'ae-life-step', step > 0 ? '+' + step : '−' + Math.abs(step));
+    b.type = 'button';
+    b.addEventListener('click', () => { draft = Math.min(cap, Math.max(0, draft + step)); update(); });
     b.setAttribute('aria-label', (step > 0 ? 'Aggiungi ' : 'Togli ') + Math.abs(step) + ' punti vita');
     steps.push([step, b]);
+    if (step === 1) controls.appendChild(el('span', 'ae-life-step-gap'));
     controls.appendChild(b);
   });
-  panel.append(row, controls);
-  const footer = el('div', 'ae-modal-footer');
-  const confirm = button(I18N_IT.confirmHp, 'primary', commit);
-  footer.append(button(I18N_IT.cancel, 'secondary', cancel), confirm);
-  dialog.append(panel, footer);
+  dialog.append(number, controls);
   function update() {
-    number.textContent = `${draft} / ${cap}`;
+    number.textContent = String(draft);
     const change = draft - original;
-    delta.className = 'ae-hp-delta' + (change < 0 ? ' is-loss' : change > 0 ? ' is-gain' : '');
-    delta.replaceChildren();
-    if (change !== 0) delta.append(icon('heart'), el('span', '', I18N_IT.hpDelta(change)));
-    steps.forEach(([step, b]) => {
-      const off = step > 0 ? draft >= cap : draft <= 0;
-      b.disabled = off;
-      b.classList.toggle('is-dimmed', off);
-    });
+    number.classList.toggle('is-loss', change < 0);
+    number.classList.toggle('is-gain', change > 0);
+    steps.forEach(([step, b]) => { b.disabled = step > 0 ? draft >= cap : draft <= 0; });
   }
   function commit() {
     close();
@@ -3494,7 +3488,8 @@ function openLifeDialog(kind) {
     if (value === 0) { if (grave) showDefeat(); else showVictory(); }
   }
   update();
-  close = openModal(dialog, { onCancel: cancel, initialFocus: confirm });
+  close = openModal(dialog, { onCancel: commit, initialFocus: steps[1][1] });
+  dialog.parentElement.classList.add('ae-life-backdrop');
 }
 
 // Fascia del turno nemesi dentro .ae-rail-row (creata qui una volta sola) e classi della fase di pesca

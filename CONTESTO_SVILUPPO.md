@@ -562,9 +562,11 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
-  - Toccando un box si apre la finestra della vita (`openLifeDialog`, come quella del minion): titolo, "x / max",
-    −5 −1 +1 +5 (mai sopra la vita iniziale né sotto 0), Annulla / Conferma modifiche. La conferma è un passo di undo
-    e si salva.
+  - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
+    stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px, rosso
+    se scende, verde se sale), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
+    volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
     Vittoria con la scritta rossa, `showEndScreen`). Chiusa la schermata, Undo rimette la vita e la partita continua.
 - **Statistiche:** turni nemesi, carte giocate del mazzo nemesi (mazzo iniziale − carte rimaste, quindi anche quelle
