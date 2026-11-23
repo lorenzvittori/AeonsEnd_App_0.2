@@ -1885,6 +1885,10 @@ body { overflow: hidden; }
   font: 600 8px/7px var(--ae-font-ui); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
   color: var(--ae-text); opacity: .75; pointer-events: none;
 }
+/* v263: box delle vite 16px più in basso (spostati e basta: la riga e le carte grandi non cambiano). Stanno ai lati e
+   la riga vita/token della carta è sempre al centro, quindi possono scendere accanto a lei; sopra a tutto per il tocco */
+.ae-lives { z-index: 4; }
+.ae-life-box { top: 16px; }
 /* v259: finestra della vita = una pillola al centro come il box (stesso sfondo): numero grande sopra, −5 −1 · +1 +5 sotto */
 .ae-life-modal {
   width: min(340px, 100%); min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -1911,6 +1915,20 @@ body { overflow: hidden; }
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, .62) 0%, rgba(0, 0, 0, .42) 48%, rgba(0, 0, 0, 0) 72%);
 }
 .ae-life-modal-delta { margin-left: 2px; }
+/* v263: niente velo dietro il numero: contorno attorno alle cifre della vita. Il delta sta a destra delle
+   cifre, IN ALTO: la cima delle sue cifre è alla stessa altezza della cima delle cifre della vita (Inter: cifre alte
+   0.75em; misurato nel browser: top 7px mette le due cime alla stessa altezza) */
+.ae-life-modal-value { padding: 0; background: none; }
+/* (contorno grigio scuro, solo sulle cifre della vita: il delta non ha contorno) */
+.ae-life-modal-number { text-shadow: none; }
+.ae-life-modal-value {
+  text-shadow: -2px -2px 0 #2b2b2e, 0 -2px 0 #2b2b2e, 2px -2px 0 #2b2b2e, 2px 0 0 #2b2b2e, 2px 2px 0 #2b2b2e,
+    0 2px 0 #2b2b2e, -2px 2px 0 #2b2b2e, -2px 0 0 #2b2b2e;
+}
+.ae-life-modal-delta { text-shadow: none; }
+.ae-life-modal-delta { top: 7px; bottom: auto; margin-left: 10px; }
+/* v263: ingrandimento dal box (animato da JS): niente animazione d'entrata standard */
+.ae-life-modal.is-zooming { animation: none; }
 .ae-life-modal-number.is-loss .ae-life-modal-delta { color: #f08a78; }
 .ae-life-modal-number.is-gain .ae-life-modal-delta { color: #8fd39a; }
 .ae-life-modal-controls { display: flex; align-items: center; gap: 8px; }

@@ -3431,6 +3431,8 @@ function renderLives() {
     else b.style.removeProperty('--ae-life-bg');
     b.classList.toggle('has-bg', !!src);
   };
+  // (v263: il box resta nascosto solo mentre la sua finestra è aperta)
+  if (!document.querySelector('.ae-life-modal')) row.querySelectorAll('.ae-life-box').forEach(b => { b.style.visibility = ''; });
   setBg(row.querySelector('[data-kind="grave"]'), currentGraveholdBg().src);
   const art = settings.nemesis && nemesisArt[settings.nemesis];
   setBg(row.querySelector('[data-kind="nemesis"]'), art && art.portrait);
@@ -3489,18 +3491,49 @@ function openLifeDialog(kind) {
     number.classList.toggle('is-gain', change > 0);
     steps.forEach(([step, b]) => { b.disabled = step > 0 ? draft >= cap : draft <= 0; });
   }
+  // v263: la finestra esce dal box e si ingrandisce al centro; chiudendo torna nel box (il box intanto è nascosto)
+  const zoomFrom = () => {
+    const b = box && box.getBoundingClientRect(), d = dialog.getBoundingClientRect();
+    if (!b || !b.width || !d.width) return null;
+    return `translate(${(b.left + b.width / 2) - (d.left + d.width / 2)}px, ${(b.top + b.height / 2) - (d.top + d.height / 2)}px) scale(${b.width / d.width}, ${b.height / d.height})`;
+  };
+  const animated = () => !reducedMotion.matches && !!dialog.animate;
+  let closing = false;
   function commit() {
-    close();
-    if (draft === original) return;
+    if (closing) return;
+    closing = true;
+    const changed = draft !== original;
     const value = draft;
-    act(() => { if (grave) graveLife = value; else nemesisLife = value; });
-    render();
-    if (value === 0) { if (grave) showDefeat(); else showVictory(); }
+    if (changed) {
+      act(() => { if (grave) graveLife = value; else nemesisLife = value; });
+      render();
+    }
+    const done = () => {
+      close();
+      if (box) box.style.visibility = '';
+      if (changed && value === 0) { if (grave) showDefeat(); else showVictory(); }
+    };
+    const to = animated() && zoomFrom();
+    if (!to) { done(); return; }
+    const back = dialog.parentElement;
+    back.style.pointerEvents = 'none';
+    const out = dialog.animate([{ transform: 'none', opacity: 1 }, { transform: to, opacity: .9 }],
+      { duration: LIFE_ZOOM_MS, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' });
+    back.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LIFE_ZOOM_MS, easing: 'ease-in', fill: 'forwards' });
+    animDone([out], LIFE_ZOOM_MS).then(done);
   }
   update();
+  dialog.classList.add('is-zooming');
   close = openModal(dialog, { onCancel: commit, initialFocus: steps[1][1] });
   dialog.parentElement.classList.add('ae-life-backdrop');
+  const from = animated() && zoomFrom();
+  if (box) box.style.visibility = 'hidden';
+  if (from) {
+    dialog.animate([{ transform: from, opacity: .9 }, { transform: 'none', opacity: 1 }],
+      { duration: LIFE_ZOOM_MS, easing: 'cubic-bezier(.2, 0, 0, 1)' });
+  }
 }
+const LIFE_ZOOM_MS = 280;
 
 // Fascia del turno nemesi dentro .ae-rail-row (creata qui una volta sola) e classi della fase di pesca
 function renderResolveInfo(drawStep) {

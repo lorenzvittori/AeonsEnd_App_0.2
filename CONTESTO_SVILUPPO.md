@@ -561,15 +561,19 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   piccolissima **GRAVEHOLD** / **NEMESIS** (`.ae-life-tag`, 8px, alta 7px, 3px sopra il box); i box scendono di 3.8px
   (`.ae-lives` padding sopra 7.8px e margine sotto −3.8px: la riga resta alta uguale, le carte grandi non cambiano),
   così nello scheletro gli spazi 5 (fascia piccola → box vita) e 6 (box vita → riga vita/token) sono uguali (24.5px;
-  ±0.3px in 19:9 e 20:9 per l'arrotondamento della carta centrata). Dalla v258 i box hanno uno **sfondo** velato
+  ±0.3px in 19:9 e 20:9 per l'arrotondamento della carta centrata). Dalla v263 i box (con le scritte) sono 16px più
+  in basso (`.ae-life-box { top: 16px }`, solo spostati: riga e carte grandi uguali): stanno ai lati e la riga
+  vita/token della carta è sempre al centro, quindi scendono accanto a lei (scheletro: spazio 5 = 40.5px, 6 = 8.5px). Dalla v258 i box hanno uno **sfondo** velato
   (larghi almeno 72px): Gravehold = immagine scelta nel Menu della partita con la riga **"Sfondo Gravehold"** (Città
   o Torre, `GRAVEHOLD_BGS`, stessa finestra a anteprime dello Sfondo: `backgroundChoiceButton` / `openBackgroundPicker`
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
     stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px,
-    sempre bianco, dalla v261 con dietro un velo nero sfumato per il contrasto; in basso a destra, staccato di circa
-    24px, il cambio rispetto a prima "+x" verde / "−y" rosso, solo se c'è), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    sempre bianco con un contorno grigio scuro attorno alle cifre, v263; il velo nero della v261 è tolto; a destra
+    delle cifre, 10px dopo e IN ALTO, il cambio rispetto a prima "+x" verde / "−y" rosso, senza contorno, con la cima
+    delle cifre alla stessa altezza di quella della vita), sotto **−5 −1 · +1 +5**. Dalla v263 la finestra esce dal
+    box e si ingrandisce al centro (280ms, `LIFE_ZOOM_MS`); chiudendo torna nel box (il box è nascosto mentre è aperta) (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
     Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
     volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
