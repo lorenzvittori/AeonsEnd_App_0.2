@@ -1893,8 +1893,16 @@ body { overflow: hidden; }
 .ae-life-modal-number { position: relative; }
 .ae-life-modal-delta { position: absolute; left: 100%; bottom: 8px; margin-left: 4px; font-size: 20px; line-height: 24px; white-space: nowrap; }
 .ae-life-modal-delta[hidden] { display: none; }
-.ae-life-modal-number.is-loss { color: #f08a78; }
-.ae-life-modal-number.is-gain { color: #8fd39a; }
+/* v261: il numero resta bianco (solo il delta è rosso o verde, più staccato a destra); dietro al numero un velo nero
+   sfumato per il contrasto sull'immagine */
+.ae-life-modal-number { color: var(--ae-text); }
+.ae-life-modal-value {
+  display: inline-block; padding: 0 22px; border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .62) 0%, rgba(0, 0, 0, .42) 48%, rgba(0, 0, 0, 0) 72%);
+}
+.ae-life-modal-delta { margin-left: 2px; }
+.ae-life-modal-number.is-loss .ae-life-modal-delta { color: #f08a78; }
+.ae-life-modal-number.is-gain .ae-life-modal-delta { color: #8fd39a; }
 .ae-life-modal-controls { display: flex; align-items: center; gap: 8px; }
 .ae-life-step-gap { width: 18px; flex: 0 0 auto; }
 .ae-life-step {

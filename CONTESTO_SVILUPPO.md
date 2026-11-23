@@ -563,9 +563,9 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
   con `choice`); nemesi = il ritratto della nemesi della partita (`nemesisArt[...].portrait`). Le carte grandi prendono lo spazio che resta (a 360×780 da 249 a 222px).
   Non c'è durante "Crea mazzo" né nella copia della testata della finestra del mazzo dei turni.
   - Toccando un box si apre la finestra della vita (`openLifeDialog`). Dalla v259 è una **pillola al centro** con la
-    stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px, rosso
-    se scende, verde se sale; dalla v260 in basso a destra del numero il cambio rispetto a prima, "+x" / "−y", solo se
-    c'è), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
+    stessa forma e lo stesso sfondo del box (`.ae-life-modal`, larga fino a 340px): sopra il numero grande (64px,
+    sempre bianco, dalla v261 con dietro un velo nero sfumato per il contrasto; in basso a destra, staccato di circa
+    24px, il cambio rispetto a prima "+x" verde / "−y" rosso, solo se c'è), sotto **−5 −1 · +1 +5** (mai sopra la vita iniziale né sotto 0: il pulsante si spegne).
     Niente titolo né Conferma: si chiude toccando fuori, con Esc o Indietro, e alla chiusura la vita si applica una
     volta sola (un passo di undo, si salva; senza cambi niente undo).
   - A 0: nemesi → schermata **Vittoria**; Gravehold → schermata **Sconfitta** (`showDefeat`, stessa schermata della
