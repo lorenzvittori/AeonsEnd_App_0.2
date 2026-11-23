@@ -1878,6 +1878,27 @@ body { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .ae-turn-area--pile .ae-turn-pile-slot, .ae-turn-area--pile .ae-turn-pile-empty, .ae-turn-reveal-row .ae-turn-eye--all { transition: none; }
 }
+/* v269: Mescola senza sfondo grigio al passaggio (sul telefono il :hover restava acceso dopo il tocco finché non si
+   toccava altrove): lo sfondo compare solo mentre è premuto */
+.ae-turn-heads .ae-turn-shuffle.ae-icon-button:hover { background: transparent; }
+.ae-turn-heads .ae-turn-shuffle.ae-icon-button:active:not(:disabled) { background: var(--ae-surface-raised); }
+/* v269: segnaposto della carta presa grigio scuro a righe oblique (due grigi) con un contorno tratteggiato dorato
+   spento: il "buco" da cui è uscita la carta (prima grigio chiaro pieno) */
+.ae-turn-card.is-dragging, .ae-turn-pile-slot .ae-turn-card.is-dragging, .ae-turn-lane .ae-turn-card.is-dragging {
+  background: repeating-linear-gradient(135deg, #26262b 0 5px, #34343b 5px 10px) !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, .55) !important;
+  outline: 1.5px dashed rgba(223, 174, 89, .55) !important; outline-offset: -1.5px;
+}
+/* v269: posti vuoti (scarti e mazzo) tratteggiati, larghi e alti come una carta, con il simbolo ∅ al centro (al posto
+   della scritta "Mazzo vuoto"); il simbolo sparisce quando al centro c'è il cerchio d'arrivo o la guida */
+.ae-turn-pile-empty, .ae-turn-lane .ae-turn-fan-empty {
+  display: grid; place-items: center; box-sizing: border-box; color: var(--ae-text-muted);
+  border: 1px dashed rgba(236, 232, 222, .25); border-radius: 8% / 6%;
+}
+.ae-turn-lane .ae-turn-fan-empty { inset: 0 auto auto 0; }
+.ae-turn-empty-icon { display: block; width: min(26px, calc(var(--ae-turn-w, 48px) * .42)); aspect-ratio: 1; opacity: .8; transition: opacity .15s ease; }
+.ae-turn-empty-icon svg { display: block; width: 100%; height: 100%; }
+.ae-turn-area--pile.has-zone .ae-turn-empty-icon, .ae-turn-lane.is-empty-target .ae-turn-empty-icon { opacity: 0; }
 
 /* v254: vite di Gravehold (sinistra) e della nemesi (destra) sotto la fascia delle carte piccole, ai margini della fascia */
 .ae-lives { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px 0; position: relative; z-index: 1; }

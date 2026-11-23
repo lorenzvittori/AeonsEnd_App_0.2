@@ -339,6 +339,17 @@ Il proprietario scrive in **italiano**: si risponde in italiano.
         carta è stata presa (scarti o mazzo) non resta più una copia al 100% ma un **segnaposto grigio chiaro** senza
         immagine, piccolo come le altre (`.ae-turn-card.is-dragging`). Gli **scarti** hanno il contorno più scuro delle
         carte del mazzo (opacità 0.28 invece di 0.75; il turno in corso resta dorato). (v234-v240: riquadri grandi come una carta con la scritta, in verticale e poi in orizzontale.)
+        **v269**: il segnaposto è **grigio scuro a righe oblique** (due grigi) con un contorno tratteggiato dorato
+        spento. Riga **compatta e centrata**: lo spazio tra due oggetti è al massimo 12px (`TURN_GAP_MAX`; prima la
+        fila riempiva sempre tutta la riga, con poche carte spazi enormi), minimo 10px come prima; w resta unica per
+        tutti gli stati. Trascinando la **prima** carta del mazzo il cerchio **Cima** sta sopra il suo segnaposto (è
+        già in cima), trascinando l'**ultima** il cerchio **Fondo**; senza scarti il **cerchio degli scarti** sta al
+        centro del posto tratteggiato (oggetti con `it.on` in `rowItems`: fuori dalla fila, centrati su un altro).
+        Posti vuoti (scarti e mazzo) tratteggiati, grandi come una carta, con il simbolo **∅** (`emptySetIcon`, al
+        posto della scritta "Mazzo vuoto", che resta come nome per i lettori di schermo); il simbolo sparisce quando
+        al centro c'è il cerchio o la guida. Le zone di rilascio valgono solo nell'**altezza delle carte**
+        (`inCardBand`; prima ±24px sopra e sotto). Mescola senza sfondo grigio al passaggio (sul telefono il `:hover`
+        restava acceso dopo il tocco): lo sfondo c'è solo mentre è premuto.
         Niente riquadro attorno alle carte del mazzo (v240) (`.ae-turn-zone`, `.ae-turn-lane.is-squeezed`). Trascinandola, il **segmento verticale dorato**
         (`.ae-turn-insert`) dice dove cadrà: tra Cima e la prima carta, tra due carte (`pileSlotAt`: prima della prima
         carta il cui centro è a destra della carta trascinata) o tra l'ultima carta e Fondo. Col tocco: la carta degli

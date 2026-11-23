@@ -4722,6 +4722,16 @@ const TURN_SHEET_MS = 320;
 function animDone(anims, ms) {
   return Promise.race([Promise.all(anims.map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, ms + 150))]);
 }
+// v269: simbolo dell'insieme vuoto (∅: cerchio con una barra obliqua che esce dal cerchio), nei posti vuoti di scarti
+// e mazzo dei turni; disegnato in SVG, colore del testo
+function emptySetIcon() {
+  const s = el('span', 'ae-turn-empty-icon');
+  s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = '<svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+    '<path d="M5 19 L19 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  return s;
+}
+
 function openTurnScreen() {
   if (turnDeckBlocked()) return;
   // d.old: carte già note all'apertura (scurite, si spostano solo dalla cima); parallelo a d.left, solo nella finestra
@@ -4925,7 +4935,12 @@ function openTurnScreen() {
     const rr = row.getBoundingClientRect();
     // (v267: centro del segmento nella disposizione finale, non dove si trova a metà transizione)
     const split = rowGeo ? rr.left + rowGeo.split * pageZoom() : (() => { const dv = divider.getBoundingClientRect(); return dv.left + dv.width / 2; })();
-    return x >= rr.left - 24 && x < split && y >= laneRect.top - 24 && y <= laneRect.bottom + 24;
+    // (v269: in verticale solo l'altezza delle carte, niente più 24px sopra e sotto)
+    return x >= rr.left - 24 && x < split && inCardBand(y, laneRect);
+  }
+  // v269: fascia verticale delle carte (dall'alto al basso della corsia del mazzo): le zone di rilascio non vanno oltre
+  function inCardBand(y, laneRect) {
+    return y >= laneRect.top && y <= laneRect.bottom;
   }
   const revealAll = el('button', 'ae-turn-eye ae-turn-eye--all');
   revealAll.type = 'button';
@@ -4987,7 +5002,14 @@ function openTurnScreen() {
       return card;
     });
     lane.replaceChildren(...fanEls);
-    if (!n) lane.appendChild(el('span', 'ae-turn-fan-empty', I18N_IT.turnDeckEmpty));
+    // (v269: mazzo vuoto = posto tratteggiato largo una carta con il simbolo dell'insieme vuoto, al posto della scritta)
+    if (!n) {
+      const empty = el('span', 'ae-turn-fan-empty');
+      empty.setAttribute('role', 'img');
+      empty.setAttribute('aria-label', I18N_IT.turnDeckEmpty);
+      empty.appendChild(emptySetIcon());
+      lane.appendChild(empty);
+    }
     revealTop.hidden = !n || d.known[0];
     insertBar.hidden = true;
     lane.append(revealTop, zoneTop, zoneBottom, insertBar);
@@ -5022,6 +5044,7 @@ function openTurnScreen() {
       const empty = el('span', 'ae-turn-pile-empty');
       empty.setAttribute('role', 'img');
       empty.setAttribute('aria-label', I18N_IT.turnPileEmpty);
+      empty.appendChild(emptySetIcon());
       pileRow.replaceChildren(empty);
     }
     pileEls = pileEls.map(slot => slot.firstChild);
@@ -5073,23 +5096,35 @@ function openTurnScreen() {
     const items = [];
     if (k) d.drawn.forEach((x, i) => items.push({ kind: 'pile', i, vis: sc('pile', i) * w }));
     else items.push({ kind: 'pileEmpty', vis: w });
-    if (st.holding === 'deck') items.push({ kind: 'pileZone', vis: zd });
+    // (v269: senza scarti il cerchio degli scarti sta al centro del posto tratteggiato, non in fila: it.on)
+    if (st.holding === 'deck') items.push(k ? { kind: 'pileZone', vis: zd } : { kind: 'pileZone', vis: zd, on: items[0] });
     items.push({ kind: 'divider', vis: 1 });
     // (Cima e Fondo solo se nel mazzo c'è una carta vera oltre al segnaposto della carta trascinata)
     const mReal = n - (st.dragDeck ? 1 : 0);
     const ends = tight && mReal > 0;
-    if (ends) items.push({ kind: 'top', vis: zd });
-    if (n) d.left.forEach((x, i) => items.push({ kind: 'deck', i, vis: sc('deck', i) * w }));
-    else items.push({ kind: 'deckEmpty', vis: w });
-    if (ends) items.push({ kind: 'bottom', vis: zd });
+    const deckIt = n ? d.left.map((x, i) => ({ kind: 'deck', i, vis: sc('deck', i) * w })) : [{ kind: 'deckEmpty', vis: w }];
+    // v269: trascinando la carta in cima (o in fondo) il cerchio Cima (Fondo) sta sopra il suo segnaposto: è già lì
+    const ph = st.dragDeck && st.dragIndex != null ? st.dragIndex : -1;
+    if (ends) items.push(ph === 0 ? { kind: 'top', vis: zd, on: deckIt[0] } : { kind: 'top', vis: zd });
+    items.push(...deckIt);
+    if (ends) items.push(ph === n - 1 ? { kind: 'bottom', vis: zd, on: deckIt[n - 1] } : { kind: 'bottom', vis: zd });
     return items;
   }
-  // Mette gli oggetti in fila dal bordo sinistro (0) al destro (W) con spazi uguali; restituisce lo spazio
+  // Mette in fila gli oggetti con spazi uguali; restituisce lo spazio.
+  // v269: lo spazio è al massimo TURN_GAP_MAX (prima riempiva tutta la riga: con poche carte spazi enormi); la fila
+  // sta al centro della riga. Gli oggetti con it.on non sono in fila: stanno al centro dell'oggetto it.on
+  const TURN_GAP_MAX = 12;
   function spaceItems(items, W) {
-    const sum = items.reduce((s, it) => s + it.vis, 0);
-    const g = items.length > 1 ? (W - sum) / (items.length - 1) : 0;
-    let x = 0;
-    items.forEach(it => { it.left = x; it.right = x + it.vis; x = it.right + g; });
+    const flow = items.filter(it => !it.on);
+    const sum = flow.reduce((s, it) => s + it.vis, 0);
+    const g = flow.length > 1 ? Math.min(TURN_GAP_MAX, (W - sum) / (flow.length - 1)) : 0;
+    let x = Math.max(0, (W - sum - g * Math.max(0, flow.length - 1)) / 2);
+    flow.forEach(it => { it.left = x; it.right = x + it.vis; x = it.right + g; });
+    items.forEach(it => {
+      if (!it.on) return;
+      it.left = it.on.left + it.on.vis / 2 - it.vis / 2;
+      it.right = it.left + it.vis;
+    });
     return g;
   }
   function rowGeometry() {
@@ -5141,7 +5176,7 @@ function openTurnScreen() {
     row.style.marginTop = (16 + CUSP_H + cuspGap - 32 + 0.1 * h) + 'px';
     const holding = drag ? drag.source : sel ? sel.source : null;
     const tight = !!holding;
-    const st = { holding, selected: sel, dragDeck: !!drag && drag.source === 'deck' };
+    const st = { holding, selected: sel, dragDeck: !!drag && drag.source === 'deck', dragIndex: drag ? drag.index : null };
     const items = rowItems(w, st);
     const gap = spaceItems(items, W);
     const one = kind => items.find(it => it.kind === kind) || null;
@@ -5203,6 +5238,8 @@ function openTurnScreen() {
     const pz = one('pileZone');
     const toPile = !!over && over.type === 'pile';
     pileZone.hidden = !pz;
+    // (v269: cerchio sul posto vuoto degli scarti: il simbolo ∅ sotto di lui sparisce)
+    pileArea.classList.toggle('has-zone', !!pz);
     pileZone.classList.toggle('is-over', toPile && !!pz);
     if (pz) Object.assign(pileZone.style, { left: pz.left + 'px', top: (h / 2 - zd / 2) + 'px' });
     pileInsert.hidden = !(toPile && pz);
@@ -5318,27 +5355,12 @@ function openTurnScreen() {
     // (v247: ultima risorsa, se a 8px non ci sta ancora: senza spazio tra le lettere)
     if (textW(node) > maxW) node.style.letterSpacing = '0';
   }
-  // v251: "Mazzo vuoto" sta dentro il posto del mazzo, largo come una carta (lw: larghezza finale della corsia): il
-  // carattere scende finché ci sta, anche su due righe ("Mazzo" sopra e "vuoto" sotto)
+  // v269: il posto del mazzo vuoto (tratteggiato, con il simbolo ∅) è largo e alto come una carta
   // (v267: left = bordo sinistro del posto nella corsia, dalla disposizione equispaziata)
   function fitEmpty(left, h, w) {
     const e = lane.querySelector('.ae-turn-fan-empty');
     if (!e) return;
-    const lw = w;
-    Object.assign(e.style, { left: left + 'px', right: 'auto', width: lw + 'px', transform: 'none', fontSize: '' });
-    // (misura del testo vero, con un Range: scrollWidth non vede il testo che esce da un contenitore a griglia)
-    const range = document.createRange();
-    range.selectNodeContents(e);
-    const fits = () => {
-      const r = range.getBoundingClientRect(), z = pageZoom();
-      // (mezzo pixel di margine: il testo resta dentro anche con gli arrotondamenti)
-      return r.width / z <= lw - 0.5 && r.height / z <= h - 0.5;
-    };
-    let size = parseFloat(getComputedStyle(e).fontSize) || 14;
-    for (let i = 0; i < 16 && !fits() && size > 8; i++) {
-      size = Math.max(8, size - 0.5);
-      e.style.fontSize = size + 'px';
-    }
+    Object.assign(e.style, { left: left + 'px', right: 'auto', width: w + 'px', height: h + 'px', transform: 'none' });
   }
   // Posto d'inserimento (0 = in cima, n = in fondo) per la carta degli scarti che sta in x sul mazzo stretto: prima
   // della prima carta il cui centro è a destra di x
@@ -5467,12 +5489,17 @@ function openTurnScreen() {
     // (v253: zona "scarti" = tutta l'area a sinistra del centro del segmento verticale, nella stessa fascia verticale
     // della corsia del mazzo (±24px): nessuna fascia morta tra scarti e Cima; prima solo le carte degli scarti ±12px)
     if (drag.source === 'deck' && inPileZone(x, y, laneRect)) target = { type: 'pile' };
+    else if (!inCardBand(y, laneRect)) target = null;
     else if (hit(zoneTop.getBoundingClientRect(), x, y, 6) && !zoneTop.hidden) target = { type: 'top' };
     else if (hit(zoneBottom.getBoundingClientRect(), x, y, 6) && !zoneBottom.hidden) target = { type: 'bottom' };
     else if (hit(laneRect, x, y, 24)) {
       if (order.length) {
         shownPos = pileSlotAt(x);
         target = { type: 'pos', index: ph >= 0 && shownPos > ph ? shownPos - 1 : shownPos };
+        // v269: la carta in cima (o in fondo) presa e lasciata al suo posto = Cima (Fondo), il cerchio sul segnaposto
+        const last = d.left.length - 1;
+        if (ph === 0 && target.index === 0 && !zoneTop.hidden) { target = { type: 'top' }; shownPos = -1; }
+        else if (ph === last && target.index === last && !zoneBottom.hidden) { target = { type: 'bottom' }; shownPos = -1; }
       } else target = { type: 'top' };
     }
     drag.target = target;
